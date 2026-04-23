@@ -76,6 +76,8 @@ client.interceptors.response.use(
       // Distinguish between critical errors and user-level validation/auth feedback
       if (isValidationError) {
         console.warn(`[API Validation] ${statusText} - ${url}`);
+      } else if (!status) {
+        console.error(`[API Network Error] Could not connect to ${API_URL}. Check your internet or if the server is down.`);
       } else {
         console.error(`[API Error] ${statusText} - ${url}`);
       }
@@ -83,12 +85,10 @@ client.interceptors.response.use(
       if (error.response?.data) {
         const backendMessage = error.response.data?.message || error.response.data?.error;
         if (backendMessage) {
-          if (isValidationError) {
-            console.warn(`[API Suggestion]: ${backendMessage}`);
-          } else {
-            console.error(`[API Suggestion]: Backend says "${backendMessage}"`);
-          }
+           error.message = backendMessage; // Attach backend message to the error object
         }
+      } else if (!status) {
+         error.message = "Could not connect to server. Please check your internet connection.";
       }
     }
     
