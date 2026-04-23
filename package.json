@@ -4,6 +4,7 @@
   "description": "Root workspace",
   "scripts": {
     "start": "npm run start --prefix backend",
-    "dev": "npm run dev --prefix backend"
+    "dev": "npm run dev --prefix backend",
+    "postinstall": "npm install --prefix backend"
   }
 }
