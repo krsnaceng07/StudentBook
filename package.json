@@ -1,0 +1,9 @@
+{
+  "name": "studentsociety",
+  "version": "1.0.0",
+  "description": "Root workspace",
+  "scripts": {
+    "start": "npm run start --prefix backend",
+    "dev": "npm run dev --prefix backend"
+  }
+}
