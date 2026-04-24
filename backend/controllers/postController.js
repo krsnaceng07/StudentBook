@@ -6,15 +6,34 @@ const Profile = require('../models/Profile');
 const User = require('../models/User');
 const Connection = require('../models/Connection');
 const Notification = require('../models/Notification');
+const Joi = require('joi');
+const xss = require('xss');
+
+const postSchema = Joi.object({
+  content: Joi.string().max(5000).allow(''),
+  images: Joi.array().items(Joi.string()),
+  tags: Joi.array().items(Joi.string())
+});
+
+const commentSchema = Joi.object({
+  content: Joi.string().required().max(2000),
+  parentId: Joi.string().allow(null, '')
+});
 
 // @desc    Create a new post
 // @route   POST /api/v1/posts
 // @access  Private
 const createPost = async (req, res) => {
   try {
-    let { content, images, tags } = req.body;
-    content = content || '';
+    const { error } = postSchema.validate(req.body);
+    if (error) {
+      return res.status(400).json({ success: false, message: error.details[0].message });
+    }
 
+    let { content, images, tags } = req.body;
+    content = xss(content || '');
+
+    // ALWAYS use authenticated user as author
     const post = await Post.create({
       authorId: req.user._id,
       content,
@@ -58,10 +77,25 @@ const getFeed = async (req, res) => {
 
     // Build filter
     const filter = {};
-    if (search) {
+
+    if (search && search.trim()) {
+      const trimmedSearch = search.trim();
+      const searchRegex = { $regex: trimmedSearch, $options: 'i' };
+      
+      // DEEP SEARCH: Find users whose name/username matches the search
+      const matchingUsers = await User.find({
+        $or: [
+          { name: searchRegex },
+          { username: searchRegex }
+        ]
+      }).select('_id').limit(10);
+      
+      const matchingUserIds = matchingUsers.map(u => u._id);
+
       filter.$or = [
-        { content: { $regex: search, $options: 'i' } },
-        { tags: { $regex: search, $options: 'i' } }
+        { content: searchRegex },
+        { tags: searchRegex },
+        { authorId: { $in: matchingUserIds } }
       ];
     }
     if (tag) {
@@ -277,26 +311,52 @@ const toggleLike = async (req, res) => {
     const { postId } = req.params;
     const userId = req.user._id;
 
-    const existingLike = await Like.findOne({ userId, postId });
+    // 1. Try to delete the like (atomic check)
+    const deletedLike = await Like.findOneAndDelete({ userId, postId });
 
-    if (existingLike) {
-      await Like.deleteOne({ _id: existingLike._id });
-      await Post.findByIdAndUpdate(postId, { $inc: { likesCount: -1 } });
-      return res.json({ success: true, message: 'Unliked', liked: false });
-    } else {
-      await Like.create({ userId, postId });
-      const post = await Post.findByIdAndUpdate(postId, { $inc: { likesCount: 1 } }, { new: true });
+    if (deletedLike) {
+      // 2a. If it existed and was deleted, decrement count (ensure it doesn't go below 0)
+      const post = await Post.findByIdAndUpdate(
+        postId, 
+        { $inc: { likesCount: -1 } },
+        { new: true }
+      );
       
-      if (post && post.authorId.toString() !== userId.toString()) {
-        await Notification.create({
-          recipient: post.authorId,
-          sender: userId,
-          type: 'like',
-          post: postId
-        });
+      // Safety: Ensure count doesn't drift negative
+      if (post && post.likesCount < 0) {
+        post.likesCount = 0;
+        await post.save();
       }
 
-      return res.json({ success: true, message: 'Liked', liked: true });
+      return res.json({ success: true, message: 'Unliked', liked: false });
+    } else {
+      // 2b. If it didn't exist, try to create it
+      try {
+        await Like.create({ userId, postId });
+        const post = await Post.findByIdAndUpdate(
+          postId, 
+          { $inc: { likesCount: 1 } },
+          { new: true }
+        );
+
+        // Notification logic
+        if (post && post.authorId.toString() !== userId.toString()) {
+          await Notification.create({
+            recipient: post.authorId,
+            sender: userId,
+            type: 'like',
+            post: postId
+          });
+        }
+
+        return res.json({ success: true, message: 'Liked', liked: true });
+      } catch (createErr) {
+        // If unique index prevents double-creation, it means another request just liked it
+        if (createErr.code === 11000) {
+          return res.json({ success: true, message: 'Already liked', liked: true });
+        }
+        throw createErr;
+      }
     }
   } catch (err) {
     res.status(500).json({ success: false, message: 'Server error' });
@@ -308,14 +368,20 @@ const toggleLike = async (req, res) => {
 // @access  Private
 const addComment = async (req, res) => {
   try {
+    const { error } = commentSchema.validate(req.body);
+    if (error) {
+      return res.status(400).json({ success: false, message: error.details[0].message });
+    }
+
     const { content, parentId } = req.body;
+    const sanitizedContent = xss(content);
     const { postId } = req.params;
 
     const comment = await Comment.create({
       userId: req.user._id,
       postId,
       parentId: parentId || null,
-      content
+      content: sanitizedContent
     });
 
     await Post.findByIdAndUpdate(postId, { $inc: { commentsCount: 1 } });
@@ -358,10 +424,20 @@ const addComment = async (req, res) => {
 const getComments = async (req, res) => {
   try {
     const { postId } = req.params;
+    const { cursor } = req.query;
+    const limit = Math.min(parseInt(req.query.limit) || 20, 100);
 
-    const comments = await Comment.find({ postId })
+    const query = { postId };
+    if (cursor) {
+      query.createdAt = { $gt: new Date(cursor) };
+    }
+
+    const comments = await Comment.find(query)
       .sort({ createdAt: 1 })
+      .limit(limit)
       .populate('userId', 'name username');
+
+    const nextCursor = comments.length === limit ? comments[comments.length - 1].createdAt : null;
 
     // Batch-fetch all profiles and comment likes in ONE query each (eliminates N+1)
     const commenterIds = comments.map(c => c.userId._id);
@@ -389,7 +465,13 @@ const getComments = async (req, res) => {
       };
     });
 
-    res.json({ success: true, data: enhancedComments });
+    res.json({ 
+      success: true, 
+      data: enhancedComments,
+      pagination: {
+        nextCursor
+      }
+    });
   } catch (err) {
     res.status(500).json({ success: false, message: 'Server error' });
   }
@@ -464,10 +546,44 @@ const updatePost = async (req, res) => {
   }
 };
 
+// @desc    Delete a post
+// @route   DELETE /api/v1/posts/:id
+// @access  Private
+const deletePost = async (req, res) => {
+  try {
+    console.log(`[DELETE POST] Request for ID: ${req.params.id} by User: ${req.user._id}`);
+    
+    const post = await Post.findById(req.params.id);
+
+    if (!post) {
+      console.log(`[DELETE POST] Post not found: ${req.params.id}`);
+      return res.status(404).json({ success: false, message: 'Post not found in database' });
+    }
+
+    // Ownership Check
+    if (post.authorId.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
+      return res.status(403).json({ success: false, message: 'Not authorized to delete this post' });
+    }
+
+    await Post.deleteOne({ _id: post._id });
+
+    // Cleanup likes and comments (optional but recommended)
+    await Promise.all([
+      Like.deleteMany({ postId: post._id }),
+      Comment.deleteMany({ postId: post._id })
+    ]);
+
+    res.json({ success: true, message: 'Post deleted' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+};
+
 module.exports = {
   createPost,
   getFeed,
   updatePost,
+  deletePost,
   toggleLike,
   addComment,
   getComments,

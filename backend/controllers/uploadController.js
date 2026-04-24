@@ -33,14 +33,6 @@ exports.uploadPostImage = async (req, res) => {
       return res.status(400).json({ success: false, message: "No file uploaded" });
     }
 
-    console.log("File received:", {
-      fieldname: req.file.fieldname,
-      originalname: req.file.originalname,
-      mimetype: req.file.mimetype,
-      size: req.file.size,
-      hasBuffer: !!req.file.buffer
-    });
-
     const result = await uploadToCloudinary(req.file, "studentsociety/posts");
 
     res.status(200).json({
@@ -49,15 +41,39 @@ exports.uploadPostImage = async (req, res) => {
       url: result.secure_url
     });
   } catch (error) {
-    console.error("Post Image Upload Error Details:", {
-      message: error.message,
-      stack: error.stack,
-      cloudinaryError: error.http_code ? error : "Not a Cloudinary error"
-    });
-    // Never leak internal error.message to the client in any environment
+    console.error("Post Image Upload Error:", error);
     res.status(500).json({ 
       success: false, 
       message: "Server error during upload. Please try again."
     });
+  }
+};
+
+exports.uploadChatMedia = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: "No file uploaded" });
+    }
+
+    const isImage = req.file.mimetype.startsWith('image/');
+    const isPDF = req.file.mimetype === 'application/pdf';
+
+    if (!isImage && !isPDF) {
+      return res.status(400).json({ success: false, message: "Only images and PDFs are allowed" });
+    }
+
+    const folder = isImage ? "studentsociety/chat/images" : "studentsociety/chat/docs";
+    const result = await uploadToCloudinary(req.file, folder);
+
+    res.status(200).json({
+      success: true,
+      url: result.secure_url,
+      type: isImage ? 'image' : 'pdf',
+      name: req.file.originalname,
+      size: req.file.size
+    });
+  } catch (error) {
+    console.error("Chat Media Upload Error:", error);
+    res.status(500).json({ success: false, message: "Server error during upload" });
   }
 };

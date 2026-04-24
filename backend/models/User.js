@@ -36,14 +36,44 @@ const userSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ['active', 'banned'],
+    enum: ['active', 'banned', 'deleted'],
     default: 'active',
+  },
+  settings: {
+    isPrivate: { type: Boolean, default: false },
+    showEmail: { type: Boolean, default: false },
+    allowMessagesFrom: { type: String, enum: ['everyone', 'connections'], default: 'everyone' },
+    notifications: {
+      messages: { type: Boolean, default: true },
+      connections: { type: Boolean, default: true },
+      posts: { type: Boolean, default: true }
+    }
   },
   publicKey: {
     type: String,
     default: null,
+  },
+  resetPasswordToken: String,
+  resetPasswordExpire: Date,
+}, { 
+  timestamps: true,
+  toJSON: {
+    transform(doc, ret) {
+      delete ret.password;
+      delete ret.resetPasswordToken;
+      delete ret.resetPasswordExpire;
+      return ret;
+    }
+  },
+  toObject: {
+    transform(doc, ret) {
+      delete ret.password;
+      delete ret.resetPasswordToken;
+      delete ret.resetPasswordExpire;
+      return ret;
+    }
   }
-}, { timestamps: true });
+});
 
 userSchema.pre('save', async function() {
   if (!this.isModified('password')) {
@@ -60,6 +90,27 @@ userSchema.methods.matchPassword = async function(enteredPassword) {
   }
   return await bcrypt.compare(enteredPassword, this.password);
 };
+
+// Generate and hash password token
+userSchema.methods.getResetPasswordToken = function() {
+  const crypto = require('crypto');
+  
+  // Generate token
+  const resetToken = crypto.randomBytes(20).toString('hex');
+
+  // Hash token and set to resetPasswordToken field
+  this.resetPasswordToken = crypto
+    .createHash('sha256')
+    .update(resetToken)
+    .digest('hex');
+
+  // Set expire (10 minutes)
+  this.resetPasswordExpire = Date.now() + 10 * 60 * 1000;
+
+  return resetToken;
+};
+
+userSchema.index({ name: 'text', username: 'text' });
 
 const User = mongoose.model('User', userSchema);
 module.exports = User;

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import { useRouter } from 'expo-router';
 import { View, Text, TextInput, FlatList, TouchableOpacity, ActivityIndicator, RefreshControl, Keyboard, ScrollView, Animated, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useDiscoverStore } from '../../store/discoverStore';
 import { usePostStore } from '../../store/postStore';
 import { useNotificationStore } from '../../store/notificationStore';
@@ -52,6 +53,7 @@ const SuggestedUsers = React.memo(({ users, onSeeAll }: { users: any[], onSeeAll
 
 export default function HomeScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { 
     users, isLoading: usersLoading, isRefreshing: usersRefreshing, filters: userFilters,
     fetchUsers, setFilters: setUserFilters, resetFilters: resetUserFilters 
@@ -99,7 +101,7 @@ export default function HomeScreen() {
     searchTimeout.current = setTimeout(() => {
       setUserFilters({ search: text });
       setPostFilters({ search: text });
-    }, 500);
+    }, 400); // 400ms as requested
   };
 
   const handleEditPost = useCallback((post: any) => {
@@ -191,7 +193,7 @@ export default function HomeScreen() {
             backgroundColor: '#0F172A',
             transform: [{ translateY: headerTranslate }],
             opacity: headerOpacity,
-            paddingTop: 56, // pt-14
+            paddingTop: insets.top + 10,
           }
         ]}
       >
@@ -311,7 +313,7 @@ export default function HomeScreen() {
           { useNativeDriver: true }
         )}
         contentContainerStyle={{ 
-          paddingTop: HEADER_MAX_HEIGHT + 40,
+          paddingTop: HEADER_MAX_HEIGHT + insets.top + 20,
           paddingBottom: 40 
         }}
       />

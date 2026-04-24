@@ -6,6 +6,7 @@ import { usePostStore } from '../../store/postStore';
 import NetworkUserCard from '../../components/NetworkUserCard';
 import PostCard from '../../components/PostCard';
 import { useRouter } from 'expo-router';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function NetworkScreen() {
   const { fetchConnections } = useConnectionStore();
@@ -29,7 +30,7 @@ export default function NetworkScreen() {
   };
 
   const renderHeader = () => (
-    <View className="px-6 mb-6">
+    <View className="px-6 mb-6 mt-4">
       <View className="flex-row items-center justify-between mb-6">
         <Text className="text-white text-3xl font-bold">My Network</Text>
       </View>
@@ -37,7 +38,7 @@ export default function NetworkScreen() {
   );
 
   return (
-    <View className="flex-1 bg-[#0F172A] pt-14">
+    <SafeAreaView className="flex-1 bg-[#0F172A]" edges={['top']}>
       <FlatList
         data={networkPosts}
         keyExtractor={(item) => item._id}
@@ -70,6 +71,6 @@ export default function NetworkScreen() {
         )}
         contentContainerStyle={{ paddingBottom: 40 }}
       />
-    </View>
+    </SafeAreaView>
   );
 }

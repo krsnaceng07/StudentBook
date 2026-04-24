@@ -1,5 +1,6 @@
 const Profile = require('../models/Profile');
 const Joi = require('joi');
+const xss = require('xss');
 
 const profileSchema = Joi.object({
   bio: Joi.string().max(500).allow('').messages({
@@ -44,8 +45,8 @@ const createOrUpdateProfile = async (req, res) => {
 
     if (profile) {
       // Update
-      profile.bio = bio !== undefined ? bio : profile.bio;
-      profile.field = field !== undefined ? field : profile.field;
+      profile.bio = bio !== undefined ? xss(bio) : profile.bio;
+      profile.field = field !== undefined ? xss(field) : profile.field;
       profile.skills = skills !== undefined ? skills : profile.skills;
       profile.interests = interests !== undefined ? interests : profile.interests;
       profile.goals = goals !== undefined ? goals : profile.goals;
@@ -55,8 +56,8 @@ const createOrUpdateProfile = async (req, res) => {
       // Create
       profile = await Profile.create({
         userId: req.user._id,
-        bio,
-        field,
+        bio: xss(bio || ''),
+        field: xss(field || ''),
         skills,
         interests,
         goals,
@@ -102,14 +103,27 @@ const getMyProfile = async (req, res) => {
 // @access  Public
 const getProfileByUserId = async (req, res) => {
   try {
-    const profile = await Profile.findOne({ userId: req.params.userId }).populate('userId', ['name', 'username']);
+    const profile = await Profile.findOne({ userId: req.params.userId }).populate('userId', ['name', 'username', 'email', 'settings']);
+    
     if (!profile) {
       return res.status(404).json({ success: false, message: 'Profile not found' });
     }
+
+    // Convert to object to handle privacy
+    const profileData = profile.toObject();
+    
+    // Privacy Logic: Hide email if setting is OFF AND viewer is not the owner
+    const isOwner = req.user && req.user._id.toString() === profile.userId._id.toString();
+    const showEmail = profile.userId.settings?.showEmail;
+
+    if (!showEmail && !isOwner) {
+      delete profileData.userId.email;
+    }
+
     res.json({
       success: true,
       message: 'Profile retrieved successfully',
-      data: profile,
+      data: profileData,
       meta: { timestamp: new Date().toISOString() }
     });
   } catch (err) {

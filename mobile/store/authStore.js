@@ -104,5 +104,31 @@ export const useAuthStore = create((set) => ({
     set({ token: null, user: null, isAuthenticated: false });
   },
 
+  forgotPassword: async (email) => {
+    set({ isLoading: true, error: null });
+    try {
+      const res = await client.post('/auth/forgot-password', { email });
+      set({ isLoading: false });
+      return { success: true, message: res.data.message };
+    } catch (error) {
+      const msg = error.response?.data?.message || 'Failed to send reset link';
+      set({ error: msg, isLoading: false });
+      return { success: false, error: msg };
+    }
+  },
+
+  resetPassword: async (token, password) => {
+    set({ isLoading: true, error: null });
+    try {
+      const res = await client.post(`/auth/reset-password/${token}`, { password });
+      set({ isLoading: false });
+      return { success: true, message: res.data.message };
+    } catch (error) {
+      const msg = error.response?.data?.message || 'Failed to reset password';
+      set({ error: msg, isLoading: false });
+      return { success: false, error: msg };
+    }
+  },
+
   setUser: (user) => set({ user }),
 }));

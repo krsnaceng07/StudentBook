@@ -2,16 +2,19 @@ const Conversation = require('../models/Conversation');
 const Message = require('../models/Message');
 const User = require('../models/User');
 const Profile = require('../models/Profile');
+const Connection = require('../models/Connection');
 const Joi = require('joi');
 
 const messageSchema = Joi.object({
-  text: Joi.string().required().max(5000).messages({
-    'string.empty': 'Message text cannot be empty',
-    'string.max': 'Message is too long',
-    'any.required': 'Message text is required'
-  }),
+  text: Joi.string().allow('', null).max(5000),
+  attachments: Joi.array().items(Joi.object({
+    url: Joi.string().required(),
+    type: Joi.string().valid('image', 'pdf', 'doc').required(),
+    name: Joi.string().required(),
+    size: Joi.number()
+  })).allow(null),
   replyTo: Joi.string().allow(null, '')
-});
+}).or('text', 'attachments');
 
 // @desc    Create or get a 1:1 conversation
 // @route   POST /api/v1/chat/conversations
@@ -22,6 +25,22 @@ const createConversation = async (req, res) => {
 
     if (!recipientId) {
       return res.status(400).json({ success: false, message: 'Recipient ID required' });
+    }
+
+    // SECURITY: Check if users are connected
+    const isConnected = await Connection.findOne({
+      $or: [
+        { requester: senderId, recipient: recipientId },
+        { requester: recipientId, recipient: senderId }
+      ],
+      status: 'accepted'
+    });
+
+    if (!isConnected) {
+      return res.status(403).json({ 
+        success: false, 
+        message: 'You can only start a chat with your connections' 
+      });
     }
 
     // Check if 1:1 already exists
@@ -103,6 +122,17 @@ const getMessages = async (req, res) => {
     const { cursor } = req.query; // ISO date string
     const limit = parseInt(req.query.limit) || 20;
 
+    const conversation = await Conversation.findById(req.params.conversationId);
+    if (!conversation) {
+      return res.status(404).json({ success: false, message: 'Conversation not found' });
+    }
+
+    // Security: Check if user is a participant
+    const isParticipant = conversation.participants.some(p => p.toString() === req.user._id.toString());
+    if (!isParticipant) {
+      return res.status(403).json({ success: false, message: 'Not authorized to view these messages' });
+    }
+
     const query = { conversationId: req.params.conversationId };
     if (cursor) {
       query.createdAt = { $lt: new Date(cursor) };
@@ -151,7 +181,7 @@ const sendMessage = async (req, res) => {
       return res.status(400).json({ success: false, message: error.details[0].message });
     }
 
-    const { text, replyTo } = req.body;
+    const { text, replyTo, attachments } = req.body;
     const { conversationId } = req.params;
     const senderId = req.user._id;
 
@@ -170,6 +200,7 @@ const sendMessage = async (req, res) => {
       conversationId,
       sender: senderId,
       text,
+      attachments: attachments || [],
       replyTo: replyTo || null
     });
 
@@ -187,7 +218,12 @@ const sendMessage = async (req, res) => {
       messageObj.sender.avatar = senderProfile?.avatar || null;
     }
 
-    conversation.lastMessage = text;
+    let lastMsgText = text;
+    if (!lastMsgText && attachments && attachments.length > 0) {
+      lastMsgText = attachments[0].type === 'image' ? '📷 Sent an image' : '📄 Sent a document';
+    }
+
+    conversation.lastMessage = lastMsgText || 'Media';
     conversation.lastMessageSender = senderId;
     await conversation.save();
 

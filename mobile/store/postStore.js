@@ -181,5 +181,25 @@ export const usePostStore = create((set, get) => ({
     } catch (error) {
       return { success: false, error: error.response?.data?.message || 'Failed to add comment' };
     }
+  },
+
+  deletePost: async (postId) => {
+    // Optimistic UI Update
+    const previousPosts = get().posts;
+    const previousNetworkPosts = get().networkPosts;
+
+    set((state) => ({
+      posts: state.posts.filter(p => p._id !== postId),
+      networkPosts: state.networkPosts.filter(p => p._id !== postId)
+    }));
+
+    try {
+      await client.delete(`/posts/${postId}`);
+      return { success: true };
+    } catch (error) {
+      // Rollback
+      set({ posts: previousPosts, networkPosts: previousNetworkPosts });
+      return { success: false, error: error.response?.data?.message || 'Failed to delete post' };
+    }
   }
 }));

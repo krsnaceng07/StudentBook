@@ -42,6 +42,20 @@ const loginSchema = Joi.object({
   }),
 });
 
+const forgotPasswordSchema = Joi.object({
+  email: Joi.string().email().required().messages({
+    'string.email': 'Please enter a valid email address',
+    'any.required': 'Email is required'
+  }),
+});
+
+const resetPasswordSchema = Joi.object({
+  password: Joi.string().min(6).required().messages({
+    'string.min': 'Password must be at least 6 characters',
+    'any.required': 'Password is required'
+  }),
+});
+
 // @desc    Register a new user
 // @route   POST /api/auth/register
 // @access  Public
@@ -122,7 +136,8 @@ const loginUser = async (req, res) => {
             username: user.username,
             email: user.email,
             role: user.role,
-            status: user.status
+            status: user.status,
+            settings: user.settings
           }
         },
         meta: { timestamp: new Date().toISOString() }
@@ -150,6 +165,7 @@ const getMe = async (req, res) => {
                     name: user.name,
                     username: user.username,
                     email: user.email,
+                    settings: user.settings
                 }
             }
         });
@@ -158,4 +174,82 @@ const getMe = async (req, res) => {
     }
 };
 
-module.exports = { registerUser, loginUser, getMe };
+// @desc    Forgot password
+// @route   POST /api/v1/auth/forgot-password
+// @access  Public
+const forgotPassword = async (req, res) => {
+  const { error } = forgotPasswordSchema.validate(req.body);
+  if (error) {
+    return res.status(400).json({ success: false, message: error.details[0].message });
+  }
+
+  const { email } = req.body;
+
+  try {
+    const user = await User.findOne({ email });
+    if (!user) {
+      // Security: Don't reveal if user exists
+      return res.status(200).json({ success: true, message: 'Email sent if user exists' });
+    }
+
+    // Get reset token
+    const resetToken = user.getResetPasswordToken();
+    await user.save({ validateBeforeSave: false });
+
+    // SIMULATION: Log token to console for local development
+    console.log('\n================================================');
+    console.log('🔑 PASSWORD RESET TOKEN GENERATED');
+    console.log(`User: ${user.email}`);
+    console.log(`Token: ${resetToken}`);
+    console.log('================================================\n');
+
+    res.status(200).json({ 
+      success: true, 
+      message: 'Reset instructions sent to email. (Simulation: Check backend terminal)' 
+    });
+  } catch (err) {
+    console.error('[Forgot Password Error]:', err);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+};
+
+// @desc    Reset password
+// @route   POST /api/v1/auth/reset-password/:token
+// @access  Public
+const resetPassword = async (req, res) => {
+  const crypto = require('crypto');
+  try {
+    // Get hashed token
+    const resetPasswordToken = crypto
+      .createHash('sha256')
+      .update(req.params.token)
+      .digest('hex');
+
+    const user = await User.findOne({
+      resetPasswordToken,
+      resetPasswordExpire: { $gt: Date.now() }
+    });
+
+    if (!user) {
+      return res.status(400).json({ success: false, message: 'Invalid or expired token' });
+    }
+
+    const { error } = resetPasswordSchema.validate(req.body);
+    if (error) {
+      return res.status(400).json({ success: false, message: error.details[0].message });
+    }
+
+    // Set new password
+    user.password = req.body.password;
+    user.resetPasswordToken = undefined;
+    user.resetPasswordExpire = undefined;
+    await user.save();
+
+    res.status(200).json({ success: true, message: 'Password reset successful. Please log in.' });
+  } catch (err) {
+    console.error('[Reset Password Error]:', err);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+};
+
+module.exports = { registerUser, loginUser, getMe, forgotPassword, resetPassword };

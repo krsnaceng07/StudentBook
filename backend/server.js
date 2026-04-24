@@ -20,6 +20,7 @@ const teamRoutes = require('./routes/teamRoutes');
 const postRoutes = require('./routes/postRoutes');
 const uploadRoutes = require('./routes/uploadRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
+const settingsRoutes = require('./routes/settingsRoutes');
 
 const app = express();
 const server = http.createServer(app);
@@ -41,8 +42,17 @@ global.io = io;
 connectDB();
 
 // Security Middleware
-app.use(helmet());
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: "cross-origin" },
+  contentSecurityPolicy: process.env.NODE_ENV === 'production' ? undefined : false
+}));
 app.use(cors());
+
+// DEBUG: Log all incoming requests
+app.use((req, res, next) => {
+  console.log(`[DEBUG] ${req.method} ${req.url} from ${req.ip}`);
+  next();
+});
 
 // Rate limiting
 const limiter = rateLimit({
@@ -59,6 +69,8 @@ const strictLimiter = rateLimit({
 });
 app.use('/api/v1/auth/login', strictLimiter);
 app.use('/api/v1/auth/register', strictLimiter);
+app.use('/api/v1/auth/forgot-password', strictLimiter);
+app.use('/api/v1/auth/reset-password', strictLimiter);
 app.use('/api/v1/chat', strictLimiter);
 
 // Body parser
@@ -76,28 +88,41 @@ app.use('/api/v1/teams', teamRoutes);
 app.use('/api/v1/posts', postRoutes);
 app.use('/api/v1/upload', uploadRoutes);
 app.use('/api/v1/notifications', notificationRoutes);
+app.use('/api/v1/settings', settingsRoutes);
 
 const Team = require('./models/Team');
 
+const jwt = require('jsonwebtoken');
+
 // Socket.io Lifecycle
-io.on('connection', (socket) => {
-  const userId = socket.handshake.query.userId;
+io.on('connection', async (socket) => {
+  const token = socket.handshake.query.token;
+  let userId;
+
+  if (token) {
+    try {
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      userId = decoded.id;
+    } catch (err) {
+      console.log('[Socket Auth Error] Invalid token');
+      return socket.disconnect();
+    }
+  }
+
   if (userId) {
     // Join private room for 1:1 chats
-    socket.join(userId);
-    socket.join(userId);
+    socket.join(userId.toString());
 
     // Join rooms for all teams the user belongs to
-    joinTeamRooms(socket, userId);
+    joinTeamRooms(socket, userId.toString());
 
     // Client can request to re-sync team rooms (e.g. after joining a new team)
     socket.on('sync_team_rooms', () => {
-      joinTeamRooms(socket, userId);
+      joinTeamRooms(socket, userId.toString());
     });
+  } else {
+    socket.disconnect();
   }
-
-    socket.on('disconnect', () => {
-    });
 });
 
 async function joinTeamRooms(socket, userId) {

@@ -31,23 +31,13 @@ const discoverUsers = async (req, res) => {
       )
     ];
 
-    // 3. Build Match Criteria
+    // 3. Build Query
     const query = {
       userId: { $nin: excludedIds }
     };
 
-    if (field) {
-      query.field = { $regex: field, $options: 'i' };
-    }
-
-    if (skills) {
-      const skillArray = Array.isArray(skills) ? skills : skills.split(',');
-      query.skills = { $all: skillArray };
-    }
-
-    // 4. Aggregation for search by name + match score
+    // 4. Aggregation Pipeline
     const aggregation = [
-      { $match: query },
       {
         $lookup: {
           from: 'users',
@@ -67,7 +57,20 @@ const discoverUsers = async (req, res) => {
       }
     ];
 
-    // Search by name, username, bio, field or ID if provided
+    // Combine all filters into a single match logic
+    const matchStages = [query];
+
+    if (field) {
+      matchStages.push({ field: { $regex: field, $options: 'i' } });
+    }
+
+    if (skills) {
+      const skillArray = Array.isArray(skills) ? skills : skills.split(',').map(s => s.trim()).filter(Boolean);
+      if (skillArray.length > 0) {
+        matchStages.push({ skills: { $in: skillArray } }); // Use $in for better discovery
+      }
+    }
+
     if (search && search.trim()) {
       const trimmedSearch = search.trim();
       const searchRegex = { $regex: trimmedSearch, $options: 'i' };
@@ -77,20 +80,21 @@ const discoverUsers = async (req, res) => {
         { 'user.username': searchRegex },
         { 'user.email': searchRegex },
         { bio: searchRegex },
-        { field: searchRegex }
+        { field: searchRegex },
+        { skills: { $in: [new RegExp(trimmedSearch, 'i')] } }
       ];
 
-      // If search looks like a MongoDB ID, add it to the search criteria
       if (mongoose.Types.ObjectId.isValid(trimmedSearch)) {
         orMatch.push({ userId: new mongoose.Types.ObjectId(trimmedSearch) });
       }
 
-      aggregation.push({
-        $match: {
-          $or: orMatch
-        }
-      });
+      matchStages.push({ $or: orMatch });
     }
+
+    // Apply all match stages
+    matchStages.forEach(stage => {
+      aggregation.push({ $match: stage });
+    });
 
     // execute query for total count
     const totalResults = await Profile.aggregate([...aggregation, { $count: 'total' }]);
@@ -161,4 +165,53 @@ const discoverUsers = async (req, res) => {
   }
 };
 
-module.exports = { discoverUsers };
+const searchUsers = async (req, res) => {
+  try {
+    const { q } = req.query;
+    if (!q) {
+      return res.json({ success: true, data: { users: [] } });
+    }
+
+    const searchRegex = { $regex: q, $options: 'i' };
+
+    // 1. Find users by name/username
+    const users = await User.find({
+      $or: [
+        { name: searchRegex },
+        { username: searchRegex }
+      ],
+      status: { $ne: 'banned' }
+    })
+    .select('name username avatar')
+    .limit(10)
+    .lean();
+
+    // 2. Fetch profiles for these users to get field and avatar (if stored in profile)
+    const userIds = users.map(u => u._id);
+    const profiles = await Profile.find({ userId: { $in: userIds } }).lean();
+
+    // 3. Merge data
+    const results = users.map(user => {
+      const profile = profiles.find(p => p.userId.toString() === user._id.toString());
+      return {
+        userId: user._id,
+        name: user.name,
+        username: user.username,
+        avatar: profile?.avatar || null,
+        field: profile?.field || null
+      };
+    });
+
+    res.json({
+      success: true,
+      data: {
+        users: results
+      }
+    });
+  } catch (err) {
+    console.error('Search Error:', err);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+};
+
+module.exports = { discoverUsers, searchUsers };

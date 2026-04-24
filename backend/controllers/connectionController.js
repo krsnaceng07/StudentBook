@@ -28,8 +28,27 @@ const sendConnectionRequest = async (req, res) => {
         return res.status(400).json({ success: false, message: 'Already connected' });
       }
       
-      // If pending, do nothing
+      // If pending, check direction
       if (connection.status === 'pending') {
+        // If the other person already sent a request to us, auto-accept it!
+        if (connection.recipient.toString() === requesterId.toString()) {
+          connection.status = 'accepted';
+          await connection.save();
+
+          await Notification.create({
+            recipient: recipientId,
+            sender: requesterId,
+            type: 'connection_accepted'
+          });
+
+          return res.json({ 
+            success: true, 
+            message: 'You are now connected!', 
+            data: connection,
+            autoAccepted: true 
+          });
+        }
+        
         return res.status(400).json({ success: false, message: 'Request already pending' });
       }
 

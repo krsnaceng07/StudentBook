@@ -130,11 +130,47 @@ export const useChatStore = create((set, get) => ({
     }
   },
 
-  sendMessage: async (conversationId, text, replyToId = null) => {
+  uploadMedia: async (file) => {
+    try {
+      console.log('[Upload] Starting upload for:', file.name, 'Type:', file.mimeType);
+      
+      const formData = new FormData();
+      // Ensure the object structure matches what React Native's FormData expects
+      const fileData = {
+        uri: file.uri,
+        name: file.name || 'upload.bin',
+        type: file.mimeType || 'application/octet-stream',
+      };
+
+      formData.append('file', fileData);
+
+      const res = await client.post('/upload/chat', formData, {
+        headers: { 
+          'Content-Type': 'multipart/form-data',
+        },
+        // Increase timeout for large files
+        timeout: 30000, 
+      });
+
+      console.log('[Upload] Success:', res.data.url);
+      return { success: true, data: res.data };
+    } catch (error) {
+      const errorMsg = error.response?.data?.message || error.message || 'Unknown upload error';
+      console.error('[Upload Error] Details:', {
+        message: errorMsg,
+        status: error.response?.status,
+        data: error.response?.data
+      });
+      return { success: false, error: errorMsg };
+    }
+  },
+
+  sendMessage: async (conversationId, text, replyToId = null, attachments = []) => {
     try {
       const res = await client.post(`/chat/${conversationId}/messages`, { 
         text,
-        replyTo: replyToId
+        replyTo: replyToId,
+        attachments
       });
       const newMessage = res.data.data;
 

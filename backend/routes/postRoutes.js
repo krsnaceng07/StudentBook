@@ -4,6 +4,7 @@ const {
   createPost,
   getFeed,
   updatePost,
+  deletePost,
   toggleLike,
   addComment,
   getComments,
@@ -23,7 +24,8 @@ router.route('/')
   .get(getFeed);
 
 router.route('/:id')
-  .put(validateObjectId('id'), updatePost);
+  .put(validateObjectId('id'), updatePost)
+  .delete(validateObjectId('id'), deletePost);
 
 router.post('/:postId/like', validateObjectId('postId'), toggleLike);
 

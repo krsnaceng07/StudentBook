@@ -16,10 +16,22 @@ const getHost = () => {
 };
 
 const DEV_IP = getHost();
-const API_URL = process.env.EXPO_PUBLIC_API_URL || `http://${DEV_IP}:5000/api/v1`;
-export const SOCKET_URL = process.env.EXPO_PUBLIC_API_URL 
-  ? process.env.EXPO_PUBLIC_API_URL.replace('/api/v1', '')
-  : `http://${DEV_IP}:5000`;
+
+// PERMANENT LOCAL FIX: 
+// On Android Emulators, 'localhost' or local IP can sometimes fail. 
+// '10.0.2.2' is the magic IP that always points to the host machine.
+const getBaseURL = () => {
+  if (process.env.EXPO_PUBLIC_API_URL) return process.env.EXPO_PUBLIC_API_URL;
+  
+  if (Platform.OS === 'android' && (DEV_IP === 'localhost' || DEV_IP === '127.0.0.1')) {
+    return 'http://10.0.2.2:5000/api/v1';
+  }
+  
+  return `http://${DEV_IP}:5000/api/v1`;
+};
+
+const API_URL = getBaseURL();
+export const SOCKET_URL = API_URL.replace('/api/v1', '');
 
 console.log('[API Client] Initialized with Base URL:', API_URL);
 

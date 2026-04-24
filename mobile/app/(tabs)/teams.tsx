@@ -3,6 +3,7 @@ import { View, Text, FlatList, TextInput, TouchableOpacity, ActivityIndicator, R
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useTeamStore } from '../../store/teamStore';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function TeamsScreen() {
   const { teams, fetchTeams, isLoading } = useTeamStore();
@@ -27,9 +28,9 @@ export default function TeamsScreen() {
   };
 
   return (
-    <View className="flex-1 bg-[#0F172A] pt-14">
+    <SafeAreaView className="flex-1 bg-[#0F172A]" edges={['top']}>
       {/* Header */}
-      <View className="px-6 flex-row justify-between items-center mb-6">
+      <View className="px-6 flex-row justify-between items-center mb-6 mt-4">
         <View>
           <Text className="text-white text-3xl font-bold">Teams</Text>
           <Text className="text-slate-500 mt-1">Collaborate with peers</Text>
@@ -119,6 +120,6 @@ export default function TeamsScreen() {
           )
         )}
       />
-    </View>
+    </SafeAreaView>
   );
 }

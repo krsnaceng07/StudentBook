@@ -73,13 +73,23 @@ export default React.memo(function PostCard({ post, onEdit }: PostCardProps) {
         </TouchableOpacity>
         
         {isAuthor && (
-          <TouchableOpacity 
-            onPress={() => onEdit?.(post)}
-            className="flex-row items-center bg-white/5 px-3 py-1.5 rounded-full border border-white/10"
-          >
-            <Ionicons name="pencil" size={14} color="#3B82F6" />
-            <Text className="text-[#3B82F6] text-xs font-bold ml-1">Edit</Text>
-          </TouchableOpacity>
+          <View className="flex-row items-center space-x-2">
+            <TouchableOpacity 
+              onPress={() => onEdit?.(post)}
+              className="bg-white/5 p-2 rounded-full border border-white/10"
+            >
+              <Ionicons name="pencil" size={16} color="#3B82F6" />
+            </TouchableOpacity>
+            <TouchableOpacity 
+              onPress={() => {
+                const { usePostStore } = require('../store/postStore');
+                usePostStore.getState().deletePost(post._id);
+              }}
+              className="bg-white/5 p-2 rounded-full border border-white/10"
+            >
+              <Ionicons name="trash" size={16} color="#EF4444" />
+            </TouchableOpacity>
+          </View>
         )}
       </View>
 

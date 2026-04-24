@@ -4,6 +4,7 @@ import { useChatStore } from '../../store/chatStore';
 import { useAuthStore } from '../../store/authStore';
 import ChatListItem from '../../components/ChatListItem';
 import { Ionicons } from '@expo/vector-icons';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function ChatListScreen() {
   const { 
@@ -30,8 +31,8 @@ export default function ChatListScreen() {
   const currentData = activeTab === 'personal' ? personalConversations : teamConversations;
 
   return (
-    <View className="flex-1 bg-[#0F172A] pt-14">
-      <View className="px-6 mb-6">
+    <SafeAreaView className="flex-1 bg-[#0F172A]" edges={['top']}>
+      <View className="px-6 mb-6 mt-4">
         <Text className="text-white text-3xl font-bold">Messages</Text>
       </View>
 
@@ -96,6 +97,6 @@ export default function ChatListScreen() {
           )
         )}
       />
-    </View>
+    </SafeAreaView>
   );
 }

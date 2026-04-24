@@ -203,6 +203,13 @@ export default function ProfileViewScreen() {
             <Ionicons name="school-outline" size={18} color="#94A3B8" />
             <Text className="text-slate-400 ml-2 text-lg font-medium">{profile.field || 'Student'}</Text>
           </View>
+
+          {profile.userId?.email && (
+            <View className="flex-row items-center mt-2">
+              <Ionicons name="mail-outline" size={18} color="#94A3B8" />
+              <Text className="text-slate-400 ml-2 text-base font-medium">{profile.userId.email}</Text>
+            </View>
+          )}
           
           {profile.bio && (
             <View className="mt-6 bg-white/5 p-5 rounded-2xl border border-white/10">

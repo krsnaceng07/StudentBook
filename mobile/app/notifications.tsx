@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useNotificationStore } from '../store/notificationStore';
 import { useRouter } from 'expo-router';
 import { formatDistanceToNow } from 'date-fns';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function NotificationsScreen() {
   const { notifications, isLoading, isRefreshing, fetchNotifications, markAsRead, markAllAsRead } = useNotificationStore();
@@ -48,9 +49,9 @@ export default function NotificationsScreen() {
   };
 
   return (
-    <View className="flex-1 bg-[#0F172A] pt-14">
+    <SafeAreaView className="flex-1 bg-[#0F172A]" edges={['top']}>
       {/* Header */}
-      <View className="px-6 flex-row items-center justify-between mb-6">
+      <View className="px-6 flex-row items-center justify-between mb-6 mt-4">
         <View className="flex-row items-center">
           <TouchableOpacity 
             onPress={() => router.back()}
@@ -127,6 +128,6 @@ export default function NotificationsScreen() {
           )
         )}
       />
-    </View>
+    </SafeAreaView>
   );
 }

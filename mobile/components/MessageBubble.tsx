@@ -1,8 +1,17 @@
 import { View, Text, Image, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
+
+interface Attachment {
+  url: string;
+  type: 'image' | 'pdf' | 'doc';
+  name: string;
+  size?: number;
+}
 
 interface MessageBubbleProps {
-  text: string;
+  text?: string;
+  attachments?: Attachment[];
   isMe: boolean;
   timestamp: string;
   senderName?: string;
@@ -20,6 +29,7 @@ interface MessageBubbleProps {
 
 export default function MessageBubble({ 
   text, 
+  attachments,
   isMe, 
   timestamp, 
   senderName, 
@@ -62,7 +72,7 @@ export default function MessageBubble({
         )}
 
         <View 
-          className={`px-4 py-3 rounded-2xl ${
+          className={`px-3 py-2.5 rounded-2xl ${
             isMe 
               ? 'bg-[#3B82F6] rounded-tr-none' 
               : 'bg-white/10 rounded-tl-none border border-white/5'
@@ -80,7 +90,42 @@ export default function MessageBubble({
             </View>
           )}
 
-          <Text className="text-white leading-5">{text}</Text>
+          {/* Render Attachments */}
+          {attachments && attachments.length > 0 && (
+            <View className="mb-2">
+              {attachments.map((att, idx) => (
+                att.type === 'image' ? (
+                  <TouchableOpacity key={idx} activeOpacity={0.9}>
+                    <Image 
+                      source={{ uri: att.url }} 
+                      className="w-60 h-60 rounded-xl mb-1.5" 
+                      resizeMode="cover" 
+                    />
+                  </TouchableOpacity>
+                ) : (
+                  <TouchableOpacity 
+                    key={idx} 
+                    className="flex-row items-center bg-black/20 p-3 rounded-xl mb-1.5 min-w-[200px]"
+                  >
+                    <View className="bg-white/10 p-2 rounded-lg">
+                       <Ionicons name="document-text" size={24} color={isMe ? 'white' : '#3B82F6'} />
+                    </View>
+                    <View className="ml-3 flex-1">
+                      <Text className="text-white font-bold text-xs" numberOfLines={1}>{att.name}</Text>
+                      {att.size && (
+                        <Text className="text-slate-400 text-[9px] mt-0.5">
+                          {(att.size / 1024).toFixed(1)} KB • PDF
+                        </Text>
+                      )}
+                    </View>
+                    <Ionicons name="download-outline" size={18} color="white" opacity={0.5} />
+                  </TouchableOpacity>
+                )
+              ))}
+            </View>
+          )}
+
+          {text ? <Text className="text-white leading-5">{text}</Text> : null}
           <Text 
             className={`text-[9px] mt-1 ${isMe ? 'text-white/70 text-right' : 'text-slate-500'}`}
           >
