@@ -227,18 +227,9 @@ const sendMessage = async (req, res) => {
     conversation.lastMessageSender = senderId;
     await conversation.save();
 
-    // Trigger Real-time Event
+    // Trigger Real-time Event (Broadcast to the specific conversation room)
     if (global.io) {
-      if (conversation.type === 'team') {
-        // Broadcast to team room
-        global.io.to(`team_${conversation.teamId}`).emit('receive_message', messageObj);
-      } else {
-        // Emit to recipient's private room
-        const recipientId = conversation.participants.find(p => p.toString() !== senderId.toString());
-        if (recipientId) {
-          global.io.to(recipientId.toString()).emit('receive_message', messageObj);
-        }
-      }
+      global.io.to(`conv_${conversationId}`).emit('receive_message', messageObj);
     }
 
     res.status(201).json({ success: true, data: messageObj });

@@ -4,6 +4,7 @@ const {
   createTeam, 
   getTeams, 
   getTeamById, 
+  updateTeam,
   requestJoinTeam, 
   handleJoinRequest,
   getTeamRequests
@@ -14,6 +15,7 @@ const validateObjectId = require('../middleware/validateObjectId');
 router.post('/', protect, createTeam);
 router.get('/', protect, getTeams);
 router.get('/:id', protect, validateObjectId('id'), getTeamById);
+router.put('/:id', protect, validateObjectId('id'), updateTeam);
 router.post('/:teamId/request', protect, validateObjectId('teamId'), requestJoinTeam);
 router.get('/:teamId/requests', protect, validateObjectId('teamId'), getTeamRequests);
 router.put('/request/:requestId', protect, validateObjectId('requestId'), handleJoinRequest);

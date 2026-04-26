@@ -18,7 +18,11 @@ export default function ChatDetailScreen() {
     personalConversations, 
     teamConversations, 
     isLoading, 
-    clearActiveChat 
+    clearActiveChat,
+    setTyping,
+    stopTyping,
+    typingUsers,
+    onlineUsers
   } = useChatStore();
   const { user } = useAuthStore();
   
@@ -28,7 +32,8 @@ export default function ChatDetailScreen() {
   const [selectedFile, setSelectedFile] = useState<any>(null);
   const [replyingTo, setReplyingTo] = useState<any>(null);
   const flatListRef = useRef<FlatList>(null);
-
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+ 
   // Find conversation details in either personal or team lists
   const conversation = 
     personalConversations.find((c: any) => c._id === conversationId) || 
@@ -36,10 +41,27 @@ export default function ChatDetailScreen() {
     
   const otherUser = conversation?.otherUser;
   const isTeamChat = conversation?.type === 'team';
+  const isOtherUserOnline = !isTeamChat && otherUser?._id && onlineUsers.has(otherUser._id);
+
+  // Typing logic
+  const handleInputChange = (text: string) => {
+    setInputText(text);
+    if (!conversationId) return;
+
+    setTyping(conversationId as string);
+
+    if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+    typingTimeoutRef.current = setTimeout(() => {
+      stopTyping(conversationId as string);
+    }, 2000);
+  };
 
   useEffect(() => {
     fetchMessages(conversationId as string);
-    return () => clearActiveChat();
+    return () => {
+      clearActiveChat();
+      if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+    };
   }, [conversationId]);
 
   const handlePickFile = async () => {
@@ -60,6 +82,11 @@ export default function ChatDetailScreen() {
     if ((!inputText.trim() && !selectedFile) || isSending || isUploading) return;
     
     setIsSending(true);
+    if (typingTimeoutRef.current) {
+       clearTimeout(typingTimeoutRef.current);
+       stopTyping(conversationId as string);
+    }
+
     let attachments: any[] = [];
 
     if (selectedFile) {
@@ -88,6 +115,18 @@ export default function ChatDetailScreen() {
       setSelectedFile(null);
     }
     setIsSending(false);
+  };
+
+  const getTypingText = () => {
+    const typers = typingUsers[conversationId as string];
+    if (!typers) return null;
+    const typingList = Object.entries(typers)
+      .filter(([uid]) => uid !== (user?._id || user?.id))
+      .map(([_, name]) => name);
+    
+    if (typingList.length === 0) return null;
+    if (typingList.length === 1) return `${typingList[0]} is typing...`;
+    return `${typingList.length} people are typing...`;
   };
 
   return (
@@ -128,12 +167,25 @@ export default function ChatDetailScreen() {
                   )}
                 </View>
                 <View className="ml-3">
-                  <Text className="text-white font-bold">{otherUser?.name || 'Loading...'}</Text>
                   <View className="flex-row items-center">
-                    <View className={`h-1.5 w-1.5 rounded-full mr-1.5 ${isTeamChat ? 'bg-purple-500' : 'bg-green-500'}`} />
-                    <Text className="text-slate-500 text-[10px] font-bold uppercase tracking-widest">
-                      {isTeamChat ? 'Team Collaboration' : 'Direct Message'}
-                    </Text>
+                    <Text className="text-white font-bold">{otherUser?.name || 'Loading...'}</Text>
+                    {isOtherUserOnline && (
+                      <View className="h-2 w-2 rounded-full bg-emerald-500 ml-2" />
+                    )}
+                  </View>
+                  <View className="flex-row items-center">
+                    {getTypingText() ? (
+                       <Text className="text-[#3B82F6] text-[10px] font-bold animate-pulse">
+                         {getTypingText()}
+                       </Text>
+                    ) : (
+                      <>
+                        <View className={`h-1.5 w-1.5 rounded-full mr-1.5 ${isTeamChat ? 'bg-purple-500' : isOtherUserOnline ? 'bg-emerald-500' : 'bg-slate-700'}`} />
+                        <Text className="text-slate-500 text-[10px] font-bold uppercase tracking-widest">
+                          {isTeamChat ? 'Team Collaboration' : isOtherUserOnline ? 'Active Now' : 'Direct Message'}
+                        </Text>
+                      </>
+                    )}
                   </View>
                 </View>
               </TouchableOpacity>
@@ -160,6 +212,7 @@ export default function ChatDetailScreen() {
                   senderAvatar={isTeamChat ? item.sender?.avatar : undefined}
                   senderId={item.sender?._id || item.sender}
                   replyTo={item.replyTo}
+                  sending={item.sending}
                 />
               </TouchableOpacity>
             )}
@@ -243,7 +296,7 @@ export default function ChatDetailScreen() {
                 placeholderTextColor="#64748b"
                 className="flex-1 text-white py-2 max-h-24 px-2"
                 value={inputText}
-                onChangeText={setInputText}
+                onChangeText={handleInputChange}
                 multiline
               />
               

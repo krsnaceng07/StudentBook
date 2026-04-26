@@ -166,6 +166,7 @@ export default function SettingsScreen() {
           <SettingItem 
             icon="eye-off-outline" 
             title="Private Account" 
+            subtitle="Only connections can see your activity"
             value={settings?.isPrivate} 
             onToggle={() => handleToggle('isPrivate')}
             color="#10B981"
@@ -177,28 +178,88 @@ export default function SettingsScreen() {
             onToggle={() => handleToggle('showEmail')}
             color="#F59E0B"
           />
+          <SettingItem 
+            icon="radio-outline" 
+            title="Show Online Status" 
+            subtitle="Others can see when you are active"
+            value={settings?.showOnlineStatus} 
+            onToggle={() => handleToggle('showOnlineStatus')}
+            color="#10B981"
+          />
+          <SettingItem 
+            icon="people-circle-outline" 
+            title="Show Mutuals" 
+            subtitle="Show common connections to others"
+            value={settings?.showMutualConnections} 
+            onToggle={() => handleToggle('showMutualConnections')}
+            color="#3B82F6"
+          />
+        </View>
+
+        {/* Networking Strategy Section */}
+        <SectionTitle title="Networking Strategy" />
+        <View className="bg-white/5 rounded-3xl p-4 border border-white/10">
+          <SettingItem 
+            icon="compass-outline" 
+            title="Smart Discovery" 
+            subtitle={settings?.discoveryFieldFilter === 'same_field' ? 'Matches from my field only' : 'Matches from all fields'}
+            value={settings?.discoveryFieldFilter === 'same_field'} 
+            onToggle={() => {
+              updateSettings({ 
+                discoveryFieldFilter: settings?.discoveryFieldFilter === 'same_field' ? 'all' : 'same_field' 
+              });
+            }}
+            color="#3B82F6"
+          />
+          <SettingItem 
+            icon="chatbubbles-outline" 
+            title="Messages" 
+            subtitle={settings?.allowMessagesFrom === 'everyone' ? 'Everyone can message me' : 'Only connections can message'}
+            value={settings?.allowMessagesFrom === 'everyone'} 
+            onToggle={() => {
+              updateSettings({ 
+                allowMessagesFrom: settings?.allowMessagesFrom === 'everyone' ? 'connections' : 'everyone' 
+              });
+            }}
+            color="#8B5CF6"
+          />
         </View>
 
         {/* Notifications Section */}
-        <SectionTitle title="Notifications" />
+        <SectionTitle title="Notification Center" />
         <View className="bg-white/5 rounded-3xl p-4 border border-white/10">
           <SettingItem 
             icon="chatbubble-outline" 
-            title="Messages" 
+            title="Direct Messages" 
             value={settings?.notifications?.messages} 
             onToggle={() => handleToggle('notifications', 'messages')}
             color="#DB2777"
           />
           <SettingItem 
             icon="people-outline" 
-            title="Connections" 
+            title="Connection Requests" 
             value={settings?.notifications?.connections} 
             onToggle={() => handleToggle('notifications', 'connections')}
             color="#3B82F6"
           />
           <SettingItem 
+            icon="briefcase-outline" 
+            title="Team Activity" 
+            subtitle="Requests and approvals"
+            value={settings?.notifications?.teamRequests} 
+            onToggle={() => handleToggle('notifications', 'teamRequests')}
+            color="#A855F7"
+          />
+          <SettingItem 
+            icon="at-circle-outline" 
+            title="Mentions & Tags" 
+            value={settings?.notifications?.mentions} 
+            onToggle={() => handleToggle('notifications', 'mentions')}
+            color="#10B981"
+          />
+          <SettingItem 
             icon="newspaper-outline" 
-            title="New Posts" 
+            title="New Feed Posts" 
             value={settings?.notifications?.posts} 
             onToggle={() => handleToggle('notifications', 'posts')}
             color="#8B5CF6"

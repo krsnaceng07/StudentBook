@@ -42,11 +42,16 @@ const userSchema = new mongoose.Schema({
   settings: {
     isPrivate: { type: Boolean, default: false },
     showEmail: { type: Boolean, default: false },
+    showOnlineStatus: { type: Boolean, default: true },
+    showMutualConnections: { type: Boolean, default: true },
     allowMessagesFrom: { type: String, enum: ['everyone', 'connections'], default: 'everyone' },
+    discoveryFieldFilter: { type: String, default: 'all' }, // 'all' or 'same_field'
     notifications: {
       messages: { type: Boolean, default: true },
       connections: { type: Boolean, default: true },
-      posts: { type: Boolean, default: true }
+      posts: { type: Boolean, default: true },
+      teamRequests: { type: Boolean, default: true },
+      mentions: { type: Boolean, default: true }
     }
   },
   publicKey: {

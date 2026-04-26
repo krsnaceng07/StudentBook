@@ -221,33 +221,66 @@ export default function ProfileViewScreen() {
 
         {/* Detailed Info Sections */}
         <View className="space-y-6 mb-20">
+        {/* Detailed Info Sections */}
+        <View className="space-y-6 mb-20">
+          {/* Smart Insights (Only for others) */}
+          {!isOwnProfile && profile.smartInsights && (
+            <View className="bg-[#3B82F6]/5 rounded-3xl border border-[#3B82F6]/10 p-6">
+              <View className="flex-row items-center justify-between mb-4">
+                <View className="flex-row items-center">
+                  <Ionicons name="sparkles" size={20} color="#3B82F6" />
+                  <Text className="text-white font-black text-xl ml-3">Compatibility ✨</Text>
+                </View>
+                <View className="bg-[#3B82F6]/10 px-3 py-1.5 rounded-2xl border border-[#3B82F6]/20">
+                  <Text className="text-[#3B82F6] font-black">{profile.smartInsights.matchScore}% Match</Text>
+                </View>
+              </View>
+              
+              <View className="flex-row gap-3 mb-4 flex-wrap">
+                {profile.smartInsights.mutualCount > 0 && (
+                   <View className="bg-white/5 px-3 py-1.5 rounded-xl flex-row items-center">
+                     <Ionicons name="people" size={14} color="#94A3B8" />
+                     <Text className="text-slate-400 text-xs font-bold ml-2">{profile.smartInsights.mutualCount} Mutual Connections</Text>
+                   </View>
+                )}
+                {profile.smartInsights.commonSkills?.length > 0 && (
+                   <View className="bg-emerald-500/10 px-3 py-1.5 rounded-xl flex-row items-center">
+                     <Ionicons name="flash" size={14} color="#10B981" />
+                     <Text className="text-emerald-500 text-xs font-bold ml-2">Shared Skills</Text>
+                   </View>
+                )}
+              </View>
+
+              <Text className="text-slate-400 text-sm leading-6">
+                You both share interest in <Text className="text-white font-bold">{[...profile.smartInsights.commonSkills, ...profile.smartInsights.commonGoals].slice(0,3).join(', ')}</Text> and more.
+              </Text>
+            </View>
+          )}
+
+          {/* Quick Stats */}
+          <View className="flex-row gap-4">
+            <View className="flex-1 bg-white/5 rounded-2xl p-4 border border-white/10">
+              <Text className="text-slate-500 text-[10px] font-black uppercase mb-1">Expertise</Text>
+              <Text className="text-white font-bold">{profile.experienceLevel || 'Beginner'}</Text>
+            </View>
+            <View className="flex-1 bg-white/5 rounded-2xl p-4 border border-white/10">
+              <Text className="text-slate-500 text-[10px] font-black uppercase mb-1">Status</Text>
+              <Text className="text-[#3B82F6] font-bold" numberOfLines={1}>{profile.availability || 'Available'}</Text>
+            </View>
+          </View>
+
           {/* Skills */}
           <View className="bg-white/5 rounded-2xl border border-white/10 p-5">
             <View className="flex-row items-center mb-3">
               <Ionicons name="flash-outline" size={18} color="#3B82F6" />
-              <Text className="text-white font-bold text-lg ml-2">Skills</Text>
+              <Text className="text-white font-bold text-lg ml-2">Core Skills</Text>
             </View>
             <View className="flex-row flex-wrap gap-2">
               {profile.skills?.length ? profile.skills.map((item: string, idx: number) => (
                 <View key={idx} className="bg-[#3B82F6]/10 px-3 py-1.5 rounded-full border border-[#3B82F6]/20">
                   <Text className="text-[#3B82F6] font-medium">{item}</Text>
                 </View>
-              )) : <Text className="text-slate-500 italic">No skills added.</Text>}
-            </View>
-          </View>
-
-          {/* Interests */}
-          <View className="bg-white/5 rounded-2xl border border-white/10 p-5">
-            <View className="flex-row items-center mb-3">
-              <Ionicons name="heart-outline" size={18} color="#8B5CF6" />
-              <Text className="text-white font-bold text-lg ml-2">Interests</Text>
-            </View>
-            <View className="flex-row flex-wrap gap-2">
-              {profile.interests?.length ? profile.interests.map((item: string, idx: number) => (
-                <View key={idx} className="bg-[#8B5CF6]/10 px-3 py-1.5 rounded-full border border-[#8B5CF6]/20">
-                  <Text className="text-[#8B5CF6] font-medium">{item}</Text>
-                </View>
-              )) : <Text className="text-slate-500 italic">No interests added.</Text>}
+              )) : <Text className="text-slate-500 italic text-xs">No skills listed.</Text>}
             </View>
           </View>
 
@@ -255,16 +288,26 @@ export default function ProfileViewScreen() {
           <View className="bg-white/5 rounded-2xl border border-white/10 p-5">
             <View className="flex-row items-center mb-3">
               <Ionicons name="rocket-outline" size={18} color="#10B981" />
-              <Text className="text-white font-bold text-lg ml-2">Goals</Text>
+              <Text className="text-white font-bold text-lg ml-2">Academic Goals</Text>
             </View>
             <View className="flex-row flex-wrap gap-2">
               {profile.goals?.length ? profile.goals.map((item: string, idx: number) => (
                 <View key={idx} className="bg-[#10B981]/10 px-3 py-1.5 rounded-full border border-[#10B981]/20">
                   <Text className="text-[#10B981] font-medium">{item}</Text>
                 </View>
-              )) : <Text className="text-slate-500 italic">No goals added.</Text>}
+              )) : <Text className="text-slate-500 italic text-xs">No goals listed.</Text>}
             </View>
           </View>
+
+          {/* Teams (If member) */}
+          <View className="bg-white/5 rounded-3xl border border-white/10 p-6">
+            <Text className="text-white font-black text-xl mb-6">Collab Portfolio</Text>
+            <View className="items-center py-6">
+               <Ionicons name="people-outline" size={32} color="#334155" />
+               <Text className="text-slate-600 text-xs mt-2 italic">Active collaborations will appear here</Text>
+            </View>
+          </View>
+        </View>
         </View>
       </View>
     </ScrollView>

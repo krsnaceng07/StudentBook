@@ -5,7 +5,7 @@ const CommentLike = require('../models/CommentLike');
 const Profile = require('../models/Profile');
 const User = require('../models/User');
 const Connection = require('../models/Connection');
-const Notification = require('../models/Notification');
+const { createNotification } = require('../utils/notificationHelper');
 const Joi = require('joi');
 const xss = require('xss');
 
@@ -20,6 +20,17 @@ const commentSchema = Joi.object({
   parentId: Joi.string().allow(null, '')
 });
 
+// Helper to extract hashtags and mentions
+const parseContent = (content) => {
+  const hashtagRegex = /#(\w+)/g;
+  const mentionRegex = /@(\w+)/g;
+  
+  const tags = [...new Set((content.match(hashtagRegex) || []).map(t => t.slice(1)))];
+  const mentions = (content.match(mentionRegex) || []).map(m => m.slice(1));
+  
+  return { tags, mentions };
+};
+
 // @desc    Create a new post
 // @route   POST /api/v1/posts
 // @access  Private
@@ -30,16 +41,40 @@ const createPost = async (req, res) => {
       return res.status(400).json({ success: false, message: error.details[0].message });
     }
 
-    let { content, images, tags } = req.body;
+    let { content, images, tags: providedTags } = req.body;
     content = xss(content || '');
+
+    const { tags: extractedTags, mentions: usernames } = parseContent(content);
+    const finalTags = [...new Set([...(providedTags || []), ...extractedTags])];
+
+    // Find mentioned user IDs
+    let mentionIds = [];
+    if (usernames.length > 0) {
+      const mentionedUsers = await User.find({ username: { $in: usernames } }).select('_id');
+      mentionIds = mentionedUsers.map(u => u._id);
+    }
 
     // ALWAYS use authenticated user as author
     const post = await Post.create({
       authorId: req.user._id,
       content,
       images: images || [],
-      tags: tags || []
+      tags: finalTags,
+      mentions: mentionIds
     });
+
+    // Notify mentioned users
+    if (mentionIds.length > 0) {
+      Promise.all(mentionIds.map(recipientId => 
+        createNotification({
+          recipient: recipientId,
+          sender: req.user._id,
+          type: 'mention',
+          message: `mentioned you in a post`,
+          relatedId: post._id
+        })
+      )).catch(err => console.error('Mention Notification Error:', err));
+    }
 
     const populatedPost = await Post.findById(post._id)
       .populate('authorId', 'name username');
@@ -76,7 +111,7 @@ const getFeed = async (req, res) => {
     const tag = req.query.tag || '';
 
     // Build filter
-    const filter = {};
+    const filter = { status: { $ne: 'deleted' } };
 
     if (search && search.trim()) {
       const trimmedSearch = search.trim();
@@ -220,7 +255,10 @@ const getNetworkFeed = async (req, res) => {
     }
 
     // 3. Build filter for posts from connections
-    const filter = { authorId: { $in: connectedUserIds } };
+    const filter = { 
+      authorId: { $in: connectedUserIds },
+      status: { $ne: 'deleted' }
+    };
 
     // 4. Use aggregation (reusing logic from getFeed for consistency)
     const posts = await Post.aggregate([
@@ -328,6 +366,15 @@ const toggleLike = async (req, res) => {
         await post.save();
       }
 
+      // Real-time Feed Update
+      if (global.io) {
+        global.io.emit('post_updated', {
+          postId: postId,
+          likesCount: post.likesCount,
+          commentsCount: post.commentsCount
+        });
+      }
+
       return res.json({ success: true, message: 'Unliked', liked: false });
     } else {
       // 2b. If it didn't exist, try to create it
@@ -341,11 +388,21 @@ const toggleLike = async (req, res) => {
 
         // Notification logic
         if (post && post.authorId.toString() !== userId.toString()) {
-          await Notification.create({
+          await createNotification({
             recipient: post.authorId,
             sender: userId,
             type: 'like',
-            post: postId
+            message: `liked your post`,
+            relatedId: postId
+          });
+        }
+
+        // Real-time Feed Update
+        if (global.io) {
+          global.io.emit('post_updated', {
+            postId: postId,
+            likesCount: post.likesCount,
+            commentsCount: post.commentsCount
           });
         }
 
@@ -388,11 +445,21 @@ const addComment = async (req, res) => {
 
     const post = await Post.findById(postId);
     if (post && post.authorId.toString() !== req.user._id.toString()) {
-      await Notification.create({
+      await createNotification({
         recipient: post.authorId,
         sender: req.user._id,
         type: 'comment',
-        post: postId
+        message: `commented on your post`,
+        relatedId: postId
+      });
+    }
+
+    // Real-time Feed Update
+    if (global.io && post) {
+      global.io.emit('post_updated', {
+        postId: postId,
+        likesCount: post.likesCount,
+        commentsCount: post.commentsCount + 1 // Add 1 because we just incremented it in DB but haven't re-fetched post object yet
       });
     }
 
@@ -485,16 +552,25 @@ const likeComment = async (req, res) => {
     const { commentId } = req.params;
     const userId = req.user._id;
 
-    const existingLike = await CommentLike.findOne({ userId, commentId });
+    // 1. Try to delete the like (atomic toggle check)
+    const deletedLike = await CommentLike.findOneAndDelete({ userId, commentId });
 
-    if (existingLike) {
-      await CommentLike.deleteOne({ _id: existingLike._id });
+    if (deletedLike) {
+      // 2a. If unliked, decrement count
       await Comment.findByIdAndUpdate(commentId, { $inc: { likesCount: -1 } });
       return res.json({ success: true, message: 'Unliked comment', liked: false });
     } else {
-      await CommentLike.create({ userId, commentId });
-      await Comment.findByIdAndUpdate(commentId, { $inc: { likesCount: 1 } });
-      return res.json({ success: true, message: 'Liked comment', liked: true });
+      // 2b. If not unliked, try to create like
+      try {
+        await CommentLike.create({ userId, commentId });
+        await Comment.findByIdAndUpdate(commentId, { $inc: { likesCount: 1 } });
+        return res.json({ success: true, message: 'Liked comment', liked: true });
+      } catch (createErr) {
+        if (createErr.code === 11000) {
+          return res.json({ success: true, message: 'Already liked', liked: true });
+        }
+        throw createErr;
+      }
     }
   } catch (err) {
     res.status(500).json({ success: false, message: 'Server error' });
@@ -506,7 +582,7 @@ const likeComment = async (req, res) => {
 // @access  Private
 const updatePost = async (req, res) => {
   try {
-    const { content, tags } = req.body;
+    const { content, tags, images } = req.body;
     const post = await Post.findById(req.params.id);
 
     if (!post) {
@@ -518,8 +594,23 @@ const updatePost = async (req, res) => {
       return res.status(401).json({ success: false, message: 'Not authorized to update this post' });
     }
 
-    post.content = content || post.content;
-    post.tags = tags || post.tags;
+    post.content = content !== undefined ? content : post.content;
+    
+    // Update tags and mentions if content changed
+    if (content !== undefined) {
+      const { tags: extractedTags, mentions: usernames } = parseContent(post.content);
+      post.tags = [...new Set([...(tags || []), ...extractedTags])];
+      
+      if (usernames.length > 0) {
+        const mentionedUsers = await User.find({ username: { $in: usernames } }).select('_id');
+        post.mentions = mentionedUsers.map(u => u._id);
+      } else {
+        post.mentions = [];
+      }
+    } else {
+      post.tags = tags || post.tags;
+      post.images = images || post.images;
+    }
 
     await post.save();
 
@@ -565,13 +656,9 @@ const deletePost = async (req, res) => {
       return res.status(403).json({ success: false, message: 'Not authorized to delete this post' });
     }
 
-    await Post.deleteOne({ _id: post._id });
-
-    // Cleanup likes and comments (optional but recommended)
-    await Promise.all([
-      Like.deleteMany({ postId: post._id }),
-      Comment.deleteMany({ postId: post._id })
-    ]);
+    // Soft Delete
+    post.status = 'deleted';
+    await post.save();
 
     res.json({ success: true, message: 'Post deleted' });
   } catch (err) {

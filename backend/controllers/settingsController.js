@@ -13,11 +13,16 @@ const getSettings = async (req, res) => {
       user.settings = {
         isPrivate: false,
         showEmail: false,
+        showOnlineStatus: true,
+        showMutualConnections: true,
         allowMessagesFrom: 'everyone',
+        discoveryFieldFilter: 'all',
         notifications: {
           messages: true,
           connections: true,
-          posts: true
+          posts: true,
+          teamRequests: true,
+          mentions: true
         }
       };
       await user.save();
@@ -34,24 +39,34 @@ const getSettings = async (req, res) => {
 // @access  Private
 const updateSettings = async (req, res) => {
   try {
-    const { isPrivate, showEmail, allowMessagesFrom, notifications } = req.body;
+    const { 
+      isPrivate, showEmail, showOnlineStatus, showMutualConnections, 
+      allowMessagesFrom, discoveryFieldFilter, notifications 
+    } = req.body;
     
     const user = await User.findById(req.user._id);
     
-    // Ensure nested objects exist before assignment
     if (!user.settings) user.settings = {};
     if (!user.settings.notifications) {
-      user.settings.notifications = { messages: true, connections: true, posts: true };
+      user.settings.notifications = { 
+        messages: true, connections: true, posts: true, 
+        teamRequests: true, mentions: true 
+      };
     }
     
     if (isPrivate !== undefined) user.settings.isPrivate = isPrivate;
     if (showEmail !== undefined) user.settings.showEmail = showEmail;
+    if (showOnlineStatus !== undefined) user.settings.showOnlineStatus = showOnlineStatus;
+    if (showMutualConnections !== undefined) user.settings.showMutualConnections = showMutualConnections;
     if (allowMessagesFrom !== undefined) user.settings.allowMessagesFrom = allowMessagesFrom;
+    if (discoveryFieldFilter !== undefined) user.settings.discoveryFieldFilter = discoveryFieldFilter;
     
     if (notifications) {
       if (notifications.messages !== undefined) user.settings.notifications.messages = notifications.messages;
       if (notifications.connections !== undefined) user.settings.notifications.connections = notifications.connections;
       if (notifications.posts !== undefined) user.settings.notifications.posts = notifications.posts;
+      if (notifications.teamRequests !== undefined) user.settings.notifications.teamRequests = notifications.teamRequests;
+      if (notifications.mentions !== undefined) user.settings.notifications.mentions = notifications.mentions;
     }
 
     await user.save();

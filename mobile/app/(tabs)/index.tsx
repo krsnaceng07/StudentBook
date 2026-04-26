@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { View, Text, TextInput, FlatList, TouchableOpacity, ActivityIndicator, RefreshControl, Keyboard, ScrollView, Animated, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -53,6 +53,7 @@ const SuggestedUsers = React.memo(({ users, onSeeAll }: { users: any[], onSeeAll
 
 export default function HomeScreen() {
   const router = useRouter();
+  const { search: urlSearch } = useLocalSearchParams();
   const insets = useSafeAreaInsets();
   const { 
     users, isLoading: usersLoading, isRefreshing: usersRefreshing, filters: userFilters,
@@ -86,23 +87,8 @@ export default function HomeScreen() {
     extrapolate: 'clamp',
   });
 
-  const [localSearch, setLocalSearch] = useState(userFilters.search);
-  const [showFilters, setShowFilters] = useState(false);
-  const [customSkill, setCustomSkill] = useState('');
   const [isCreateModalVisible, setIsCreateModalVisible] = useState(false);
   const [postToEdit, setPostToEdit] = useState<any>(null);
-
-  // Use a ref for search timeout to prevent unnecessary effect triggers
-  const searchTimeout = useRef<NodeJS.Timeout | null>(null);
-
-  const handleSearchChange = (text: string) => {
-    setLocalSearch(text);
-    if (searchTimeout.current) clearTimeout(searchTimeout.current);
-    searchTimeout.current = setTimeout(() => {
-      setUserFilters({ search: text });
-      setPostFilters({ search: text });
-    }, 400); // 400ms as requested
-  };
 
   const handleEditPost = useCallback((post: any) => {
     setPostToEdit(post);
@@ -118,42 +104,25 @@ export default function HomeScreen() {
     fetchUsers();
     fetchPosts();
     fetchNotifications();
-    return () => {
-      if (searchTimeout.current) clearTimeout(searchTimeout.current);
-    };
   }, []);
 
   const onRefresh = useCallback(() => {
     fetchUsers();
     fetchPosts();
-  }, [fetchUsers, fetchPosts]);
+    fetchNotifications();
+  }, [fetchUsers, fetchPosts, fetchNotifications]);
 
-  const handleLoadMorePosts = () => {
+  const handleLoadMorePosts = useCallback(() => {
     if (hasMorePosts && !postsLoading) {
       fetchPosts(true);
     }
-  };
+  }, [hasMorePosts, postsLoading, fetchPosts]);
 
   const renderItem = useCallback(({ item }: { item: any }) => (
     <View className="px-4">
       <PostCard post={item} onEdit={handleEditPost} />
     </View>
   ), [handleEditPost]);
-
-  const toggleSkill = (skill: string) => {
-    const newSkills = userFilters.skills.includes(skill)
-      ? (userFilters.skills as string[]).filter((s: string) => s !== skill)
-      : [...userFilters.skills, skill];
-    setUserFilters({ skills: newSkills });
-  };
-
-  const addCustomSkill = () => {
-    if (customSkill.trim() && !userFilters.skills.includes(customSkill.trim())) {
-      toggleSkill(customSkill.trim());
-      setCustomSkill('');
-      Keyboard.dismiss();
-    }
-  };
 
   const renderHeader = useMemo(() => (
     <View className="px-6 mb-4">
@@ -213,69 +182,17 @@ export default function HomeScreen() {
             </TouchableOpacity>
           </View>
           
-          <View className="flex-row items-center bg-white/5 rounded-2xl border border-white/10 px-4 py-3 mb-2">
-            <Ionicons name="search" size={20} color="#94A3B8" />
-            <TextInput
-              className="flex-1 ml-1 text-white text-base"
-              placeholder="Search matches or posts..."
-              placeholderTextColor="#94A3B8"
-              value={localSearch}
-              onChangeText={handleSearchChange}
-              autoCapitalize="none"
-              autoCorrect={false}
-            />
-            <TouchableOpacity onPress={() => setShowFilters(!showFilters)}>
-              <Ionicons name="options-outline" size={22} color={showFilters ? "#3B82F6" : "#94A3B8"} />
-            </TouchableOpacity>
-          </View>
+          <TouchableOpacity 
+            onPress={() => router.push({ pathname: '/search' } as any)}
+            activeOpacity={0.8}
+            className="flex-row items-center bg-white/5 rounded-2xl border border-white/10 px-4 py-3 mb-4"
+          >
+            <Ionicons name="search" size={20} color="#3B82F6" />
+            <Text className="flex-1 ml-3 text-slate-400 text-base">Search students, teams, or posts...</Text>
+            <Ionicons name="options-outline" size={22} color="#94A3B8" />
+          </TouchableOpacity>
 
-          {showFilters && (
-            <View className="bg-white/5 rounded-2xl border border-white/10 p-4 mb-4">
-              <Text className="text-slate-400 text-xs uppercase font-bold mb-3">Field of Study</Text>
-              <View className="flex-row flex-wrap gap-2 mb-4">
-                {FIELDS.map((f: string) => (
-                  <TouchableOpacity 
-                    key={f}
-                    onPress={() => setUserFilters({ field: userFilters.field === f ? '' : f })}
-                    className={`px-3 py-1.5 rounded-full border ${userFilters.field === f ? 'bg-[#3B82F6] border-[#3B82F6]' : 'bg-white/5 border-white/10'}`}
-                  >
-                    <Text className={`text-xs ${userFilters.field === f ? 'text-white' : 'text-slate-400'}`}>{f}</Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
 
-              <Text className="text-slate-400 text-xs uppercase font-bold mb-3">Skills (Select or Add)</Text>
-              <View className="flex-row flex-wrap gap-2 mb-4">
-                {POPULAR_SKILLS.map((s: string) => (
-                  <TouchableOpacity 
-                    key={s}
-                    onPress={() => toggleSkill(s)}
-                    className={`px-3 py-1.5 rounded-full border ${userFilters.skills.includes(s) ? 'bg-[#3B82F6] border-[#3B82F6]' : 'bg-white/5 border-white/10'}`}
-                  >
-                    <Text className={`text-xs ${userFilters.skills.includes(s) ? 'text-white' : 'text-slate-400'}`}>{s}</Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-
-              <View className="flex-row items-center bg-white/5 rounded-xl border border-white/10 px-3 py-1">
-                <TextInput
-                  className="flex-1 text-white text-sm"
-                  placeholder="Add custom skill..."
-                  placeholderTextColor="#64748B"
-                  value={customSkill}
-                  onChangeText={setCustomSkill}
-                  onSubmitEditing={addCustomSkill}
-                />
-                <TouchableOpacity onPress={addCustomSkill}>
-                  <Ionicons name="add-circle" size={24} color="#3B82F6" />
-                </TouchableOpacity>
-              </View>
-
-              <TouchableOpacity onPress={() => { resetUserFilters(); setLocalSearch(''); setPostFilters({ search: '' }); }} className="mt-4 items-center">
-                <Text className="text-[#3B82F6] text-xs font-bold uppercase">Clear All Filters</Text>
-              </TouchableOpacity>
-            </View>
-          )}
         </View>
       </Animated.View>
 

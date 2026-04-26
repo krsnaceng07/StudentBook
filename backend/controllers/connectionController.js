@@ -1,7 +1,7 @@
 const Connection = require('../models/Connection');
 const User = require('../models/User');
 const Profile = require('../models/Profile');
-const Notification = require('../models/Notification');
+const { createNotification } = require('../utils/notificationHelper');
 
 // @desc    Send a connection request
 // @route   POST /api/v1/connections/request/:userId
@@ -35,10 +35,11 @@ const sendConnectionRequest = async (req, res) => {
           connection.status = 'accepted';
           await connection.save();
 
-          await Notification.create({
+          await createNotification({
             recipient: recipientId,
             sender: requesterId,
-            type: 'connection_accepted'
+            type: 'connection_accepted',
+            message: `${req.user.name} accepted your connection request`
           });
 
           return res.json({ 
@@ -48,40 +49,32 @@ const sendConnectionRequest = async (req, res) => {
             autoAccepted: true 
           });
         }
-        
+
         return res.status(400).json({ success: false, message: 'Request already pending' });
       }
 
       // If rejected or cancelled, we can re-open it
-      // Ensure the current requester becomes the 'requester' of the record
       connection.status = 'pending';
       connection.requester = requesterId;
       connection.recipient = recipientId;
       await connection.save();
-      
-      await Notification.create({
+    } else {
+      // Create new connection if none exists
+      connection = await Connection.create({
+        requester: requesterId,
         recipient: recipientId,
-        sender: requesterId,
-        type: 'connection_request'
+        status: 'pending'
       });
-      
-      return res.json({ success: true, message: 'Connection request sent', data: connection });
     }
-
-    // Create new connection if none exists
-    connection = await Connection.create({
-      requester: requesterId,
-      recipient: recipientId,
-      status: 'pending'
-    });
-
-    await Notification.create({
+    
+    await createNotification({
       recipient: recipientId,
       sender: requesterId,
-      type: 'connection_request'
+      type: 'connection_request',
+      message: `${req.user.name} sent you a connection request`
     });
-
-    res.status(201).json({ success: true, message: 'Connection request sent', data: connection });
+    
+    return res.json({ success: true, message: 'Connection request sent', data: connection });
   } catch (err) {
     console.error('Send Connection Request Error:', err);
     res.status(500).json({ success: false, message: 'Server error' });
@@ -136,10 +129,11 @@ const acceptConnectionRequest = async (req, res) => {
       return res.status(400).json({ success: false, message: `Cannot accept connection with status: ${existing.status}` });
     }
 
-    await Notification.create({
+    await createNotification({
       recipient: connection.requester,
       sender: req.user._id,
-      type: 'connection_accepted'
+      type: 'connection_accepted',
+      message: `${req.user.name} accepted your connection request`
     });
 
     res.json({ success: true, message: 'Connection accepted', data: connection });

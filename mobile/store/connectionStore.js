@@ -8,7 +8,7 @@ export const useConnectionStore = create((set, get) => ({
   isRefreshing: false,
   error: null,
 
-  fetchPending: async (isRefresh = false) => {
+  fetchPendingRequests: async (isRefresh = false) => {
     if (isRefresh) {
       set({ isRefreshing: true });
     } else {
@@ -21,7 +21,6 @@ export const useConnectionStore = create((set, get) => ({
       set({ error: error.response?.data?.message || 'Failed to fetch requests', isLoading: false, isRefreshing: false });
     }
   },
-
 
   fetchConnections: async () => {
     set({ isLoading: true });
@@ -66,6 +65,11 @@ export const useConnectionStore = create((set, get) => ({
         isLoading: false
       }));
       get().fetchConnections(); // Refresh network
+      
+      // Sync rooms to ensure messaging is active for the new connection
+      const { useChatStore } = require('./chatStore');
+      useChatStore.getState().syncRooms();
+
       return { success: true };
     } catch (error) {
       set({ error: error.response?.data?.message || 'Failed to accept', isLoading: false });

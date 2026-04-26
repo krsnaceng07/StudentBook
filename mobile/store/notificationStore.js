@@ -35,6 +35,20 @@ export const useNotificationStore = create((set, get) => ({
     }
   },
 
+  addNotification: (notification) => {
+    set((state) => {
+      // Deduplicate
+      const exists = state.notifications.find(n => n._id === notification._id);
+      if (exists) return state;
+
+      const newNotifications = [notification, ...state.notifications];
+      return {
+        notifications: newNotifications,
+        unreadCount: newNotifications.filter(n => !n.isRead).length
+      };
+    });
+  },
+
   markAsRead: async (id) => {
     try {
       await client.put(`/notifications/${id}/read`);

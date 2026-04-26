@@ -8,17 +8,19 @@ const mongoose = require('mongoose');
 // @access  Private
 const discoverUsers = async (req, res) => {
   try {
-    const page = Math.min(parseInt(req.query.page) || 1, 100);  // Cap page at 100
-    const limit = Math.min(parseInt(req.query.limit) || 10, 50); // Cap limit at 50 to prevent DoS
+    const page = Math.min(parseInt(req.query.page) || 1, 100);
+    const limit = Math.min(parseInt(req.query.limit) || 10, 50);
     const skip = (page - 1) * limit;
 
     const { search, field, skills } = req.query;
-    const currentUserId = req.user._id;
+    const currentUserId = new mongoose.Types.ObjectId(req.user._id);
 
-    // 1. Get current user's profile for match scoring
+    // 1. Get current user's data for matching
+    const me = await User.findById(currentUserId).select('settings');
     const myProfile = await Profile.findOne({ userId: currentUserId });
+    const discoveryFilter = me?.settings?.discoveryFieldFilter || 'all';
 
-    // 2. Find connection IDs to exclude (only accepted or pending)
+    // 2. Find connection IDs to exclude
     const existingConnections = await Connection.find({
       $or: [{ requester: currentUserId }, { recipient: currentUserId }],
       status: { $in: ['accepted', 'pending'] }
@@ -31,134 +33,167 @@ const discoverUsers = async (req, res) => {
       )
     ];
 
-    // 3. Build Query
-    const query = {
-      userId: { $nin: excludedIds }
-    };
+    // 3. Accepted connection IDs for mutual check
+    const myConnIds = existingConnections
+      .filter(c => c.status === 'accepted')
+      .map(c => c.requester.toString() === currentUserId.toString() ? c.recipient : c.requester);
 
-    // 4. Aggregation Pipeline
-    const aggregation = [
-      {
-        $lookup: {
-          from: 'users',
-          localField: 'userId',
-          foreignField: '_id',
-          as: 'user'
-        }
-      },
-      { $unwind: '$user' },
-      { 
-        $match: { 
-          $or: [
-            { 'user.status': 'active' },
-            { 'user.status': { $exists: false } }
-          ]
-        } 
-      }
+    // 4. Advanced Aggregation Pipeline
+    const pipeline = [
+      { $match: { userId: { $nin: excludedIds } } }
     ];
 
-    // Combine all filters into a single match logic
-    const matchStages = [query];
-
-    if (field) {
-      matchStages.push({ field: { $regex: field, $options: 'i' } });
+    // Apply Discovery Field Filter
+    if (discoveryFilter === 'same_field' && myProfile?.field) {
+      pipeline.push({ $match: { field: { $regex: new RegExp(`^${myProfile.field}$`, 'i') } } });
     }
 
-    if (skills) {
-      const skillArray = Array.isArray(skills) ? skills : skills.split(',').map(s => s.trim()).filter(Boolean);
-      if (skillArray.length > 0) {
-        matchStages.push({ skills: { $in: skillArray } }); // Use $in for better discovery
+    // Join with User model
+    pipeline.push({
+      $lookup: {
+        from: 'users',
+        localField: 'userId',
+        foreignField: '_id',
+        as: 'user'
       }
-    }
+    }, { $unwind: '$user' });
 
+    // Global Search / Filters
     if (search && search.trim()) {
-      const trimmedSearch = search.trim();
-      const searchRegex = { $regex: trimmedSearch, $options: 'i' };
-      
-      const orMatch = [
-        { 'user.name': searchRegex },
-        { 'user.username': searchRegex },
-        { 'user.email': searchRegex },
-        { bio: searchRegex },
-        { field: searchRegex },
-        { skills: { $in: [new RegExp(trimmedSearch, 'i')] } }
-      ];
-
-      if (mongoose.Types.ObjectId.isValid(trimmedSearch)) {
-        orMatch.push({ userId: new mongoose.Types.ObjectId(trimmedSearch) });
-      }
-
-      matchStages.push({ $or: orMatch });
+      const searchRegex = new RegExp(search.trim(), 'i');
+      pipeline.push({
+        $match: {
+          $or: [
+            { 'user.name': searchRegex },
+            { 'user.username': searchRegex },
+            { headline: searchRegex },
+            { skills: { $in: [searchRegex] } }
+          ]
+        }
+      });
     }
 
-    // Apply all match stages
-    matchStages.forEach(stage => {
-      aggregation.push({ $match: stage });
+    if (field) pipeline.push({ $match: { field: { $regex: field, $options: 'i' } } });
+    
+    if (skills) {
+      const skillArray = Array.isArray(skills) ? skills : [skills];
+      pipeline.push({ $match: { skills: { $in: skillArray.map(s => new RegExp(s, 'i')) } } });
+    }
+
+    // Calculate Mutuals using $lookup on the fly
+    pipeline.push({
+      $lookup: {
+        from: 'connections',
+        let: { theirId: '$userId' },
+        pipeline: [
+          {
+            $match: {
+              $expr: {
+                $and: [
+                  { $eq: ['$status', 'accepted'] },
+                  {
+                    $or: [
+                      { $eq: ['$requester', '$$theirId'] },
+                      { $eq: ['$recipient', '$$theirId'] }
+                    ]
+                  }
+                ]
+              }
+            }
+          }
+        ],
+        as: 'theirConns'
+      }
     });
 
-    // execute query for total count
-    const totalResults = await Profile.aggregate([...aggregation, { $count: 'total' }]);
-    const total = totalResults[0]?.total || 0;
+    // Formatting & Scoring Projection
+    pipeline.push({
+      $project: {
+        userId: 1,
+        avatar: 1,
+        field: 1,
+        headline: 1,
+        skills: 1,
+        goals: 1,
+        experienceLevel: 1,
+        availability: 1,
+        name: '$user.name',
+        username: '$user.username',
+        updatedAt: { $ifNull: ['$user.updatedAt', '$updatedAt'] },
+        mutualCount: {
+          $size: {
+            $filter: {
+              input: '$theirConns',
+              as: 'conn',
+              cond: {
+                $or: [
+                  { $in: ['$$conn.requester', myConnIds] },
+                  { $in: ['$$conn.recipient', myConnIds] }
+                ]
+              }
+            }
+          }
+        }
+      }
+    });
 
-    // Execution with pagination
-    const profiles = await Profile.aggregate([
-      ...aggregation,
-      { $skip: skip },
-      { $limit: limit }
-    ]);
+    const results = await Profile.aggregate(pipeline);
 
-    // 5. Calculate match scores and format response
-    const users = profiles.map(profile => {
+    // Final sorting and detailed reasons (JS side for complex logic)
+    const enhancedUsers = results.map(u => {
       let score = 0;
       const reasons = [];
+      
+      const commonSkills = u.skills?.filter(s => 
+        myProfile?.skills?.some(ms => ms.toLowerCase() === s.toLowerCase())
+      ) || [];
+
+      const commonGoals = u.goals?.filter(g => 
+        myProfile?.goals?.some(mg => mg.toLowerCase() === g.toLowerCase())
+      ) || [];
 
       if (myProfile) {
-        // Field (40)
-        if (myProfile.field && profile.field && myProfile.field.toLowerCase() === profile.field.toLowerCase()) {
+        if (u.field && myProfile.field?.toLowerCase() === u.field.toLowerCase()) {
           score += 40;
-          reasons.push(profile.field);
+          reasons.push(`Same field: ${u.field}`);
+        }
+        
+        if (commonSkills.length > 0) {
+          score += Math.min(30, commonSkills.length * 10);
+          reasons.push(`${commonSkills.length} matching skills`);
         }
 
-        const calculateSimilarity = (myArr, targetArr, maxPts) => {
-          if (!myArr?.length || !targetArr?.length) return 0;
-          const common = myArr.filter(t => targetArr.some(tt => tt.toLowerCase() === t.toLowerCase()));
-          if (common.length > 0) {
-             reasons.push(...common);
-             return (common.length / myArr.length) * maxPts;
-          }
-          return 0;
-        };
+        if (commonGoals.length > 0) {
+          score += Math.min(20, commonGoals.length * 5);
+          reasons.push(`${commonGoals.length} shared goals`);
+        }
 
-        score += calculateSimilarity(myProfile.skills, profile.skills, 30);
-        score += calculateSimilarity(myProfile.interests, profile.interests, 15);
-        score += calculateSimilarity(myProfile.goals, profile.goals, 15);
+        if (u.mutualCount > 0) {
+          score += Math.min(20, u.mutualCount * 5);
+          reasons.push(`${u.mutualCount} mutual connections`);
+        }
       }
 
       return {
-        userId: profile.userId,
-        name: profile.user.name,
-        username: profile.user.username,
-        field: profile.field,
-        skills: profile.skills,
-        avatar: profile.avatar || null,
-        matchScore: Math.round(score),
-        matchReasons: [...new Set(reasons)]
+        ...u,
+        commonSkills,
+        commonGoals,
+        matchScore: Math.min(100, score),
+        matchReasons: reasons,
+        collabPotential: score > 60
       };
-    });
+    }).sort((a, b) => b.matchScore - a.matchScore);
+
+    const total = enhancedUsers.length;
+    const paginatedUsers = enhancedUsers.slice(skip, skip + limit);
 
     res.json({
       success: true,
-      message: 'Users retrieved',
       data: {
-        users,
-        pagination: {
-          page,
-          limit,
-          total
-        }
+        users: paginatedUsers,
+        pagination: { page, limit, total }
       }
     });
-
   } catch (err) {
     console.error('Discover Error:', err);
     res.status(500).json({ success: false, message: 'Server error' });

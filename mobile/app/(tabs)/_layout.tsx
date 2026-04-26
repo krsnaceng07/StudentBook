@@ -10,10 +10,10 @@ import { useConnectionStore } from '../../store/connectionStore';
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
-  const { incomingRequests, fetchPending } = useConnectionStore();
+  const { incomingRequests, fetchPendingRequests } = useConnectionStore();
 
   React.useEffect(() => {
-    fetchPending();
+    fetchPendingRequests();
   }, []);
 
   return (

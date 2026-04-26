@@ -38,46 +38,50 @@ export const uploadFile = async (imageAsset, endpoint) => {
     const formData = new FormData();
     
     // Get file extension and type
-    const filename = imageAsset.uri.split('/').pop() || 'upload.jpg';
-    const match = /\.(\w+)$/.exec(filename);
-    const type = match ? `image/${match[1]}` : `image/jpeg`;
+    const filename = imageAsset.fileName || (imageAsset.uri.split('/').pop() || 'upload.jpg');
+    const type = imageAsset.mimeType || 'image/jpeg';
+
+    // Android URI fix: Ensure it starts with file:// if it's a local path
+    let uri = imageAsset.uri;
+    if (Platform.OS === 'android' && !uri.startsWith('file://') && !uri.startsWith('content://')) {
+      uri = `file://${uri}`;
+    }
 
     formData.append('file', {
-      uri: imageAsset.uri,
+      uri: uri,
       name: filename,
       type: type,
     });
 
-    // Get Auth Token from storage
-    const token = await TokenStorage.getItem('token');
-    
-    // Get Base URL from client config
+    // Get client instance (already has baseURL and interceptors)
     const client = require('../api/client').default;
-    const uploadUrl = `${client.defaults.baseURL}${endpoint}`;
+    const uploadUrl = endpoint; // Axios uses relative paths if baseURL is set
 
-    console.log(`[Upload] Starting upload to ${uploadUrl}`);
+    console.log(`[Upload] Starting upload to ${client.defaults.baseURL}${uploadUrl}`);
 
-    const response = await fetch(uploadUrl, {
-      method: 'POST',
-      body: formData,
+    const response = await client.post(uploadUrl, formData, {
       headers: {
-        'Accept': 'application/json',
-        'Authorization': `Bearer ${token}`,
-        // IMPORTANT: DO NOT set 'Content-Type': 'multipart/form-data' manually here.
-        // The fetch API will automatically set the Content-Type WITH the correct boundary string.
+        'Content-Type': 'multipart/form-data',
       },
+      // Increase timeout for uploads
+      timeout: 60000, 
+      onUploadProgress: (progressEvent) => {
+        const percentCompleted = Math.round((progressEvent.loaded * 100) / (progressEvent.total || 1));
+        console.log(`[Upload Progress] ${percentCompleted}%`);
+      }
     });
 
-    const result = await response.json();
-    
-    if (!response.ok) {
-      console.error("[Upload Error] Server returned:", result);
-      throw new Error(result.message || 'Upload failed');
-    }
-
-    return result;
+    return response.data;
   } catch (error) {
-    console.error("[Upload Network Error]:", error.message);
-    throw error;
+    if (error.response) {
+      console.error("[Upload Error] Server returned:", error.response.status, error.response.data);
+      throw new Error(error.response.data?.message || 'Upload failed');
+    } else if (error.request) {
+      console.error("[Upload Network Error] No response received. Check server connectivity.");
+      throw new Error('Network error. Could not connect to server.');
+    } else {
+      console.error("[Upload Logic Error]:", error.message);
+      throw error;
+    }
   }
 };

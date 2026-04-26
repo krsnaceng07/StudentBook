@@ -21,22 +21,21 @@ const postRoutes = require('./routes/postRoutes');
 const uploadRoutes = require('./routes/uploadRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
 const settingsRoutes = require('./routes/settingsRoutes');
+const searchRoutes = require('./routes/searchRoutes');
 
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
     origin: process.env.NODE_ENV === 'production' 
-      ? process.env.CLIENT_ORIGIN || false  // Lock to specific origin in production
-      : '*',  // Allow all in development
+      ? process.env.CLIENT_ORIGIN || false 
+      : '*', 
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE"]
   }
 });
 
 // Pass io to global for controllers
 global.io = io;
-
-// Request logging silenced in Phase 1 Security Hardening
 
 // Connect to Database
 connectDB();
@@ -48,12 +47,6 @@ app.use(helmet({
 }));
 app.use(cors());
 
-// DEBUG: Log all incoming requests
-app.use((req, res, next) => {
-  console.log(`[DEBUG] ${req.method} ${req.url} from ${req.ip}`);
-  next();
-});
-
 // Rate limiting
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -63,14 +56,12 @@ app.use('/api/', limiter);
 
 // Stricter limiter for Chat and Auth
 const strictLimiter = rateLimit({
-  windowMs: 1 * 60 * 1000, // 1 minute
-  max: 30, // 30 requests per minute
+  windowMs: 1 * 60 * 1000, 
+  max: 30, 
   message: { success: false, message: 'Too many requests, please try again later.' }
 });
 app.use('/api/v1/auth/login', strictLimiter);
 app.use('/api/v1/auth/register', strictLimiter);
-app.use('/api/v1/auth/forgot-password', strictLimiter);
-app.use('/api/v1/auth/reset-password', strictLimiter);
 app.use('/api/v1/chat', strictLimiter);
 
 // Body parser
@@ -89,10 +80,14 @@ app.use('/api/v1/posts', postRoutes);
 app.use('/api/v1/upload', uploadRoutes);
 app.use('/api/v1/notifications', notificationRoutes);
 app.use('/api/v1/settings', settingsRoutes);
+app.use('/api/v1/search', searchRoutes);
 
 const Team = require('./models/Team');
+const Conversation = require('./models/Conversation');
 
 const jwt = require('jsonwebtoken');
+
+const onlineUsers = new Map(); // userId -> socketId
 
 // Socket.io Lifecycle
 io.on('connection', async (socket) => {
@@ -110,33 +105,72 @@ io.on('connection', async (socket) => {
   }
 
   if (userId) {
-    // Join private room for 1:1 chats
-    socket.join(userId.toString());
+    const sUserId = userId.toString();
+    onlineUsers.set(sUserId, socket.id);
 
-    // Join rooms for all teams the user belongs to
-    joinTeamRooms(socket, userId.toString());
+    // Join private room for 1:1 user alerts (backwards compatibility)
+    socket.join(sUserId);
 
-    // Client can request to re-sync team rooms (e.g. after joining a new team)
-    socket.on('sync_team_rooms', () => {
-      joinTeamRooms(socket, userId.toString());
+    // Join rooms for all conversations (both personal and team)
+    joinUserRooms(socket, sUserId);
+
+    // Broadcast online status
+    socket.broadcast.emit('user_online', { userId: sUserId });
+
+    // Client can request to re-sync rooms
+    socket.on('sync_rooms', () => {
+      joinUserRooms(socket, sUserId);
     });
+
+    // Handle Typing Indicators
+    socket.on('typing', ({ conversationId, name }) => {
+      socket.to(`conv_${conversationId}`).emit('typing', {
+        conversationId,
+        userId: sUserId,
+        name
+      });
+    });
+
+    socket.on('stop_typing', ({ conversationId }) => {
+      socket.to(`conv_${conversationId}`).emit('stop_typing', {
+        conversationId,
+        userId: sUserId
+      });
+    });
+
+    socket.on('disconnect', () => {
+      onlineUsers.delete(sUserId);
+      socket.broadcast.emit('user_offline', { userId: sUserId });
+      console.log(`[Socket] User ${sUserId} disconnected.`);
+    });
+
   } else {
     socket.disconnect();
   }
 });
 
-async function joinTeamRooms(socket, userId) {
+async function joinUserRooms(socket, userId) {
   try {
     const mongoose = require('mongoose');
     const uId = mongoose.Types.ObjectId.isValid(userId) ? new mongoose.Types.ObjectId(userId) : userId;
     
+    // 1. Join all Conversation rooms
+    const conversations = await Conversation.find({ participants: uId });
+    conversations.forEach(conv => {
+      socket.join(`conv_${conv._id}`);
+    });
+
+    // 2. Join Team rooms
     const teams = await Team.find({ 'members.user': uId });
     teams.forEach(team => {
       socket.join(`team_${team._id}`);
-      socket.join(`team_${team._id}`);
+      // Also join a conversation-style room for teams if they have one
+      socket.join(`conv_${team._id}`); // We often use teamId as convId for simplicity
     });
+
+    console.log(`[Socket] User ${userId} joined ${conversations.length} conversation rooms and ${teams.length} team rooms.`);
   } catch (err) {
-    console.error('[Socket Error] joinTeamRooms:', err);
+    console.error('[Socket Error] joinUserRooms:', err);
   }
 }
 

@@ -30,8 +30,12 @@ export default function CreatePostModal({ isVisible, onClose, postToEdit }: Crea
   useEffect(() => {
     if (isVisible && postToEdit) {
       setContent(postToEdit.content || '');
-      // Note: For now we don't support editing existing images via this modal
-      setSelectedImage(null); 
+      // If post has images, set the first one as selected
+      if (postToEdit.images && postToEdit.images.length > 0) {
+        setSelectedImage({ uri: postToEdit.images[0], isRemote: true }); 
+      } else {
+        setSelectedImage(null);
+      }
     } else if (isVisible && !postToEdit) {
       setContent('');
       setSelectedImage(null);
@@ -39,10 +43,9 @@ export default function CreatePostModal({ isVisible, onClose, postToEdit }: Crea
   }, [isVisible, postToEdit]);
 
   const handlePickImage = async () => {
-    if (postToEdit) return; // Disable image addition for edit for now to keep it simple
     const asset = await pickImage({ quality: 0.9 });
     if (asset) {
-      setSelectedImage(asset);
+      setSelectedImage({ ...asset, isRemote: false });
     }
   };
 
@@ -51,21 +54,13 @@ export default function CreatePostModal({ isVisible, onClose, postToEdit }: Crea
   };
 
   const handlePost = async () => {
-    // Always require some content, whether creating or editing
     const hasContent = content.trim().length > 0;
     if (!hasContent && !selectedImage) return;
     
-    if (postToEdit) {
-      const result = await updatePost(postToEdit._id, content);
-      if (result.success) {
-        onClose();
-      }
-      return;
-    }
-
     let imageUrls: string[] = [];
     
-    if (selectedImage) {
+    // Case 1: Image is being uploaded (newly selected)
+    if (selectedImage && !selectedImage.isRemote) {
       setIsUploading(true);
       try {
         const uploadResult = await uploadFile(selectedImage, '/upload/post');
@@ -73,11 +68,24 @@ export default function CreatePostModal({ isVisible, onClose, postToEdit }: Crea
           imageUrls = [uploadResult.url];
         }
       } catch (error) {
-        Alert.alert('Upload Failed', 'Failed to upload image. Post without image?');
+        Alert.alert('Upload Failed', 'Failed to upload image.');
         setIsUploading(false);
         return;
       }
       setIsUploading(false);
+    } 
+    // Case 2: Image is remote (existing one being kept)
+    else if (selectedImage && selectedImage.isRemote) {
+      imageUrls = [selectedImage.uri];
+    }
+    // Case 3: selectedImage is null (removed) -> imageUrls is empty []
+
+    if (postToEdit) {
+      const result = await updatePost(postToEdit._id, content, imageUrls);
+      if (result.success) {
+        onClose();
+      }
+      return;
     }
 
     const result = await createPost(content, imageUrls);

@@ -6,11 +6,11 @@ import RequestCard from '../../components/RequestCard';
 import { useRouter } from 'expo-router';
 
 export default function RequestsScreen() {
-  const { incomingRequests, isLoading, isRefreshing, fetchPending } = useConnectionStore();
+  const { incomingRequests, isLoading, isRefreshing, fetchPendingRequests } = useConnectionStore();
   const router = useRouter();
 
   useEffect(() => {
-    fetchPending();
+    fetchPendingRequests();
   }, []);
 
   return (
@@ -32,7 +32,7 @@ export default function RequestsScreen() {
         renderItem={({ item }) => <RequestCard request={item} />}
         contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: 40 }}
         refreshControl={
-          <RefreshControl refreshing={isRefreshing} onRefresh={() => fetchPending(true)} tintColor="#3B82F6" />
+          <RefreshControl refreshing={isRefreshing} onRefresh={() => fetchPendingRequests(true)} tintColor="#3B82F6" />
         }
         ListEmptyComponent={() => (
           !isLoading && (

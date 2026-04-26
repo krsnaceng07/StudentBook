@@ -116,10 +116,10 @@ export const usePostStore = create((set, get) => ({
     }
   },
   
-  updatePost: async (postId, content, tags = []) => {
+  updatePost: async (postId, content, images = [], tags = []) => {
     set({ isLoading: true });
     try {
-      const res = await client.put(`/posts/${postId}`, { content, tags });
+      const res = await client.put(`/posts/${postId}`, { content, images, tags });
       const updatedPost = res.data.data;
       
       set((state) => ({
@@ -201,5 +201,18 @@ export const usePostStore = create((set, get) => ({
       set({ posts: previousPosts, networkPosts: previousNetworkPosts });
       return { success: false, error: error.response?.data?.message || 'Failed to delete post' };
     }
+  },
+
+  updatePostStats: (postId, likesCount, commentsCount) => {
+    const updateStats = (posts) => posts.map((post) => 
+      post._id === postId 
+        ? { ...post, likesCount, commentsCount } 
+        : post
+    );
+
+    set((state) => ({
+      posts: updateStats(state.posts),
+      networkPosts: updateStats(state.networkPosts)
+    }));
   }
 }));

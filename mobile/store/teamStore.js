@@ -9,11 +9,12 @@ export const useTeamStore = create((set, get) => ({
   isLoading: false,
   error: null,
 
-  fetchTeams: async (search = '', tag = '') => {
+  fetchTeams: async (search = '', category = '', tag = '') => {
     set({ isLoading: true });
     try {
       const params = {};
       if (search) params.search = search;
+      if (category) params.category = category;
       if (tag) params.tag = tag;
       
       const res = await client.get('/teams', { params });
@@ -45,6 +46,24 @@ export const useTeamStore = create((set, get) => ({
     } catch (error) {
       set({ error: error.response?.data?.message || 'Failed to create team', isLoading: false });
       return { success: false, error: error.response?.data?.message };
+    }
+  },
+
+  updateTeam: async (teamId, teamData) => {
+    set({ isLoading: true });
+    try {
+      const res = await client.put(`/teams/${teamId}`, teamData);
+      const updatedTeam = res.data.data;
+      set((state) => ({
+        activeTeam: updatedTeam,
+        teams: state.teams.map(t => t._id === teamId ? updatedTeam : t),
+        isLoading: false
+      }));
+      return { success: true, team: updatedTeam };
+    } catch (error) {
+      const msg = error.response?.data?.message || 'Failed to update team';
+      set({ error: msg, isLoading: false });
+      return { success: false, error: msg };
     }
   },
 

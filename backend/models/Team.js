@@ -12,7 +12,21 @@ const teamSchema = new mongoose.Schema({
     required: [true, 'Please add a description'],
     maxlength: [500, 'Description cannot be more than 500 characters'],
   },
+  category: {
+    type: String,
+    enum: ['Study Group', 'Research', 'Startup', 'Hackathon', 'Competitive Exams', 'Open Source', 'Project', 'Other'],
+    default: 'Study Group'
+  },
   tags: [String],
+  lookingFor: {
+    type: [String],
+    default: [],
+  },
+  status: {
+    type: String,
+    enum: ['Recruiting', 'Active', 'Full', 'Archived'],
+    default: 'Recruiting'
+  },
   isPublic: {
     type: Boolean,
     default: true,

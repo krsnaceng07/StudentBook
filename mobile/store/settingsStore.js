@@ -28,11 +28,23 @@ export const useSettingsStore = create((set, get) => ({
   },
 
   updateSettings: async (updates) => {
-    // Optimistic update
-    const previousSettings = get().settings;
-    set((state) => ({
-      settings: { ...state.settings, ...updates }
-    }));
+    // Optimistic update with deep merge for nested objects like notifications
+    const previousSettings = JSON.parse(JSON.stringify(get().settings || {}));
+    
+    set((state) => {
+      const newSettings = { ...state.settings };
+      
+      // Deep merge for updates
+      Object.keys(updates).forEach(key => {
+        if (typeof updates[key] === 'object' && updates[key] !== null && !Array.isArray(updates[key])) {
+          newSettings[key] = { ...(newSettings[key] || {}), ...updates[key] };
+        } else {
+          newSettings[key] = updates[key];
+        }
+      });
+
+      return { settings: newSettings };
+    });
 
     try {
       await client.put('/settings', updates);
@@ -43,13 +55,13 @@ export const useSettingsStore = create((set, get) => ({
       if (currentUser) {
         useAuthStore.getState().setUser({
           ...currentUser,
-          settings: { ...currentUser.settings, ...updates }
+          settings: get().settings
         });
       }
 
       return { success: true };
     } catch (error) {
-      // Rollback
+      // Rollback on failure
       set({ settings: previousSettings });
       return { 
         success: false, 

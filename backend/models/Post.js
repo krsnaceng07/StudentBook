@@ -26,6 +26,12 @@ const postSchema = new mongoose.Schema({
     type: [String],
     default: [],
   },
+  mentions: [
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+    }
+  ],
   likesCount: {
     type: Number,
     default: 0,
@@ -33,6 +39,11 @@ const postSchema = new mongoose.Schema({
   commentsCount: {
     type: Number,
     default: 0,
+  },
+  status: {
+    type: String,
+    enum: ['active', 'deleted'],
+    default: 'active',
   }
 }, { timestamps: true });
 
@@ -40,6 +51,7 @@ const postSchema = new mongoose.Schema({
 postSchema.index({ createdAt: -1 });
 postSchema.index({ authorId: 1, createdAt: -1 }); // Fast profile feed
 postSchema.index({ tags: 1 }); // Fast tag search
+postSchema.index({ status: 1 }); // Fast filtering of active posts
 postSchema.index({ content: 'text' });
 
 const Post = mongoose.model('Post', postSchema);

@@ -8,6 +8,8 @@ export const useChatStore = create((set, get) => ({
   teamConversations: [],
   activeConversationId: null,
   messages: [], // messages for the ACTIVE conversation
+  typingUsers: {}, // conversationId -> { userId: name }
+  onlineUsers: new Set(), // Set of userIds
   isLoading: false,
   error: null,
 
@@ -25,9 +27,13 @@ export const useChatStore = create((set, get) => ({
 
     console.log('[Socket] Initializing for user:', userId);
     
+    // We need the token for the secure handshake
+    const { useAuthStore } = require('./authStore');
+    const token = useAuthStore.getState().token;
+
     const newSocket = io(SOCKET_URL, {
-      query: { userId },
-      auth: { userId } // Also store in auth for easy comparison
+      query: { token }, // Use token instead of userId for security
+      auth: { userId } 
     });
 
     newSocket.on('connect', () => {
@@ -41,12 +47,15 @@ export const useChatStore = create((set, get) => ({
       if (get().activeConversationId === message.conversationId) {
         set((state) => {
           const map = new Map();
+          // Use a Map to ensure unique messages by _id
           state.messages.forEach(m => map.set(m._id, m));
           map.set(message._id, message);
           
-          return {
-            messages: Array.from(map.values()).sort((a,b) => new Date(a.createdAt) - new Date(b.createdAt))
-          };
+          const sortedMessages = Array.from(map.values()).sort(
+            (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+          );
+
+          return { messages: sortedMessages };
         });
       }
 
@@ -54,20 +63,112 @@ export const useChatStore = create((set, get) => ({
       get().fetchConversations();
     });
 
+    newSocket.on('typing', ({ conversationId, userId, name }) => {
+      set((state) => {
+        const current = { ...state.typingUsers };
+        if (!current[conversationId]) current[conversationId] = {};
+        current[conversationId][userId] = name;
+        return { typingUsers: current };
+      });
+    });
+
+    newSocket.on('stop_typing', ({ conversationId, userId }) => {
+      set((state) => {
+        const current = { ...state.typingUsers };
+        if (current[conversationId]) {
+          delete current[conversationId][userId];
+        }
+        return { typingUsers: current };
+      });
+    });
+
+    newSocket.on('user_online', ({ userId }) => {
+      set((state) => {
+        const newOnline = new Set(state.onlineUsers);
+        newOnline.add(userId);
+        return { onlineUsers: newOnline };
+      });
+    });
+
+    newSocket.on('user_offline', ({ userId }) => {
+      set((state) => {
+        const newOnline = new Set(state.onlineUsers);
+        newOnline.delete(userId);
+        return { onlineUsers: newOnline };
+      });
+    });
+
+    newSocket.on('new_notification', (notification) => {
+      console.log('[Socket] New notification received:', notification.type);
+      const { useNotificationStore } = require('./notificationStore');
+      useNotificationStore.getState().addNotification(notification);
+    });
+
     newSocket.on('team_joined', ({ teamId }) => {
       console.log('[Socket] New team joined, syncing rooms...');
-      newSocket.emit('sync_team_rooms');
+      newSocket.emit('sync_rooms');
       get().fetchConversations(); // Update lists
+      
+      // Refresh notifications to show the 'team_accepted' alert
+      const { useNotificationStore } = require('./notificationStore');
+      useNotificationStore.getState().fetchNotifications();
+    });
+
+    newSocket.on('new_team_request', ({ teamId, requesterName }) => {
+      console.log('[Socket] New team request received');
+      const { useNotificationStore } = require('./notificationStore');
+      useNotificationStore.getState().fetchNotifications();
+    });
+
+    newSocket.on('new_connection_request', ({ senderId, senderName }) => {
+      console.log('[Socket] New connection request received');
+      const { useNotificationStore } = require('./notificationStore');
+      useNotificationStore.getState().fetchNotifications();
+      
+      // Also refresh connection store to update pending badges
+      const { useConnectionStore } = require('./connectionStore');
+      useConnectionStore.getState().fetchPendingRequests();
+    });
+
+    newSocket.on('connection_accepted', ({ senderId, senderName }) => {
+      console.log('[Socket] Connection accepted');
+      const { useNotificationStore } = require('./notificationStore');
+      useNotificationStore.getState().fetchNotifications();
+      
+      // Refresh connections list
+      const { useConnectionStore } = require('./connectionStore');
+      useConnectionStore.getState().fetchConnections();
+    });
+
+    newSocket.on('post_updated', ({ postId, likesCount, commentsCount }) => {
+      const { usePostStore } = require('./postStore');
+      usePostStore.getState().updatePostStats(postId, likesCount, commentsCount);
     });
 
     set({ socket: newSocket });
+  },
+
+  setTyping: (conversationId) => {
+    const { socket } = get();
+    if (socket) {
+      const { useAuthStore } = require('./authStore');
+      const user = useAuthStore.getState().user;
+      socket.emit('typing', { conversationId, name: user?.name });
+    }
+  },
+
+  stopTyping: (conversationId) => {
+    const { socket } = get();
+    if (socket) {
+      socket.emit('stop_typing', { conversationId });
+    }
   },
 
   syncRooms: () => {
     const { socket } = get();
     if (socket) {
       console.log('[Socket] Manually syncing rooms...');
-      socket.emit('sync_team_rooms');
+      socket.emit('sync_rooms');
     }
   },
 
@@ -119,8 +220,12 @@ export const useChatStore = create((set, get) => ({
         state.messages.forEach(m => map.set(m._id, m));
         incomingMessages.forEach(m => map.set(m._id, m));
         
+        const sortedMessages = Array.from(map.values()).sort(
+          (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+        );
+
         return {
-          messages: Array.from(map.values()).sort((a,b) => new Date(a.createdAt) - new Date(b.createdAt)),
+          messages: sortedMessages,
           activeConversationId: conversationId,
           isLoading: false
         };
@@ -166,6 +271,32 @@ export const useChatStore = create((set, get) => ({
   },
 
   sendMessage: async (conversationId, text, replyToId = null, attachments = []) => {
+    // 1. Create Optimistic Message
+    const tempId = `temp_${Date.now()}`;
+    const { useAuthStore } = require('./authStore');
+    const { useProfileStore } = require('./profileStore');
+    const user = useAuthStore.getState().user;
+    const profile = useProfileStore.getState().profile;
+
+    const optimisticMsg = {
+      _id: tempId,
+      conversationId,
+      sender: {
+        _id: user?._id || user?.id,
+        name: user?.name,
+        avatar: profile?.avatar || null
+      },
+      text,
+      attachments,
+      createdAt: new Date().toISOString(),
+      sending: true
+    };
+
+    // 2. Add to UI immediately
+    set((state) => ({
+      messages: [...state.messages, optimisticMsg]
+    }));
+
     try {
       const res = await client.post(`/chat/${conversationId}/messages`, { 
         text,
@@ -174,22 +305,26 @@ export const useChatStore = create((set, get) => ({
       });
       const newMessage = res.data.data;
 
-      // Append & Dedupe locally for instant feedback
+      // 3. Replace temp message with server message, but ONLY if not already added by socket
       set((state) => {
-        const map = new Map();
-        state.messages.forEach(m => map.set(m._id, m));
-        map.set(newMessage._id, newMessage);
-        
+        const alreadyExists = state.messages.some(m => m._id === newMessage._id);
+        if (alreadyExists) {
+          // If socket already added it, just remove the temporary one
+          return { messages: state.messages.filter(m => m._id !== tempId) };
+        }
+        // Otherwise replace the temp one with the real one
         return {
-          messages: Array.from(map.values()).sort((a,b) => new Date(a.createdAt) - new Date(b.createdAt))
+          messages: state.messages.map(m => m._id === tempId ? newMessage : m)
         };
       });
       
-      // Update snippets
       get().fetchConversations();
-
       return { success: true };
     } catch (error) {
+      // 4. Remove optimistic message on failure
+      set((state) => ({
+        messages: state.messages.filter(m => m._id !== tempId)
+      }));
       return { success: false, error: 'Failed to send message' };
     }
   },

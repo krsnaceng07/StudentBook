@@ -6,6 +6,9 @@ const profileSchema = Joi.object({
   bio: Joi.string().max(500).allow('').messages({
     'string.max': 'Bio is too long (limit 500 characters)'
   }),
+  headline: Joi.string().max(100).allow(''),
+  experienceLevel: Joi.string().valid('Beginner', 'Intermediate', 'Advanced', 'Professional').allow(''),
+  availability: Joi.string().valid('Open for Projects', 'Collaborating', 'Looking for Team', 'Busy').allow(''),
   field: Joi.string().allow(''),
   skills: Joi.array().items(Joi.string()),
   interests: Joi.array().items(Joi.string()),
@@ -26,7 +29,10 @@ const createOrUpdateProfile = async (req, res) => {
      return res.status(400).json({ message: error.details[0].message });
   }
 
-  const { bio, field, skills, interests, goals, avatar, username } = req.body;
+  const { 
+    bio, field, skills, interests, goals, avatar, username,
+    headline, experienceLevel, availability 
+  } = req.body;
   const User = require('../models/User');
 
   try {
@@ -46,6 +52,9 @@ const createOrUpdateProfile = async (req, res) => {
     if (profile) {
       // Update
       profile.bio = bio !== undefined ? xss(bio) : profile.bio;
+      profile.headline = headline !== undefined ? xss(headline) : (profile.headline || 'Student');
+      profile.experienceLevel = experienceLevel !== undefined ? experienceLevel : (profile.experienceLevel || 'Beginner');
+      profile.availability = availability !== undefined ? availability : (profile.availability || 'Open for Projects');
       profile.field = field !== undefined ? xss(field) : profile.field;
       profile.skills = skills !== undefined ? skills : profile.skills;
       profile.interests = interests !== undefined ? interests : profile.interests;
@@ -57,6 +66,9 @@ const createOrUpdateProfile = async (req, res) => {
       profile = await Profile.create({
         userId: req.user._id,
         bio: xss(bio || ''),
+        headline: xss(headline || 'Student'),
+        experienceLevel: experienceLevel || 'Beginner',
+        availability: availability || 'Open for Projects',
         field: xss(field || ''),
         skills,
         interests,
@@ -103,7 +115,7 @@ const getMyProfile = async (req, res) => {
 // @access  Public
 const getProfileByUserId = async (req, res) => {
   try {
-    const profile = await Profile.findOne({ userId: req.params.userId }).populate('userId', ['name', 'username', 'email', 'settings']);
+    const profile = await Profile.findOne({ userId: req.params.userId }).populate('userId', ['name', 'username', 'email', 'settings', 'updatedAt']);
     
     if (!profile) {
       return res.status(404).json({ success: false, message: 'Profile not found' });
@@ -117,7 +129,71 @@ const getProfileByUserId = async (req, res) => {
     const showEmail = profile.userId.settings?.showEmail;
 
     if (!showEmail && !isOwner) {
-      delete profileData.userId.email;
+      if (profileData.userId) delete profileData.userId.email;
+    }
+
+    // 🏆 SMART INSIGHTS LOGIC
+    if (!isOwner && req.user) {
+      const myProfile = await Profile.findOne({ userId: req.user._id });
+      const Connection = require('../models/Connection');
+
+      if (myProfile) {
+        let score = 0;
+        const commonSkills = [];
+        const commonGoals = [];
+        const matchReasons = [];
+
+        // 1. Field Match (40 pts)
+        if (myProfile.field && profile.field && myProfile.field.toLowerCase() === profile.field.toLowerCase()) {
+          score += 40;
+          matchReasons.push(`Both in ${profile.field}`);
+        }
+
+        // 2. Skills Overlap (30 pts)
+        if (myProfile.skills?.length && profile.skills?.length) {
+          const common = profile.skills.filter(s => 
+            myProfile.skills.some(ms => ms.toLowerCase() === s.toLowerCase())
+          );
+          if (common.length > 0) {
+            commonSkills.push(...common);
+            score += Math.min(30, (common.length / 3) * 30);
+          }
+        }
+
+        // 3. Goals Match (20 pts)
+        if (myProfile.goals?.length && profile.goals?.length) {
+          const common = profile.goals.filter(g => 
+            myProfile.goals.some(mg => mg.toLowerCase() === g.toLowerCase())
+          );
+          if (common.length > 0) {
+            commonGoals.push(...common);
+            score += 20;
+          }
+        }
+
+        // 4. Mutual Connections
+        const myConns = await Connection.find({
+          $or: [{ requester: req.user._id }, { recipient: req.user._id }],
+          status: 'accepted'
+        });
+        const myConnIds = myConns.map(c => c.requester.toString() === req.user._id.toString() ? c.recipient.toString() : c.requester.toString());
+
+        const theirConns = await Connection.find({
+          $or: [{ requester: req.params.userId }, { recipient: req.params.userId }],
+          status: 'accepted'
+        });
+        const theirConnIds = theirConns.map(c => c.requester.toString() === req.params.userId.toString() ? c.recipient.toString() : c.requester.toString());
+
+        const mutuals = myConnIds.filter(id => theirConnIds.includes(id));
+        
+        profileData.smartInsights = {
+          matchScore: Math.round(Math.min(100, score + (mutuals.length * 5))),
+          commonSkills: [...new Set(commonSkills)],
+          commonGoals: [...new Set(commonGoals)],
+          matchReasons,
+          mutualCount: mutuals.length
+        };
+      }
     }
 
     res.json({
@@ -127,6 +203,7 @@ const getProfileByUserId = async (req, res) => {
       meta: { timestamp: new Date().toISOString() }
     });
   } catch (err) {
+    console.error('Get Profile Error:', err);
     if (err.kind == 'ObjectId') {
         return res.status(404).json({ success: false, message: 'Profile not found' });
     }

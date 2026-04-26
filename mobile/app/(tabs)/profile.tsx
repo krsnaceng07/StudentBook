@@ -10,18 +10,18 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 export default function ProfileScreen() {
   const { user, logout } = useAuthStore();
   const { profile, fetchProfile, isLoading: profileLoading } = useProfileStore();
-  const { incomingRequests, connections, fetchPending, fetchConnections } = useConnectionStore();
+  const { incomingRequests, connections, fetchPendingRequests, fetchConnections } = useConnectionStore();
   const router = useRouter();
 
   useEffect(() => {
     fetchProfile();
-    fetchPending();
+    fetchPendingRequests();
     fetchConnections();
   }, []);
 
   const onRefresh = () => {
     fetchProfile();
-    fetchPending();
+    fetchPendingRequests();
     fetchConnections();
   };
 
@@ -68,21 +68,36 @@ export default function ProfileScreen() {
             {profile.userId?.username && (
               <Text className="text-[#3B82F6] font-medium text-lg mt-0.5">@{profile.userId.username}</Text>
             )}
-            <View className="flex-row items-center mt-2">
-              <Ionicons name="school-outline" size={18} color="#94A3B8" />
-              <Text className="text-slate-400 ml-2 text-lg font-medium">{profile.field || 'Student'}</Text>
+            
+            <Text className="text-slate-300 text-lg font-bold mt-2" numberOfLines={2}>
+              {profile.headline || 'Student'}
+            </Text>
+
+            <View className="flex-row flex-wrap gap-2 mt-4">
+              <View className="flex-row items-center bg-white/5 px-3 py-1.5 rounded-xl border border-white/10">
+                <Ionicons name="school-outline" size={14} color="#3B82F6" />
+                <Text className="text-slate-400 ml-2 text-xs font-bold">{profile.field || 'General'}</Text>
+              </View>
+              <View className="flex-row items-center bg-white/5 px-3 py-1.5 rounded-xl border border-white/10">
+                <Ionicons name="stats-chart-outline" size={14} color="#8B5CF6" />
+                <Text className="text-slate-400 ml-2 text-xs font-bold">{profile.experienceLevel || 'Beginner'}</Text>
+              </View>
+              <View className="flex-row items-center bg-[#10B981]/10 px-3 py-1.5 rounded-xl border border-[#10B981]/20">
+                <View className="h-2 w-2 rounded-full bg-[#10B981] mr-2" />
+                <Text className="text-[#10B981] text-xs font-bold">{profile.availability || 'Open for Projects'}</Text>
+              </View>
             </View>
 
             {/* Email Display (Active when setting is ON) */}
             {user?.settings?.showEmail && (
-              <View className="flex-row items-center mt-2">
-                <Ionicons name="mail-outline" size={18} color="#94A3B8" />
-                <Text className="text-slate-400 ml-2 text-base font-medium">{user.email}</Text>
+              <View className="flex-row items-center mt-4">
+                <Ionicons name="mail-outline" size={16} color="#94A3B8" />
+                <Text className="text-slate-400 ml-2 text-sm font-medium">{user.email}</Text>
               </View>
             )}
             
             {profile?.bio && (
-              <Text className="text-slate-300 mt-4 leading-6 text-base">{profile.bio}</Text>
+              <Text className="text-slate-300 mt-6 leading-6 text-base italic">"{profile.bio}"</Text>
             )}
           </View>
 

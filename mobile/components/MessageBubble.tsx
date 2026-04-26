@@ -1,3 +1,4 @@
+import React, { memo } from 'react';
 import { View, Text, Image, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -25,9 +26,10 @@ interface MessageBubbleProps {
       name: string;
     };
   };
+  sending?: boolean;
 }
 
-export default function MessageBubble({ 
+const MessageBubble = ({ 
   text, 
   attachments,
   isMe, 
@@ -35,8 +37,9 @@ export default function MessageBubble({
   senderName, 
   senderAvatar, 
   senderId,
-  replyTo 
-}: MessageBubbleProps) {
+  replyTo,
+  sending
+}: MessageBubbleProps) => {
   const router = useRouter();
   const date = new Date(timestamp);
   const time = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -76,7 +79,7 @@ export default function MessageBubble({
             isMe 
               ? 'bg-[#3B82F6] rounded-tr-none' 
               : 'bg-white/10 rounded-tl-none border border-white/5'
-          }`}
+          } ${sending ? 'opacity-70' : 'opacity-100'}`}
         >
           {/* Reply Context */}
           {replyTo && (
@@ -126,13 +129,25 @@ export default function MessageBubble({
           )}
 
           {text ? <Text className="text-white leading-5">{text}</Text> : null}
-          <Text 
-            className={`text-[9px] mt-1 ${isMe ? 'text-white/70 text-right' : 'text-slate-500'}`}
-          >
-            {time}
-          </Text>
+          <View className="flex-row items-center justify-end mt-1">
+            <Text 
+              className={`text-[9px] ${isMe ? 'text-white/70' : 'text-slate-500'}`}
+            >
+              {time}
+            </Text>
+            {isMe && (
+              <Ionicons 
+                name={sending ? "time-outline" : "checkmark-done"} 
+                size={10} 
+                color="white" 
+                style={{ marginLeft: 4, opacity: 0.7 }} 
+              />
+            )}
+          </View>
         </View>
       </View>
     </View>
   );
-}
+};
+
+export default memo(MessageBubble);

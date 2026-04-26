@@ -11,6 +11,16 @@ const profileSchema = new mongoose.Schema({
     type: String,
     maxlength: 500,
   },
+  headline: {
+    type: String,
+    maxlength: 100,
+    default: 'Student at University'
+  },
+  experienceLevel: {
+    type: String,
+    enum: ['Beginner', 'Intermediate', 'Advanced', 'Professional'],
+    default: 'Beginner'
+  },
   field: {
     type: String,
   },
@@ -25,6 +35,11 @@ const profileSchema = new mongoose.Schema({
   goals: {
     type: [String],
     default: [],
+  },
+  availability: {
+    type: String,
+    enum: ['Open for Projects', 'Collaborating', 'Looking for Team', 'Busy'],
+    default: 'Open for Projects'
   },
   avatar: {
     type: String,
