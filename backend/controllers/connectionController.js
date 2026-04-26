@@ -60,11 +60,19 @@ const sendConnectionRequest = async (req, res) => {
       await connection.save();
     } else {
       // Create new connection if none exists
-      connection = await Connection.create({
-        requester: requesterId,
-        recipient: recipientId,
-        status: 'pending'
-      });
+      try {
+        connection = await Connection.create({
+          requester: requesterId,
+          recipient: recipientId,
+          status: 'pending'
+        });
+      } catch (err) {
+        // If a duplicate key error occurs, it means a connection was just created by a race
+        if (err.code === 11000) {
+          return res.status(400).json({ success: false, message: 'Request already in progress' });
+        }
+        throw err;
+      }
     }
     
     await createNotification({

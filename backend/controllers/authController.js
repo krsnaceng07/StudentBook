@@ -2,6 +2,9 @@ const User = require('../models/User');
 const Profile = require('../models/Profile');
 const jwt = require('jsonwebtoken');
 const Joi = require('joi');
+const admin = require('../config/firebase');
+const crypto = require('crypto');
+const xss = require('xss');
 
 const generateToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET, {
@@ -106,6 +109,96 @@ const registerUser = async (req, res) => {
   }
 };
 
+// @desc    Auth with Firebase (Google/Apple)
+// @route   POST /api/v1/auth/firebase
+// @access  Public
+const firebaseLogin = async (req, res) => {
+  const { idToken } = req.body;
+
+  if (!idToken) {
+    return res.status(400).json({ success: false, message: 'ID Token is required' });
+  }
+
+  try {
+    // 1. Verify Firebase Token
+    const decodedToken = await admin.auth().verifyIdToken(idToken);
+    const { uid, email, name, picture } = decodedToken;
+
+    if (!email) {
+      return res.status(400).json({ success: false, message: 'Email not provided by Firebase' });
+    }
+
+    // 2. Check if user exists
+    let user = await User.findOne({ email });
+
+    if (!user) {
+      // Create new user if not exists
+      // Generate a unique username if not provided
+      const baseUsername = email.split('@')[0].replace(/[^a-zA-Z0-9_]/g, '');
+      let username = baseUsername;
+      let count = 1;
+      
+      while (await User.findOne({ username })) {
+        username = `${baseUsername}${count}`;
+        count++;
+      }
+
+      user = await User.create({
+        name: name || baseUsername,
+        username,
+        email,
+        provider: decodedToken.firebase?.sign_in_provider === 'apple.com' ? 'apple' : 'google',
+        firebaseUid: uid,
+        status: 'active'
+      });
+
+      // Create profile
+      await Profile.create({
+        userId: user._id,
+        bio: '',
+        field: 'Student',
+        avatar: picture || null
+      });
+    } else {
+      // Update firebaseUid and provider if not set (for existing email users)
+      if (!user.firebaseUid) {
+        user.firebaseUid = uid;
+        user.provider = decodedToken.firebase?.sign_in_provider === 'apple.com' ? 'apple' : 'google';
+        await user.save();
+      }
+      
+      if (user.status === 'banned') {
+        return res.status(403).json({ success: false, message: 'User is banned' });
+      }
+    }
+
+    // 3. Generate Backend JWT
+    const token = generateToken(user._id);
+
+    res.json({
+      success: true,
+      message: 'Login successful',
+      data: {
+        token,
+        user: {
+          id: user._id,
+          name: user.name,
+          username: user.username,
+          email: user.email,
+          role: user.role,
+          status: user.status,
+          settings: user.settings
+        }
+      },
+      meta: { timestamp: new Date().toISOString() }
+    });
+
+  } catch (error) {
+    console.error('[Firebase Auth Error]:', error);
+    res.status(401).json({ success: false, message: 'Invalid Firebase token' });
+  }
+};
+
 // @desc    Auth user & get token
 // @route   POST /api/auth/login
 // @access  Public
@@ -196,16 +289,17 @@ const forgotPassword = async (req, res) => {
     const resetToken = user.getResetPasswordToken();
     await user.save({ validateBeforeSave: false });
 
-    // SIMULATION: Log token to console for local development
-    console.log('\n================================================');
-    console.log('🔑 PASSWORD RESET TOKEN GENERATED');
-    console.log(`User: ${user.email}`);
-    console.log(`Token: ${resetToken}`);
-    console.log('================================================\n');
+    // SIMULATION: Log OTP to console for local development
+    console.log('\n' + '★'.repeat(50));
+    console.log('🔥 PASSWORD RESET OTP GENERATED');
+    console.log(`👤 User: ${user.email}`);
+    console.log(`🔢 OTP Code: ${resetToken}`);
+    console.log('⏰ Expires in 10 minutes');
+    console.log('★'.repeat(50) + '\n');
 
     res.status(200).json({ 
       success: true, 
-      message: 'Reset instructions sent to email. (Simulation: Check backend terminal)' 
+      message: 'A 6-digit OTP has been sent to your email. (Simulation: Check backend terminal)' 
     });
   } catch (err) {
     console.error('[Forgot Password Error]:', err);
@@ -252,4 +346,18 @@ const resetPassword = async (req, res) => {
   }
 };
 
-module.exports = { registerUser, loginUser, getMe, forgotPassword, resetPassword };
+// @desc    Logout user / Invalidate tokens
+// @route   POST /api/v1/auth/logout
+// @access  Private
+const logoutUser = async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id);
+    user.lastLogoutAt = Date.now();
+    await user.save();
+    res.json({ success: true, message: 'Logged out successfully' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+};
+
+module.exports = { registerUser, loginUser, getMe, forgotPassword, resetPassword, firebaseLogin, logoutUser };

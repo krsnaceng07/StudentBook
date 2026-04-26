@@ -1,15 +1,16 @@
 {
   "expo": {
-    "name": "mobile",
+    "name": "StudentBook",
     "slug": "mobile",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "mobile",
+    "scheme": "studentbook",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.krsna.studentbook"
     },
     "android": {
       "adaptiveIcon": {
@@ -20,7 +21,7 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "package": "com.krsna.mobile"
+      "package": "com.krsna.studentbook"
     },
     "web": {
       "output": "static",
@@ -40,7 +41,14 @@
           }
         }
       ],
-      "expo-secure-store"
+      "expo-secure-store",
+      [
+        "expo-media-library",
+        {
+          "photosPermission": "Allow StudentBook to access your photos to save study materials.",
+          "saveToLibrary": true
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

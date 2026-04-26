@@ -57,24 +57,25 @@ export default function ResetPasswordScreen() {
           </TouchableOpacity>
 
           <View className="mb-8">
-            <Text className="text-white text-4xl font-bold mb-4">Reset Password</Text>
+            <Text className="text-white text-4xl font-bold mb-4">Verify OTP</Text>
             <Text className="text-slate-400 text-lg leading-6">
-              Enter the 40-character token you received and set your new secure password.
+              Enter the 6-digit code sent to your email and set your new secure password.
             </Text>
           </View>
 
           <View className="space-y-6">
             {/* Token Input */}
             <View>
-              <Text className="text-slate-400 font-bold mb-3 ml-1 uppercase tracking-widest text-[10px]">Reset Token</Text>
+              <Text className="text-slate-400 font-bold mb-3 ml-1 uppercase tracking-widest text-[10px]">6-Digit OTP Code</Text>
               <View className="flex-row items-center bg-white/5 rounded-2xl border border-white/10 px-4 py-4">
-                <Ionicons name="key-outline" size={20} color="#3B82F6" />
+                <Ionicons name="keypad-outline" size={20} color="#3B82F6" />
                 <TextInput
-                  placeholder="Paste token here"
+                  placeholder="e.g. 123456"
                   placeholderTextColor="#64748b"
-                  className="flex-1 text-white text-base ml-2"
+                  className="flex-1 text-white text-2xl font-bold ml-3 tracking-[10px]"
                   value={token}
-                  onChangeText={setToken}
+                  onChangeText={(text) => setToken(text.replace(/[^0-9]/g, '').slice(0, 6))}
+                  keyboardType="number-pad"
                   autoCapitalize="none"
                 />
               </View>

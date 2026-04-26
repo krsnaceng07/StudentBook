@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { Platform } from 'react-native';
+import { Platform, Alert } from 'react-native';
 import Constants from 'expo-constants';
 
 // Auto-detect the machine's local IP from the Metro bundler host
@@ -21,7 +21,14 @@ const DEV_IP = getHost();
 // On Android Emulators, 'localhost' or local IP can sometimes fail. 
 // '10.0.2.2' is the magic IP that always points to the host machine.
 const getBaseURL = () => {
-  if (process.env.EXPO_PUBLIC_API_URL) return process.env.EXPO_PUBLIC_API_URL;
+  const url = process.env.EXPO_PUBLIC_API_URL;
+  if (url) {
+    // Security: Warn if using HTTP in what looks like a production URL
+    if (url.startsWith('http://') && !url.includes('localhost') && !url.includes('10.0.2.2')) {
+      console.warn('[Security] Sensitive data is being sent over unencrypted HTTP!');
+    }
+    return url;
+  }
   
   if (Platform.OS === 'android' && (DEV_IP === 'localhost' || DEV_IP === '127.0.0.1')) {
     return 'http://10.0.2.2:5000/api/v1';
@@ -37,7 +44,7 @@ console.log('[API Client] Initialized with Base URL:', API_URL);
 
 const client = axios.create({
   baseURL: API_URL,
-  timeout: 10000,
+  timeout: 60000, // 60 seconds for all requests including uploads
   headers: {
     'Content-Type': 'application/json',
   },
@@ -87,20 +94,27 @@ client.interceptors.response.use(
       
       // Distinguish between critical errors and user-level validation/auth feedback
       if (isValidationError) {
-        console.warn(`[API Validation] ${statusText} - ${url}`);
+        // console.warn(`[API Validation] ${statusText} - ${url}`);
       } else if (!status) {
-        console.error(`[API Network Error] Could not connect to ${API_URL}. Check your internet or if the server is down.`);
+        // Silently log the network error instead of console.error to avoid Red Screen in dev
+        console.log(`[API Network Error] Could not connect to ${API_URL}`);
+        
+        const { useUIStore } = require('../store/uiStore');
+        useUIStore.getState().showToast(
+          'Could not connect to server. Check your internet 🌐', 
+          'error'
+        );
       } else {
-        console.error(`[API Error] ${statusText} - ${url}`);
+        console.warn(`[API Error] ${statusText} - ${url}`);
       }
       
       if (error.response?.data) {
         const backendMessage = error.response.data?.message || error.response.data?.error;
         if (backendMessage) {
-           error.message = backendMessage; // Attach backend message to the error object
+           error.message = backendMessage;
         }
       } else if (!status) {
-         error.message = "Could not connect to server. Please check your internet connection.";
+         error.message = "Network connection failed. Please check your internet.";
       }
     }
     

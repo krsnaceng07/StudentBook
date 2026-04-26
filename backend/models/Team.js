@@ -44,7 +44,7 @@ const teamSchema = new mongoose.Schema({
       },
       role: {
         type: String,
-        enum: ['leader', 'member'],
+        enum: ['leader', 'admin', 'member'],
         default: 'member',
       },
       joinedAt: {
@@ -54,6 +54,13 @@ const teamSchema = new mongoose.Schema({
     }
   ],
   avatar: String,
+  links: [
+    {
+      title: String,
+      url: String,
+      icon: String // icon name from Ionicons
+    }
+  ],
   conversationId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Conversation'

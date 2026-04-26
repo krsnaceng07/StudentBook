@@ -12,6 +12,7 @@ export const useChatStore = create((set, get) => ({
   onlineUsers: new Set(), // Set of userIds
   isLoading: false,
   error: null,
+  fetchTimeout: null,
 
   initSocket: (userId) => {
     const existingSocket = get().socket;
@@ -32,8 +33,7 @@ export const useChatStore = create((set, get) => ({
     const token = useAuthStore.getState().token;
 
     const newSocket = io(SOCKET_URL, {
-      query: { token }, // Use token instead of userId for security
-      auth: { userId } 
+      auth: { token, userId } 
     });
 
     newSocket.on('connect', () => {
@@ -52,15 +52,19 @@ export const useChatStore = create((set, get) => ({
           map.set(message._id, message);
           
           const sortedMessages = Array.from(map.values()).sort(
-            (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+            (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
           );
 
           return { messages: sortedMessages };
         });
       }
 
-      // 2. Refresh both lists to update 'last message' snippets
-      get().fetchConversations();
+      // 2. Refresh lists to update 'last message' snippets (debounced)
+      if (get().fetchTimeout) clearTimeout(get().fetchTimeout);
+      const timeout = setTimeout(() => {
+        get().fetchConversations();
+      }, 1000);
+      set({ fetchTimeout: timeout });
     });
 
     newSocket.on('typing', ({ conversationId, userId, name }) => {
@@ -102,6 +106,12 @@ export const useChatStore = create((set, get) => ({
       console.log('[Socket] New notification received:', notification.type);
       const { useNotificationStore } = require('./notificationStore');
       useNotificationStore.getState().addNotification(notification);
+
+      // Show a subtle toast if it's not a message (messages have their own feedback)
+      if (notification.type !== 'message') {
+        const { useUIStore } = require('./uiStore');
+        useUIStore.getState().showToast(`New ${notification.type.replace('_', ' ')} alert!`, 'info');
+      }
     });
 
     newSocket.on('team_joined', ({ teamId }) => {
@@ -143,6 +153,42 @@ export const useChatStore = create((set, get) => ({
     newSocket.on('post_updated', ({ postId, likesCount, commentsCount }) => {
       const { usePostStore } = require('./postStore');
       usePostStore.getState().updatePostStats(postId, likesCount, commentsCount);
+    });
+
+    newSocket.on('message_seen', ({ conversationId, userId }) => {
+      if (get().activeConversationId === conversationId) {
+        set((state) => ({
+          messages: state.messages.map(m => 
+            m.sender._id === userId ? m : { ...m, status: 'seen' }
+          )
+        }));
+      }
+    });
+
+    newSocket.on('message_reaction', ({ messageId, userId, emoji, action }) => {
+      set((state) => ({
+        messages: state.messages.map(m => {
+          if (m._id === messageId) {
+            const reactions = [...(m.reactions || [])];
+            if (action === 'add') {
+              reactions.push({ user: userId, emoji });
+            } else {
+              const idx = reactions.findIndex(r => (r.user._id || r.user) === userId && r.emoji === emoji);
+              if (idx > -1) reactions.splice(idx, 1);
+            }
+            return { ...m, reactions };
+          }
+          return m;
+        })
+      }));
+    });
+
+    newSocket.on('message_deleted', ({ messageId }) => {
+      set((state) => ({
+        messages: state.messages.map(m => 
+          m._id === messageId ? { ...m, status: 'deleted', text: 'This message was deleted', attachments: [] } : m
+        )
+      }));
     });
 
     set({ socket: newSocket });
@@ -198,7 +244,11 @@ export const useChatStore = create((set, get) => ({
   },
 
   fetchMessages: async (conversationId, cursor = null) => {
-    set({ isLoading: !cursor }); // only show loading for initial fetch
+    if (!conversationId || conversationId === 'undefined' || conversationId === 'null' || conversationId === 'new') return;
+    set({ 
+      isLoading: !cursor, 
+      activeConversationId: conversationId // Set immediately to capture socket messages during load
+    });
     try {
       const params = cursor ? { cursor } : {};
       const res = await client.get(`/chat/${conversationId}/messages`, { params });
@@ -206,27 +256,28 @@ export const useChatStore = create((set, get) => ({
       set((state) => {
         const incomingMessages = res.data.data;
         
-        // If it's a fresh fetch (no cursor), just replace
-        if (!cursor) {
-          return {
-            messages: incomingMessages,
-            activeConversationId: conversationId,
-            isLoading: false
-          };
-        }
-
-        // If it's paginated, merge and dedupe
+        // Use a Map to merge incoming messages with any messages received via socket during the fetch
         const map = new Map();
-        state.messages.forEach(m => map.set(m._id, m));
+        if (cursor) {
+          // If paginating, keep existing
+          state.messages.forEach(m => map.set(m._id, m));
+        }
+        // Add incoming from server
         incomingMessages.forEach(m => map.set(m._id, m));
         
+        // Also keep any socket messages that arrived while we were fetching (if not already in incoming)
+        if (!cursor) {
+           state.messages.forEach(m => {
+             if (m.conversationId === conversationId) map.set(m._id, m);
+           });
+        }
+
         const sortedMessages = Array.from(map.values()).sort(
-          (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+          (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
         );
 
         return {
           messages: sortedMessages,
-          activeConversationId: conversationId,
           isLoading: false
         };
       });
@@ -252,20 +303,27 @@ export const useChatStore = create((set, get) => ({
       const res = await client.post('/upload/chat', formData, {
         headers: { 
           'Content-Type': 'multipart/form-data',
-        },
-        // Increase timeout for large files
-        timeout: 30000, 
+        }
       });
 
       console.log('[Upload] Success:', res.data.url);
-      return { success: true, data: res.data };
+      // Return ONLY the file data without the success flag to avoid validation errors
+      const cleanFileData = {
+        url: res.data.url,
+        type: res.data.type,
+        name: res.data.name,
+        size: res.data.size
+      };
+      return { success: true, data: cleanFileData };
     } catch (error) {
       const errorMsg = error.response?.data?.message || error.message || 'Unknown upload error';
-      console.error('[Upload Error] Details:', {
+      console.log('[Upload Error] Details:', {
         message: errorMsg,
         status: error.response?.status,
         data: error.response?.data
       });
+      const { useUIStore } = require('./uiStore');
+      useUIStore.getState().showToast(errorMsg, 'error');
       return { success: false, error: errorMsg };
     }
   },
@@ -294,7 +352,7 @@ export const useChatStore = create((set, get) => ({
 
     // 2. Add to UI immediately
     set((state) => ({
-      messages: [...state.messages, optimisticMsg]
+      messages: [optimisticMsg, ...state.messages]
     }));
 
     try {
@@ -336,6 +394,81 @@ export const useChatStore = create((set, get) => ({
       return { success: true, conversation: res.data.data };
     } catch (error) {
       return { success: false, error: 'Failed to create conversation' };
+    }
+  },
+
+  toggleReaction: async (messageId, emoji) => {
+    try {
+      const res = await client.patch(`/chat/messages/${messageId}/reaction`, { emoji });
+      const { action } = res.data;
+      
+      // Update local state immediately for snappy feel
+      const userId = require('./authStore').useAuthStore.getState().user._id;
+      set((state) => ({
+        messages: state.messages.map(m => {
+          if (m._id === messageId) {
+            const reactions = [...(m.reactions || [])];
+            if (action === 'add') {
+              reactions.push({ user: userId, emoji });
+            } else {
+              const idx = reactions.findIndex(r => (r.user._id || r.user) === userId && r.emoji === emoji);
+              if (idx > -1) reactions.splice(idx, 1);
+            }
+            return { ...m, reactions };
+          }
+          return m;
+        })
+      }));
+
+      // Notify socket
+      const { socket, activeConversationId } = get();
+      if (socket) {
+        socket.emit('message_reaction', { 
+          conversationId: activeConversationId, 
+          messageId, 
+          emoji, 
+          action 
+        });
+      }
+    } catch (error) {
+      console.error('Toggle Reaction Error:', error);
+    }
+  },
+
+  markAsSeen: async (conversationId) => {
+    if (!conversationId || conversationId === 'undefined' || conversationId === 'null' || conversationId === 'new') return;
+    try {
+      await client.patch(`/chat/conversations/${conversationId}/seen`);
+      
+      const { socket } = get();
+      if (socket) {
+        socket.emit('message_seen', { conversationId });
+      }
+
+      // Update local state
+      set((state) => ({
+        messages: state.messages.map(m => 
+          m.status !== 'seen' ? { ...m, status: 'seen' } : m
+        )
+      }));
+    } catch (error) {
+      console.error('Mark as Seen Error:', error);
+    }
+  },
+
+  deleteMessage: async (messageId) => {
+    try {
+      await client.delete(`/chat/messages/${messageId}`);
+      // Local state will be updated by socket or manually here if needed
+      set((state) => ({
+        messages: state.messages.map(m => 
+          m._id === messageId ? { ...m, status: 'deleted', text: 'This message was deleted', attachments: [] } : m
+        )
+      }));
+      return { success: true };
+    } catch (error) {
+      console.error('Delete Message Error:', error);
+      return { success: false, error: 'Failed to delete message' };
     }
   },
 

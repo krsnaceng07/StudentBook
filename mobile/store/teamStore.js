@@ -103,5 +103,71 @@ export const useTeamStore = create((set, get) => ({
     }
   },
 
+  manageMember: async (teamId, userId, action, role) => {
+    set({ isLoading: true });
+    try {
+      await client.put(`/teams/${teamId}/members/${userId}`, { action, role });
+      // Re-fetch details to sync state
+      const res = await client.get(`/teams/${teamId}`);
+      set({ activeTeam: res.data.data, isLoading: false });
+      return { success: true };
+    } catch (error) {
+      const msg = error.response?.data?.message || 'Failed to manage member';
+      set({ error: msg, isLoading: false });
+      return { success: false, error: msg };
+    }
+  },
+
+  updateTeamLinks: async (teamId, links) => {
+    set({ isLoading: true });
+    try {
+      const res = await client.put(`/teams/${teamId}/links`, { links });
+      set((state) => ({
+        activeTeam: state.activeTeam ? { ...state.activeTeam, links: res.data.data } : null,
+        isLoading: false
+      }));
+      return { success: true };
+    } catch (error) {
+      const msg = error.response?.data?.message || 'Failed to update links';
+      set({ error: msg, isLoading: false });
+      return { success: false, error: msg };
+    }
+  },
+
+  leaveTeam: async (teamId) => {
+    set({ isLoading: true });
+    try {
+      await client.post(`/teams/${teamId}/leave`);
+      set((state) => ({
+        myTeams: state.myTeams.filter(t => t._id !== teamId),
+        activeTeam: null,
+        isLoading: false
+      }));
+      return { success: true };
+    } catch (error) {
+      const msg = error.response?.data?.message || 'Failed to leave team';
+      set({ error: msg, isLoading: false });
+      return { success: false, error: msg };
+    }
+  },
+
+  deleteTeam: async (teamId) => {
+    set({ isLoading: true });
+    try {
+      await client.delete(`/teams/${teamId}`);
+      set((state) => ({
+        teams: state.teams.filter(t => t._id !== teamId),
+        myTeams: state.myTeams.filter(t => t._id !== teamId),
+        activeTeam: null,
+        isLoading: false
+      }));
+      return { success: true };
+    } catch (error) {
+      const msg = error.response?.data?.message || 'Failed to delete team';
+      set({ error: msg, isLoading: false });
+      return { success: false, error: msg };
+    }
+  },
+
   clearActiveTeam: () => set({ activeTeam: null, pendingRequests: [] }),
 }));

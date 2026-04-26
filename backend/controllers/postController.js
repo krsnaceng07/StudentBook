@@ -349,7 +349,13 @@ const toggleLike = async (req, res) => {
     const { postId } = req.params;
     const userId = req.user._id;
 
-    // 1. Try to delete the like (atomic check)
+    // 1. Check if post exists first
+    const postCheck = await Post.findById(postId);
+    if (!postCheck) {
+      return res.status(404).json({ success: false, message: 'Post not found' });
+    }
+
+    // 2. Try to delete the like (atomic check)
     const deletedLike = await Like.findOneAndDelete({ userId, postId });
 
     if (deletedLike) {
@@ -434,6 +440,11 @@ const addComment = async (req, res) => {
     const sanitizedContent = xss(content);
     const { postId } = req.params;
 
+    let post = await Post.findById(postId);
+    if (!post) {
+      return res.status(404).json({ success: false, message: 'Post not found' });
+    }
+
     const comment = await Comment.create({
       userId: req.user._id,
       postId,
@@ -443,7 +454,7 @@ const addComment = async (req, res) => {
 
     await Post.findByIdAndUpdate(postId, { $inc: { commentsCount: 1 } });
 
-    const post = await Post.findById(postId);
+    post = await Post.findById(postId);
     if (post && post.authorId.toString() !== req.user._id.toString()) {
       await createNotification({
         recipient: post.authorId,
@@ -551,6 +562,11 @@ const likeComment = async (req, res) => {
   try {
     const { commentId } = req.params;
     const userId = req.user._id;
+
+    const commentCheck = await Comment.findById(commentId);
+    if (!commentCheck) {
+      return res.status(404).json({ success: false, message: 'Comment not found' });
+    }
 
     // 1. Try to delete the like (atomic toggle check)
     const deletedLike = await CommentLike.findOneAndDelete({ userId, commentId });

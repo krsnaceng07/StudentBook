@@ -5,7 +5,6 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTeamStore } from '../../store/teamStore';
 import { useAuthStore } from '../../store/authStore';
 import { useProfileStore } from '../../store/profileStore';
-import EditTeamModal from '../../components/EditTeamModal';
 
 export default function TeamDetailScreen() {
   const { id: teamId } = useLocalSearchParams();
@@ -15,7 +14,6 @@ export default function TeamDetailScreen() {
   const { profile } = useProfileStore();
   
   const [requesting, setRequesting] = useState(false);
-  const [isEditModalVisible, setIsEditModalVisible] = useState(false);
 
   useEffect(() => {
     fetchTeamDetails(teamId);
@@ -76,7 +74,10 @@ export default function TeamDetailScreen() {
   const currentUserId = normalizeId(user) || normalizeId(profile?.userId);
   
   const isLeader = !!(leaderId && currentUserId && leaderId === currentUserId);
-  const isMember = isLeader || activeTeam.members?.some((m: any) => {
+  const isAdmin = isLeader || activeTeam.members?.some((m: any) => 
+    normalizeId(m.user) === currentUserId && m.role === 'admin'
+  );
+  const isMember = isAdmin || activeTeam.members?.some((m: any) => {
     const mId = normalizeId(m.user);
     return mId && mId === currentUserId;
   });
@@ -92,9 +93,9 @@ export default function TeamDetailScreen() {
           <Ionicons name="arrow-back" size={24} color="white" />
         </TouchableOpacity>
         <Text className="text-white font-black text-xl">Team Hub</Text>
-        {isLeader ? (
+        {isAdmin ? (
           <TouchableOpacity 
-            onPress={() => setIsEditModalVisible(true)}
+            onPress={() => router.push(`/teams/${teamId}/settings`)}
             className="h-12 w-12 bg-[#3B82F6]/10 rounded-2xl items-center justify-center border border-[#3B82F6]/20"
           >
             <Ionicons name="settings-outline" size={24} color="#3B82F6" />
@@ -173,15 +174,55 @@ export default function TeamDetailScreen() {
         )}
 
         {/* Action Button */}
-        <View className="my-10">
+        <View className="my-10 space-y-4">
           {isMember ? (
-            <TouchableOpacity 
-              onPress={() => router.push(`/chat/${activeTeam.conversationId}`)}
-              className="bg-[#3B82F6] flex-row items-center justify-center p-5 rounded-[30px] shadow-2xl shadow-[#3B82F6]/30"
-            >
-              <Ionicons name="chatbubbles" size={24} color="white" />
-              <Text className="text-white font-black text-xl ml-3">Join Discussion</Text>
-            </TouchableOpacity>
+            <View className="gap-4">
+              <TouchableOpacity 
+                onPress={() => {
+                  if (activeTeam.conversationId) {
+                    router.push(`/chat/${activeTeam.conversationId}`);
+                  } else {
+                    Alert.alert('Chat Not Found', 'This team does not have an active chat group yet.');
+                  }
+                }}
+                className="bg-[#3B82F6] flex-row items-center justify-center p-5 rounded-[30px] shadow-2xl shadow-[#3B82F6]/30"
+              >
+                <Ionicons name="chatbubbles" size={24} color="white" />
+                <Text className="text-white font-black text-xl ml-3">Join Discussion</Text>
+              </TouchableOpacity>
+
+              {!isLeader && (
+                <TouchableOpacity 
+                  onPress={() => {
+                    Alert.alert(
+                      'Leave Team',
+                      'Are you sure you want to leave this team?',
+                      [
+                        { text: 'Cancel', style: 'cancel' },
+                        { 
+                          text: 'Leave', 
+                          style: 'destructive',
+                          onPress: async () => {
+                            const { leaveTeam } = require('../../store/teamStore').useTeamStore.getState();
+                            const res = await leaveTeam(teamId as string);
+                            if (res.success) {
+                              Alert.alert('Success', 'You have left the team.');
+                              router.back();
+                            } else {
+                              Alert.alert('Error', res.error || 'Failed to leave team.');
+                            }
+                          }
+                        }
+                      ]
+                    );
+                  }}
+                  className="bg-red-500/10 border border-red-500/30 flex-row items-center justify-center p-5 rounded-[30px]"
+                >
+                  <Ionicons name="exit-outline" size={24} color="#EF4444" />
+                  <Text className="text-red-500 font-black text-xl ml-3">Leave Team</Text>
+                </TouchableOpacity>
+              )}
+            </View>
           ) : activeTeam.hasPendingRequest ? (
             <View className="bg-white/5 border border-white/10 p-5 rounded-[30px] items-center flex-row justify-center">
               <Ionicons name="time-outline" size={24} color="#94A3B8" />
@@ -281,12 +322,6 @@ export default function TeamDetailScreen() {
         )}
       </View>
       <View className="h-20" />
-      
-      <EditTeamModal 
-        isVisible={isEditModalVisible}
-        onClose={() => setIsEditModalVisible(false)}
-        team={activeTeam}
-      />
     </ScrollView>
   );
 }

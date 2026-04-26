@@ -130,5 +130,22 @@ export const useAuthStore = create((set) => ({
     }
   },
 
+  loginWithFirebase: async (idToken) => {
+    set({ isLoading: true, error: null });
+    try {
+      const res = await client.post('/auth/firebase', { idToken });
+      const { token, user } = res.data.data;
+      
+      await TokenStorage.setItem('token', token);
+      
+      set({ token, user, isAuthenticated: true, isLoading: false });
+      return { success: true };
+    } catch (error) {
+      const msg = error.response?.data?.message || 'Social login failed';
+      set({ error: msg, isLoading: false });
+      return { success: false, error: msg };
+    }
+  },
+
   setUser: (user) => set({ user }),
 }));

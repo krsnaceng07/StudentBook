@@ -6,6 +6,8 @@ import { useProfileStore } from '../store/profileStore';
 import { useChatStore } from '../store/chatStore';
 import { View, ActivityIndicator, Text } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import Toast from '../components/Toast';
+import { useUIStore } from '../store/uiStore';
 
 export default function RootLayout() {
   const { loadToken, isAuthenticated, token, user } = useAuthStore();
@@ -14,6 +16,7 @@ export default function RootLayout() {
   const [isStoreInitializing, setIsStoreInitializing] = useState(true);
   const segments = useSegments();
   const router = useRouter();
+  const { toast, hideToast } = useUIStore();
 
   // 1. Initial State Load (Token & User)
   useEffect(() => {
@@ -54,10 +57,11 @@ export default function RootLayout() {
     if (isAuthenticated && !isProfileLoaded) return;
 
     const inAuthGroup = segments[0] === '(auth)';
+    const isPublicPage = segments[0] === 'forgot-password' || segments[0] === 'reset-password';
     const inProfileGroup = segments[0] === 'profile';
 
-    if (!isAuthenticated && !inAuthGroup) {
-      // Not logged in, go to login
+    if (!isAuthenticated && !inAuthGroup && !isPublicPage) {
+      // Not logged in and not on a public page, go to login
       router.replace('/login');
     } else if (isAuthenticated && isProfileLoaded) {
       if (!profile && !inProfileGroup) {
@@ -85,13 +89,22 @@ export default function RootLayout() {
   // Global Auth Guard: Prevent rendering protected Slot if not authenticated
   // and not in an auth route. This stops 401s from background fetches.
   const inAuthGroup = segments[0] === '(auth)';
-  if (!isAuthenticated && !inAuthGroup) {
+  const isPublicPage = segments[0] === 'forgot-password' || segments[0] === 'reset-password';
+  
+  if (!isAuthenticated && !inAuthGroup && !isPublicPage) {
     return <View className="flex-1 bg-[#0F172A]" />;
   }
+
 
   return (
     <SafeAreaProvider>
       <Stack screenOptions={{ headerShown: false }} />
+      <Toast 
+        message={toast.message}
+        type={toast.type}
+        visible={toast.visible}
+        onHide={hideToast}
+      />
     </SafeAreaProvider>
   );
 }

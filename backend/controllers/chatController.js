@@ -4,15 +4,16 @@ const User = require('../models/User');
 const Profile = require('../models/Profile');
 const Connection = require('../models/Connection');
 const Joi = require('joi');
+const { createNotification } = require('../utils/notificationHelper');
 
 const messageSchema = Joi.object({
   text: Joi.string().allow('', null).max(5000),
   attachments: Joi.array().items(Joi.object({
     url: Joi.string().required(),
-    type: Joi.string().valid('image', 'pdf', 'doc').required(),
+    type: Joi.string().required(),
     name: Joi.string().required(),
-    size: Joi.number()
-  })).allow(null),
+    size: Joi.number().allow(null)
+  })).default([]),
   replyTo: Joi.string().allow(null, '')
 }).or('text', 'attachments');
 
@@ -196,10 +197,11 @@ const sendMessage = async (req, res) => {
       return res.status(401).json({ success: false, message: 'Not authorized for this chat' });
     }
 
+    const xss = require('xss');
     let message = await Message.create({
       conversationId,
       sender: senderId,
-      text,
+      text: xss(text || ''),
       attachments: attachments || [],
       replyTo: replyTo || null
     });
@@ -232,8 +234,144 @@ const sendMessage = async (req, res) => {
       global.io.to(`conv_${conversationId}`).emit('receive_message', messageObj);
     }
 
+    // 4. Send Smart Notifications to recipients who are NOT the sender
+    const recipients = conversation.participants.filter(p => p.toString() !== senderId.toString());
+    
+    recipients.forEach(async (recipientId) => {
+      await createNotification({
+        recipient: recipientId,
+        sender: senderId,
+        type: 'message',
+        teamId: conversation.type === 'team' ? conversation.teamId : null
+      });
+    });
+
     res.status(201).json({ success: true, data: messageObj });
   } catch (err) {
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+};
+
+// @desc    Add/Remove reaction to a message
+const toggleReaction = async (req, res) => {
+  try {
+    const { messageId } = req.params;
+    const { emoji } = req.body;
+    const userId = req.user._id;
+
+    const message = await Message.findById(messageId);
+    if (!message) {
+      return res.status(404).json({ success: false, message: 'Message not found' });
+    }
+
+    const reactionIndex = message.reactions.findIndex(
+      r => r.user.toString() === userId.toString() && r.emoji === emoji
+    );
+
+    let action = 'add';
+    if (reactionIndex > -1) {
+      // Remove existing reaction
+      message.reactions.splice(reactionIndex, 1);
+      action = 'remove';
+    } else {
+      // Add new reaction
+      message.reactions.push({ user: userId, emoji });
+    }
+
+    await message.save();
+
+    // Notify via Socket
+    if (global.io) {
+      global.io.to(`conv_${message.conversationId}`).emit('message_reaction', {
+        conversationId: message.conversationId,
+        messageId,
+        userId,
+        emoji,
+        action
+      });
+    }
+
+    res.json({ success: true, action, data: message.reactions });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+};
+
+// @desc    Mark all messages in a conversation as seen
+const markAsSeen = async (req, res) => {
+  try {
+    const { conversationId } = req.params;
+    const userId = req.user._id;
+
+    const conversation = await Conversation.findById(conversationId);
+    if (!conversation) {
+      return res.status(404).json({ success: false, message: 'Conversation not found' });
+    }
+
+    // Security: Check if user is a participant
+    const isParticipant = conversation.participants.some(p => p.toString() === userId.toString());
+    if (!isParticipant) {
+      return res.status(403).json({ success: false, message: 'Not authorized to access this conversation' });
+    }
+
+    // Update all messages in this conversation sent by others to 'seen'
+    await Message.updateMany(
+      { 
+        conversationId, 
+        sender: { $ne: userId },
+        status: { $ne: 'seen' }
+      },
+      { $set: { status: 'seen' } }
+    );
+
+    // Notify others via socket
+    if (global.io) {
+      global.io.to(`conv_${conversationId}`).emit('message_seen', {
+        conversationId,
+        userId
+      });
+    }
+
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+};
+
+// @desc    Delete a message
+// @route   DELETE /api/v1/chat/messages/:messageId
+const deleteMessage = async (req, res) => {
+  try {
+    const { messageId } = req.params;
+    const userId = req.user._id;
+
+    const message = await Message.findById(messageId);
+    if (!message) {
+      return res.status(404).json({ success: false, message: 'Message not found' });
+    }
+
+    // Only sender can delete for everyone
+    if (message.sender.toString() !== userId.toString()) {
+      return res.status(403).json({ success: false, message: 'Not authorized to delete this message' });
+    }
+
+    // Soft delete: keep the record but change content
+    message.status = 'deleted';
+    message.text = 'This message was deleted';
+    message.attachments = [];
+    await message.save();
+
+    // Notify participants via socket
+    if (global.io) {
+      global.io.to(`conv_${message.conversationId}`).emit('message_deleted', {
+        messageId: message._id,
+        conversationId: message.conversationId
+      });
+    }
+
+    res.json({ success: true, message: 'Message deleted' });
+  } catch (err) {
+    console.error('Delete Message Error:', err);
     res.status(500).json({ success: false, message: 'Server error' });
   }
 };
@@ -242,5 +380,8 @@ module.exports = {
   createConversation,
   getConversations,
   getMessages,
-  sendMessage
+  sendMessage,
+  toggleReaction,
+  markAsSeen,
+  deleteMessage
 };

@@ -21,11 +21,12 @@ const enhanceUserWithProfile = async (user) => {
 // @route   POST /api/v1/teams
 const createTeam = async (req, res) => {
   try {
-    const { name, description, tags, isPublic, category, lookingFor, status } = req.body;
+    const xss = require('xss');
+    let { name, description, tags, isPublic, category, lookingFor, status } = req.body;
 
     const team = await Team.create({
-      name,
-      description,
+      name: xss(name || ''),
+      description: xss(description || ''),
       tags: tags || [],
       category: category || 'Project',
       lookingFor: lookingFor || [],
@@ -88,6 +89,15 @@ const getTeams = async (req, res) => {
       query.category = category;
     }
 
+    // Security: Only show public teams OR teams where the user is a member
+    query = {
+      ...query,
+      $or: [
+        { isPublic: true },
+        { 'members.user': req.user._id }
+      ]
+    };
+
     // Get current user profile for scoring
     const myProfile = await Profile.findOne({ userId: req.user._id });
 
@@ -134,8 +144,21 @@ const getTeams = async (req, res) => {
       teamObj.matchScore = Math.min(100, score);
       teamObj.matchReasons = matchReasons;
 
+      // Membership flags — used by frontend to hide/show join buttons correctly
+      const currentUserId = req.user._id.toString();
+      teamObj.isLeader   = team.leader?._id?.toString() === currentUserId;
+      teamObj.isMember   = team.members.some(m => m.user?._id?.toString() === currentUserId || m.user?.toString() === currentUserId);
+
       return teamObj;
     }));
+
+    // Fetch this user's pending requests in one query to mark teams
+    const pendingReqs = await TeamRequest.find({ requester: req.user._id, status: 'pending' }).select('teamId').lean();
+    const pendingSet  = new Set(pendingReqs.map(r => r.teamId.toString()));
+
+    enhancedTeams.forEach(t => {
+      t.hasPendingRequest = pendingSet.has(t._id.toString());
+    });
 
     // Sort by matchScore descending
     enhancedTeams.sort((a, b) => b.matchScore - a.matchScore);
@@ -153,10 +176,26 @@ const getTeamById = async (req, res) => {
   try {
     const team = await Team.findById(req.params.id)
       .populate('leader', '_id name username')
-      .populate('members.user', '_id name username');
+      .populate({
+        path: 'members.user',
+        select: '_id name username',
+        options: { limit: 50 } // Security: Prevent mass extraction/DoS
+      });
 
     if (!team) {
       return res.status(404).json({ success: false, message: 'Team not found' });
+    }
+
+    // Auto-heal: Ensure older teams have a conversation
+    if (!team.conversationId) {
+      const participants = team.members.map(m => m.user._id || m.user);
+      const conversation = await Conversation.create({
+        type: 'team',
+        teamId: team._id,
+        participants: participants
+      });
+      team.conversationId = conversation._id;
+      await team.save();
     }
 
     const pendingRequest = await TeamRequest.findOne({
@@ -249,15 +288,21 @@ const handleJoinRequest = async (req, res) => {
       return res.status(401).json({ success: false, message: 'Not authorized' });
     }
 
+    // Security: Only process if the request is still pending
+    if (request.status !== 'pending') {
+      return res.status(400).json({ success: false, message: `Request is already ${request.status}` });
+    }
+
     request.status = status;
     await request.save();
 
     if (status === 'accepted') {
-      const team = await Team.findById(request.teamId._id);
-      team.members.push({ user: request.requester, role: 'member' });
-      await team.save();
+      // Use $addToSet to prevent duplicate memberships if called concurrently
+      await Team.findByIdAndUpdate(request.teamId._id, {
+        $addToSet: { members: { user: request.requester, role: 'member' } }
+      });
 
-      const conversation = await Conversation.findOne({ teamId: team._id });
+      const conversation = await Conversation.findOne({ teamId: request.teamId._id });
       if (conversation) {
         if (!conversation.participants.includes(request.requester)) {
            conversation.participants.push(request.requester);
@@ -269,8 +314,8 @@ const handleJoinRequest = async (req, res) => {
         recipient: request.requester,
         sender: req.user._id,
         type: 'team_accepted',
-        message: `accepted your request to join ${team.name}`,
-        relatedId: team._id
+        message: `accepted your request to join ${request.teamId.name}`,
+        relatedId: request.teamId._id
       });
     }
 
@@ -326,8 +371,9 @@ const updateTeam = async (req, res) => {
     }
 
     // Update fields
-    team.name = name || team.name;
-    team.description = description || team.description;
+    const xss = require('xss');
+    team.name = name !== undefined ? xss(name) : team.name;
+    team.description = description !== undefined ? xss(description) : team.description;
     team.tags = tags || team.tags;
     team.avatar = avatar || team.avatar;
     team.category = category || team.category;
@@ -360,12 +406,174 @@ const updateTeam = async (req, res) => {
   }
 };
 
+// @desc    Manage team member (Promote, Demote, Remove)
+// @route   PUT /api/v1/teams/:id/members/:userId
+const manageTeamMember = async (req, res) => {
+  try {
+    const { action, role } = req.body; // 'promote', 'demote', 'remove'
+    const teamId = req.params.id;
+    const targetUserId = req.params.userId;
+    const currentUserId = req.user._id.toString();
+
+    const team = await Team.findById(teamId);
+    if (!team) return res.status(404).json({ success: false, message: 'Team not found' });
+
+    const currentUserMember = team.members.find(m => m.user.toString() === currentUserId);
+    if (!currentUserMember || (currentUserMember.role !== 'leader' && currentUserMember.role !== 'admin')) {
+      return res.status(403).json({ success: false, message: 'Not authorized' });
+    }
+
+    const targetMemberIndex = team.members.findIndex(m => m.user.toString() === targetUserId);
+    if (targetMemberIndex === -1) return res.status(404).json({ success: false, message: 'Member not found' });
+
+    const targetMember = team.members[targetMemberIndex];
+
+    // Business Logic Rules:
+    // 1. Only leader can promote/demote admins or remove admins
+    if (targetMember.role === 'admin' && currentUserMember.role !== 'leader') {
+      return res.status(403).json({ success: false, message: 'Only team leader can manage admins' });
+    }
+    // 2. Leader cannot be removed (must transfer ownership or delete team)
+    if (targetMember.role === 'leader') {
+      return res.status(400).json({ success: false, message: 'Cannot remove the team leader' });
+    }
+
+    if (action === 'remove') {
+      team.members.splice(targetMemberIndex, 1);
+      // Remove from conversation too
+      await Conversation.updateOne(
+        { teamId: team._id },
+        { $pull: { participants: targetUserId } }
+      );
+    } else if (action === 'update_role') {
+      // Only leader can promote to admin or leader
+      if (role === 'admin' || role === 'leader') {
+        if (currentUserMember.role !== 'leader') {
+          return res.status(403).json({ success: false, message: 'Only team leader can promote to admin' });
+        }
+      }
+      
+      if (role === 'leader') {
+        // Ownership Transfer
+        currentUserMember.role = 'admin';
+        team.leader = targetUserId;
+      }
+      targetMember.role = role;
+    }
+
+    await team.save();
+    res.json({ success: true, message: 'Member updated successfully' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+};
+
+// @desc    Leave a team
+// @route   POST /api/v1/teams/:id/leave
+const leaveTeam = async (req, res) => {
+  try {
+    const team = await Team.findById(req.params.id);
+    if (!team) return res.status(404).json({ success: false, message: 'Team not found' });
+
+    if (team.leader.toString() === req.user._id.toString()) {
+      return res.status(400).json({ success: false, message: 'Leader cannot leave. Transfer ownership first.' });
+    }
+
+    team.members = team.members.filter(m => m.user.toString() !== req.user._id.toString());
+    await team.save();
+
+    // Remove from conversation
+    await Conversation.updateOne(
+      { teamId: team._id },
+      { $pull: { participants: req.user._id } }
+    );
+
+    res.json({ success: true, message: 'Left team successfully' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+};
+
+// @desc    Update team workspace links
+// @route   PUT /api/v1/teams/:id/links
+const updateTeamLinks = async (req, res) => {
+  try {
+    const { links } = req.body;
+    const team = await Team.findById(req.params.id);
+    if (!team) return res.status(404).json({ success: false, message: 'Team not found' });
+
+    const member = team.members.find(m => m.user.toString() === req.user._id.toString());
+    if (!member || (member.role !== 'leader' && member.role !== 'admin')) {
+      return res.status(403).json({ success: false, message: 'Not authorized' });
+    }
+
+    team.links = links;
+    await team.save();
+    res.json({ success: true, data: team.links });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+};
+
+// @desc    Delete a team
+// @route   DELETE /api/v1/teams/:id
+const deleteTeam = async (req, res) => {
+  try {
+    const team = await Team.findById(req.params.id);
+    if (!team) return res.status(404).json({ success: false, message: 'Team not found' });
+
+    if (team.leader.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ success: false, message: 'Only the leader can delete the team' });
+    }
+
+    // Cleanup: Delete team, requests, and conversation
+    await TeamRequest.deleteMany({ teamId: team._id });
+    await Conversation.deleteOne({ teamId: team._id });
+    await Team.deleteOne({ _id: team._id });
+
+    res.json({ success: true, message: 'Team deleted successfully' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+};
+
+// @desc    Cancel a pending join request (requester only)
+// @route   DELETE /api/v1/teams/:teamId/request
+const cancelJoinRequest = async (req, res) => {
+  try {
+    const { teamId } = req.params;
+
+    const request = await TeamRequest.findOneAndDelete({
+      teamId,
+      requester: req.user._id,
+      status: 'pending'           // can only cancel if still pending
+    });
+
+    if (!request) {
+      return res.status(404).json({
+        success: false,
+        message: 'No pending request found for this team'
+      });
+    }
+
+    res.json({ success: true, message: 'Join request cancelled' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+};
+
 module.exports = {
   createTeam,
   getTeams,
   getTeamById,
   updateTeam,
   requestJoinTeam,
+  cancelJoinRequest,
   handleJoinRequest,
-  getTeamRequests
+  getTeamRequests,
+  manageTeamMember,
+  leaveTeam,
+  updateTeamLinks,
+  deleteTeam
 };
+

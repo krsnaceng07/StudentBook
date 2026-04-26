@@ -7,6 +7,10 @@ export const useDiscoverStore = create((set, get) => ({
   isRefreshing: false,
   error: null,
   
+  // Unified in-feed suggestions (users + public teams)
+  suggestions: [],
+  suggestionsLoading: false,
+
   // Pagination
   page: 1,
   limit: 10,
@@ -17,7 +21,7 @@ export const useDiscoverStore = create((set, get) => ({
   filters: {
     search: '',
     field: '',
-    skills: [] // Array of strings
+    skills: []
   },
 
   setFilters: (newFilters) => {
@@ -72,6 +76,19 @@ export const useDiscoverStore = create((set, get) => ({
         isLoading: false,
         isRefreshing: false 
       });
+    }
+  },
+
+  // Fetch smart interleaved suggestions (users + public teams)
+  fetchSuggestions: async () => {
+    if (get().suggestionsLoading) return;
+    set({ suggestionsLoading: true });
+    try {
+      const res = await client.get('/match/unified');
+      set({ suggestions: res.data.data || [], suggestionsLoading: false });
+    } catch (error) {
+      // Fail silently - suggestions are non-critical
+      set({ suggestions: [], suggestionsLoading: false });
     }
   },
 

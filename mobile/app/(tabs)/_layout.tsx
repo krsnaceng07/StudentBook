@@ -7,13 +7,16 @@ import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
 import { useConnectionStore } from '../../store/connectionStore';
+import { useNotificationStore } from '../../store/notificationStore';
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
   const { incomingRequests, fetchPendingRequests } = useConnectionStore();
+  const { unreadCount, fetchNotifications } = useNotificationStore();
 
   React.useEffect(() => {
     fetchPendingRequests();
+    fetchNotifications();
   }, []);
 
   return (

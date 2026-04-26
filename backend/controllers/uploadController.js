@@ -55,20 +55,26 @@ exports.uploadChatMedia = async (req, res) => {
       return res.status(400).json({ success: false, message: "No file uploaded" });
     }
 
-    const isImage = req.file.mimetype.startsWith('image/');
-    const isPDF = req.file.mimetype === 'application/pdf';
+    const mime = req.file.mimetype;
+    let type = 'doc';
+    let folder = "studentsociety/chat/docs";
 
-    if (!isImage && !isPDF) {
-      return res.status(400).json({ success: false, message: "Only images and PDFs are allowed" });
+    if (mime.startsWith('image/')) {
+      type = 'image';
+      folder = "studentsociety/chat/images";
+    } else if (mime.startsWith('video/')) {
+      type = 'video';
+      folder = "studentsociety/chat/videos";
+    } else if (mime === 'application/pdf') {
+      type = 'pdf';
     }
 
-    const folder = isImage ? "studentsociety/chat/images" : "studentsociety/chat/docs";
     const result = await uploadToCloudinary(req.file, folder);
 
     res.status(200).json({
       success: true,
       url: result.secure_url,
-      type: isImage ? 'image' : 'pdf',
+      type: type,
       name: req.file.originalname,
       size: req.file.size
     });

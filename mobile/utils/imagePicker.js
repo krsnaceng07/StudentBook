@@ -74,13 +74,13 @@ export const uploadFile = async (imageAsset, endpoint) => {
     return response.data;
   } catch (error) {
     if (error.response) {
-      console.error("[Upload Error] Server returned:", error.response.status, error.response.data);
+      console.log("[Upload Error] Server returned:", error.response.status, error.response.data);
       throw new Error(error.response.data?.message || 'Upload failed');
     } else if (error.request) {
-      console.error("[Upload Network Error] No response received. Check server connectivity.");
+      console.log("[Upload Network Error] No response received. Check server connectivity.");
       throw new Error('Network error. Could not connect to server.');
     } else {
-      console.error("[Upload Logic Error]:", error.message);
+      console.log("[Upload Logic Error]:", error.message);
       throw error;
     }
   }

@@ -12,7 +12,9 @@ const unifiedSearch = async (req, res) => {
       return res.json({ success: true, data: { users: [], teams: [], posts: [] } });
     }
 
-    const searchRegex = new RegExp(q, 'i');
+    // Security: Escape regex special characters to prevent ReDoS
+    const escapedQ = q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const searchRegex = new RegExp(escapedQ, 'i');
 
     // 1. Search Users (Smart Ranking)
     const profiles = await Profile.aggregate([

@@ -115,7 +115,8 @@ const getMyProfile = async (req, res) => {
 // @access  Public
 const getProfileByUserId = async (req, res) => {
   try {
-    const profile = await Profile.findOne({ userId: req.params.userId }).populate('userId', ['name', 'username', 'email', 'settings', 'updatedAt']);
+    const profile = await Profile.findOne({ userId: req.params.userId })
+      .populate('userId', ['name', 'username', 'email', 'settings.isPrivate', 'updatedAt']);
     
     if (!profile) {
       return res.status(404).json({ success: false, message: 'Profile not found' });
@@ -125,11 +126,14 @@ const getProfileByUserId = async (req, res) => {
     const profileData = profile.toObject();
     
     // Privacy Logic: Hide email if setting is OFF AND viewer is not the owner
+    // Note: We already check showEmail in the DB model settings, but for legacy support 
+    // we fetch and then prune if necessary. Better: fetch only if allowed.
+    
     const isOwner = req.user && req.user._id.toString() === profile.userId._id.toString();
-    const showEmail = profile.userId.settings?.showEmail;
-
-    if (!showEmail && !isOwner) {
-      if (profileData.userId) delete profileData.userId.email;
+    
+    // For now, keep the prune logic but clean up the user object
+    if (profileData.userId) {
+       if (!isOwner) delete profileData.userId.email;
     }
 
     // 🏆 SMART INSIGHTS LOGIC

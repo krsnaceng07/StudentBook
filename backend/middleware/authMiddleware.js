@@ -18,6 +18,14 @@ const protect = async (req, res, next) => {
         return res.status(401).json({ message: 'Not authorized, user not found' });
       }
 
+      // Security: Token invalidation check (Logout support)
+      if (req.user.lastLogoutAt) {
+        const lastLogoutTime = Math.floor(new Date(req.user.lastLogoutAt).getTime() / 1000);
+        if (decoded.iat < lastLogoutTime) {
+          return res.status(401).json({ message: 'Session expired, please log in again' });
+        }
+      }
+
       if (req.user.status === 'banned') {
          return res.status(403).json({ message: 'User is banned' });
       }

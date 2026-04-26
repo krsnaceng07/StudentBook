@@ -54,19 +54,29 @@ const limiter = rateLimit({
 });
 app.use('/api/', limiter);
 
-// Stricter limiter for Chat and Auth
-const strictLimiter = rateLimit({
+// Stricter limiter for Auth
+const authLimiter = rateLimit({
   windowMs: 1 * 60 * 1000, 
-  max: 30, 
+  max: 20, 
   message: { success: false, message: 'Too many requests, please try again later.' }
 });
-app.use('/api/v1/auth/login', strictLimiter);
-app.use('/api/v1/auth/register', strictLimiter);
-app.use('/api/v1/chat', strictLimiter);
 
-// Body parser
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+// Moderate limiter for Chat (higher frequency)
+const chatLimiter = rateLimit({
+  windowMs: 1 * 60 * 1000,
+  max: 100,
+  message: { success: false, message: 'Too many chat requests, slowing down...' }
+});
+
+app.use('/api/v1/auth/login', authLimiter);
+app.use('/api/v1/auth/register', authLimiter);
+app.use('/api/v1/auth/forgot-password', authLimiter);
+app.use('/api/v1/auth/reset-password', authLimiter);
+app.use('/api/v1/chat', chatLimiter);
+
+// Body parser - Reduced limit for security
+app.use(express.json({ limit: '1mb' }));
+app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 
 // Mount Routes
 app.use('/api/v1/auth', authRoutes);
@@ -91,7 +101,7 @@ const onlineUsers = new Map(); // userId -> socketId
 
 // Socket.io Lifecycle
 io.on('connection', async (socket) => {
-  const token = socket.handshake.query.token;
+  const token = socket.handshake.auth?.token || socket.handshake.query?.token;
   let userId;
 
   if (token) {
@@ -135,6 +145,24 @@ io.on('connection', async (socket) => {
       socket.to(`conv_${conversationId}`).emit('stop_typing', {
         conversationId,
         userId: sUserId
+      });
+    });
+
+    socket.on('message_seen', ({ conversationId, messageId }) => {
+      socket.to(`conv_${conversationId}`).emit('message_seen', {
+        conversationId,
+        messageId,
+        userId: sUserId
+      });
+    });
+
+    socket.on('message_reaction', ({ conversationId, messageId, emoji, action }) => {
+      socket.to(`conv_${conversationId}`).emit('message_reaction', {
+        conversationId,
+        messageId,
+        userId: sUserId,
+        emoji,
+        action // 'add' or 'remove'
       });
     });
 
@@ -185,6 +213,8 @@ app.use(errorHandler);
 
 const PORT = process.env.PORT || 5000;
 
-server.listen(PORT, () => {
+const runningServer = server.listen(PORT, () => {
   console.log(`Server running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`);
 });
+
+runningServer.timeout = 120000; // 2 minutes for large uploads

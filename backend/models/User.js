@@ -26,8 +26,20 @@ const userSchema = new mongoose.Schema({
   },
   password: {
     type: String,
-    required: true,
+    required: function() {
+      return this.provider === 'email';
+    },
     minlength: 6,
+  },
+  provider: {
+    type: String,
+    enum: ['email', 'google', 'apple'],
+    default: 'email'
+  },
+  firebaseUid: {
+    type: String,
+    unique: true,
+    sparse: true
   },
   role: {
     type: String,
@@ -60,6 +72,7 @@ const userSchema = new mongoose.Schema({
   },
   resetPasswordToken: String,
   resetPasswordExpire: Date,
+  lastLogoutAt: Date,
 }, { 
   timestamps: true,
   toJSON: {
@@ -97,22 +110,23 @@ userSchema.methods.matchPassword = async function(enteredPassword) {
 };
 
 // Generate and hash password token
+// Generate a 6-digit numeric OTP
 userSchema.methods.getResetPasswordToken = function() {
   const crypto = require('crypto');
   
-  // Generate token
-  const resetToken = crypto.randomBytes(20).toString('hex');
+  // Generate a random 6-digit number
+  const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
-  // Hash token and set to resetPasswordToken field
+  // Hash the OTP and set to resetPasswordToken field
   this.resetPasswordToken = crypto
     .createHash('sha256')
-    .update(resetToken)
+    .update(otp)
     .digest('hex');
 
   // Set expire (10 minutes)
   this.resetPasswordExpire = Date.now() + 10 * 60 * 1000;
 
-  return resetToken;
+  return otp;
 };
 
 userSchema.index({ name: 'text', username: 'text' });

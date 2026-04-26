@@ -20,7 +20,7 @@ const messageSchema = new mongoose.Schema({
   attachments: [
     {
       url: { type: String, required: true },
-      type: { type: String, enum: ['image', 'pdf', 'doc'], required: true },
+      type: { type: String, required: true }, // image, pdf, video, doc, etc.
       name: { type: String, required: true },
       size: { type: Number }
     }
@@ -34,6 +34,17 @@ const messageSchema = new mongoose.Schema({
     type: Boolean,
     default: false,
   },
+  status: {
+    type: String,
+    enum: ['sent', 'delivered', 'seen', 'deleted'],
+    default: 'sent'
+  },
+  reactions: [
+    {
+      user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+      emoji: { type: String, required: true }
+    }
+  ],
 }, { timestamps: true });
 
 // Index for fast message fetching per conversation

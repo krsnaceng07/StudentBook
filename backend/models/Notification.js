@@ -14,12 +14,16 @@ const notificationSchema = new mongoose.Schema({
   },
   type: {
     type: String,
-    enum: ['like', 'comment', 'connection_accepted', 'connection_request', 'team_request', 'team_accepted'],
+    enum: ['like', 'comment', 'connection_accepted', 'connection_request', 'team_request', 'team_accepted', 'message'],
     required: true
   },
   post: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Post'
+  },
+  teamId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Team'
   },
   isRead: {
     type: Boolean,

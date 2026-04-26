@@ -19,12 +19,12 @@ export default function ForgotPasswordScreen() {
     const result = await forgotPassword(email);
     if (result.success) {
       Alert.alert(
-        'Email Sent',
-        result.message || 'Check your email for reset instructions.',
+        'OTP Sent',
+        result.message || 'Check your email for the 6-digit reset code.',
         [{ text: 'OK', onPress: () => router.push({ pathname: '/reset-password', params: { email } }) }]
       );
     } else {
-      Alert.alert('Error', result.error || 'Failed to send reset link');
+      Alert.alert('Error', result.error || 'Failed to send OTP');
     }
   };
 
@@ -45,7 +45,7 @@ export default function ForgotPasswordScreen() {
           <View className="mb-10">
             <Text className="text-white text-4xl font-bold mb-4">Forgot Password?</Text>
             <Text className="text-slate-400 text-lg leading-6">
-              Don't worry! It happens. Please enter the email associated with your account.
+              Don't worry! It happens. Enter your email and we'll send you a 6-digit code to reset your password.
             </Text>
           </View>
 
@@ -53,7 +53,7 @@ export default function ForgotPasswordScreen() {
             <View>
               <Text className="text-slate-400 font-bold mb-3 ml-1 uppercase tracking-widest text-[10px]">Email Address</Text>
               <View className="flex-row items-center bg-white/5 rounded-2xl border border-white/10 px-4 py-4">
-                <Ionicons name="mail-outline" size={20} color="#3B82F6" className="mr-3" />
+                <Ionicons name="mail-outline" size={20} color="#3B82F6" />
                 <TextInput
                   placeholder="Enter your email"
                   placeholderTextColor="#64748b"
@@ -74,7 +74,7 @@ export default function ForgotPasswordScreen() {
               {isLoading ? (
                 <ActivityIndicator color="white" />
               ) : (
-                <Text className="text-white font-bold text-lg">Send Reset Link</Text>
+                <Text className="text-white font-bold text-lg">Send OTP Code</Text>
               )}
             </TouchableOpacity>
 
@@ -82,7 +82,7 @@ export default function ForgotPasswordScreen() {
               onPress={() => router.push('/reset-password')}
               className="items-center py-4"
             >
-              <Text className="text-slate-500 font-medium">Already have a token? <Text className="text-[#3B82F6]">Reset here</Text></Text>
+              <Text className="text-slate-500 font-medium">Already have a code? <Text className="text-[#3B82F6]">Reset here</Text></Text>
             </TouchableOpacity>
           </View>
         </ScrollView>

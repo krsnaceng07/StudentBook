@@ -1,136 +1,229 @@
-import React from 'react';
-import { View, Text, TouchableOpacity, Image } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, TouchableOpacity, ActivityIndicator, Image } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import client from '../api/client';
 
 interface TeamCardProps {
   team: {
-    _id: string;
+    teamId: string;
+    _id?: string;
     name: string;
-    description: string;
-    avatar?: string;
-    category: string;
-    status: string;
-    lookingFor: string[];
-    members: any[];
-    matchScore?: number;
+    category?: string;
+    avatar?: string | null;
+    memberCount: number;
+    matchScore: number;
+    reasons?: string[];
     matchReasons?: string[];
+    hasPendingRequest?: boolean;
+    isLeader?: boolean;   // user is leader/owner of this team
+    isMember?: boolean;   // user is already a member
   };
 }
 
 export default React.memo(function TeamCard({ team }: TeamCardProps) {
   const router = useRouter();
+  const [loading, setLoading] = useState(false);
+  // Seed initial state from backend so card is correct on first render
+  const [requestState, setRequestState] = useState<'none' | 'pending'>(
+    team.hasPendingRequest ? 'pending' : 'none'
+  );
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'Recruiting': return 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20';
-      case 'Active': return 'text-blue-400 bg-blue-500/10 border-blue-500/20';
-      case 'Full': return 'text-amber-400 bg-amber-500/10 border-amber-500/20';
-      default: return 'text-slate-400 bg-slate-500/10 border-slate-500/20';
+  // Use teamId if present (discover store), fall back to _id (team store)
+  const id = team.teamId || team._id || '';
+  // Already in this team — hide all join/cancel buttons
+  const isAlreadyInTeam = !!(team.isLeader || team.isMember);
+  // Resolved reasons from either field name
+  const reasons = team.reasons?.length ? team.reasons : (team.matchReasons || []);
+
+  const handleJoin = async () => {
+    if (loading) return;
+    setLoading(true);
+    try {
+      await client.post(`/teams/${team.teamId}/request`, { message: 'Interested in joining!' });
+      setRequestState('pending');
+    } catch (err: any) {
+      // If already pending (edge case), still show pending state
+      if (err?.response?.status === 400) setRequestState('pending');
+    } finally {
+      setLoading(false);
     }
   };
 
-  const getCategoryIcon = (cat: string) => {
-    switch (cat) {
-      case 'Study Group': return 'book-outline';
-      case 'Research': return 'flask-outline';
-      case 'Startup': return 'briefcase-outline';
-      case 'Hackathon': return 'code-slash-outline';
-      case 'Competitive Exams': return 'trophy-outline';
-      case 'Open Source': return 'git-branch-outline';
-      case 'Project': return 'rocket-outline';
-      default: return 'people-outline';
+  const handleCancelRequest = async () => {
+    if (loading) return;
+    setLoading(true);
+    try {
+      await client.delete(`/teams/${team.teamId}/request`);
+      setRequestState('none');
+    } catch {
+      // silently fail — UI will remain pending to avoid confusion
+    } finally {
+      setLoading(false);
     }
   };
+
+  const getMatchEmoji = (score: number) => {
+    if (score >= 80) return '🔥';
+    if (score >= 50) return '✨';
+    return '🤝';
+  };
+
+  const categoryIcon: Record<string, string> = {
+    'Study Group': 'book',
+    'Research': 'flask',
+    'Startup': 'rocket',
+    'Hackathon': 'code-slash',
+    'Competitive Exams': 'trophy',
+    'Open Source': 'logo-github',
+    'Project': 'construct',
+    'Other': 'grid',
+  };
+  const icon = (categoryIcon[team.category || ''] || 'people') as any;
+
+  const isPending = requestState === 'pending';
 
   return (
-    <TouchableOpacity 
-      onPress={() => router.push(`/teams/${team._id}`)}
-      className="bg-slate-900/50 rounded-[32px] border border-white/10 p-6 mb-6 overflow-hidden"
-    >
-      {/* Category & Match Score */}
-      <View className="flex-row justify-between items-center mb-4">
-        <View className="flex-row items-center bg-white/5 px-3 py-1.5 rounded-2xl border border-white/10">
-          <Ionicons name={getCategoryIcon(team.category)} size={14} color="#3B82F6" />
-          <Text className="text-slate-400 ml-2 text-[10px] font-bold uppercase tracking-wider">{team.category}</Text>
-        </View>
+    <View className="bg-slate-900/50 rounded-[32px] border border-white/10 p-6 mb-6 overflow-hidden relative">
+      {/* Background glow */}
+      <View
+        className="absolute -top-10 -right-10 h-32 w-32 rounded-full"
+        style={{
+          backgroundColor: team.matchScore >= 70
+            ? 'rgba(139,92,246,0.08)'
+            : 'rgba(99,102,241,0.05)'
+        }}
+      />
 
-        {team.matchScore && team.matchScore > 0 && (
-          <View className="bg-[#3B82F6]/10 px-3 py-1 rounded-full border border-[#3B82F6]/20">
-             <Text className="text-[#3B82F6] text-[10px] font-bold">{team.matchScore}% Fit 🔥</Text>
+      {/* Header row */}
+      <View className="flex-row items-start justify-between mb-4">
+        <TouchableOpacity
+          onPress={() => router.push(`/teams/${id}` as any)}
+          className="flex-row items-center flex-1"
+        >
+          {/* Avatar */}
+          <View className="h-16 w-16 bg-slate-800 rounded-2xl items-center justify-center border border-white/10 overflow-hidden shadow-2xl">
+            {team.avatar ? (
+              <Image source={{ uri: team.avatar }} className="w-full h-full" />
+            ) : (
+              <Ionicons name={icon} size={28} color="#A78BFA" />
+            )}
           </View>
-        )}
-      </View>
 
-      <View className="flex-row items-center mb-4">
-        {/* Team Avatar */}
-        <View className="h-14 w-14 bg-slate-800 rounded-2xl items-center justify-center border border-white/10 overflow-hidden">
-          {team.avatar ? (
-            <Image source={{ uri: team.avatar }} className="w-full h-full" />
-          ) : (
-            <Text className="text-white text-xl font-bold">
-              {team.name?.charAt(0) || 'T'}
-            </Text>
-          )}
-        </View>
-
-        <View className="ml-4 flex-1">
-          <Text className="text-white text-lg font-bold" numberOfLines={1}>{team.name}</Text>
-          <View className="flex-row items-center mt-1">
-            <View className={`px-2 py-0.5 rounded-md border ${getStatusColor(team.status)}`}>
-               <Text className="text-[10px] font-bold uppercase">{team.status}</Text>
+          <View className="ml-4 flex-1">
+            <View className="flex-row items-center">
+              <Text className="text-white text-lg font-black flex-1" numberOfLines={1}>
+                {team.name}
+              </Text>
+              {team.isLeader && (
+                <View className="ml-2 bg-yellow-500/15 px-2 py-0.5 rounded-md">
+                  <Text className="text-yellow-400 text-[9px] font-black">YOUR TEAM</Text>
+                </View>
+              )}
+              {!team.isLeader && team.isMember && (
+                <View className="ml-2 bg-emerald-500/15 px-2 py-0.5 rounded-md">
+                  <Text className="text-emerald-400 text-[9px] font-black">MEMBER</Text>
+                </View>
+              )}
             </View>
-            <Text className="text-slate-500 text-xs ml-3">{team.members?.length || 0} Members</Text>
+            <Text className="text-purple-400 text-xs font-black uppercase tracking-wider">
+              {team.category || 'Team'}
+            </Text>
           </View>
+        </TouchableOpacity>
+
+        {/* Match score badge */}
+        <View
+          className="px-3 py-2 rounded-2xl border items-center"
+          style={{
+            backgroundColor: team.matchScore >= 70
+              ? 'rgba(139,92,246,0.08)'
+              : 'rgba(255,255,255,0.05)',
+            borderColor: team.matchScore >= 70
+              ? 'rgba(139,92,246,0.25)'
+              : 'rgba(255,255,255,0.1)',
+          }}
+        >
+          <Text
+            className="font-black text-sm"
+            style={{ color: team.matchScore >= 70 ? '#A78BFA' : '#fff' }}
+          >
+            {team.matchScore}% {getMatchEmoji(team.matchScore)}
+          </Text>
+          <Text className="text-slate-500 text-[8px] uppercase font-black mt-0.5 tracking-widest">
+            Match
+          </Text>
         </View>
       </View>
 
-      <Text className="text-slate-400 text-sm mb-4 leading-5" numberOfLines={2}>
-        {team.description}
+      {/* Subtitle */}
+      <Text className="text-slate-400 text-sm mb-4 font-bold leading-5">
+        {team.memberCount} member{team.memberCount !== 1 ? 's' : ''} · Public Team
       </Text>
 
-      {/* Recruiting Highlights */}
-      {team.status === 'Recruiting' && team.lookingFor?.length > 0 && (
-        <View className="flex-row flex-wrap gap-2 mb-4">
-          <Text className="text-emerald-400/60 text-[10px] font-bold uppercase w-full mb-1">Looking for:</Text>
-          {team.lookingFor.slice(0, 3).map((skill, idx) => (
-            <View key={idx} className="bg-emerald-500/5 px-2 py-1 rounded-lg border border-emerald-500/10">
-              <Text className="text-emerald-400 text-[10px] font-medium">{skill}</Text>
-            </View>
-          ))}
-          {team.lookingFor.length > 3 && (
-            <Text className="text-slate-600 text-[10px] self-center">+{team.lookingFor.length - 3} more</Text>
-          )}
+      {/* Common Ground */}
+      {reasons.length > 0 && (
+        <View className="bg-white/5 rounded-2xl p-4 mb-6 border border-white/5">
+          <Text className="text-slate-500 text-[10px] font-black uppercase mb-2">
+            Why This Team
+          </Text>
+          <Text className="text-slate-300 text-xs leading-5">
+            Matches your interest in{' '}
+            <Text className="text-white font-bold">
+              {reasons.slice(0, 3).join(', ')}
+            </Text>
+            {reasons.length > 3 && ' and more.'}
+          </Text>
         </View>
       )}
 
-      {/* Member Preview Avatars */}
-      <View className="flex-row items-center justify-between border-t border-white/5 pt-4">
-        <View className="flex-row items-center">
-           <View className="flex-row -space-x-2">
-             {team.members?.slice(0, 3).map((m, i) => (
-               <View key={i} className="h-7 w-7 rounded-full bg-slate-800 border-2 border-[#0F172A] items-center justify-center overflow-hidden">
-                  {m.user?.avatar ? (
-                    <Image source={{ uri: m.user.avatar }} className="w-full h-full" />
-                  ) : (
-                    <Text className="text-white text-[10px]">{m.user?.name?.charAt(0)}</Text>
-                  )}
-               </View>
-             ))}
-           </View>
-           {team.members?.length > 3 && (
-             <Text className="text-slate-500 text-[10px] ml-2">+{team.members.length - 3} others</Text>
-           )}
-        </View>
-        
-        <TouchableOpacity 
-           onPress={() => router.push(`/teams/${team._id}`)}
-           className="flex-row items-center"
+      {/* Action Buttons */}
+      <View className="flex-row gap-4">
+        {/* Left: View Team (always visible) */}
+        <TouchableOpacity
+          onPress={() => router.push(`/teams/${id}` as any)}
+          className={`${isAlreadyInTeam ? 'flex-1' : 'flex-1'} bg-white/5 rounded-3xl py-4 items-center border border-white/10`}
         >
-          <Text className="text-[#3B82F6] text-xs font-bold mr-1">View Details</Text>
-          <Ionicons name="chevron-forward" size={14} color="#3B82F6" />
+          <Text className="text-white font-black">View Team</Text>
         </TouchableOpacity>
+
+        {/* Right: only show for non-members */}
+        {!isAlreadyInTeam && (
+          isPending ? (
+            <TouchableOpacity
+              onPress={handleCancelRequest}
+              disabled={loading}
+              className="flex-[1.5] rounded-3xl py-4 items-center"
+              style={{ backgroundColor: 'rgba(239,68,68,0.1)', borderWidth: 1, borderColor: 'rgba(239,68,68,0.35)' }}
+            >
+              {loading ? (
+                <ActivityIndicator color="#F87171" size="small" />
+              ) : (
+                <View className="flex-row items-center">
+                  <Ionicons name="close-circle" size={18} color="#F87171" />
+                  <Text className="font-black ml-2 text-red-400">Cancel Request</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity
+              onPress={handleJoin}
+              disabled={loading}
+              className="flex-[1.5] rounded-3xl py-4 items-center shadow-2xl"
+              style={{ backgroundColor: '#8B5CF6', borderWidth: 1, borderColor: '#8B5CF6' }}
+            >
+              {loading ? (
+                <ActivityIndicator color="white" size="small" />
+              ) : (
+                <View className="flex-row items-center">
+                  <Ionicons name="person-add" size={18} color="white" />
+                  <Text className="font-black ml-2 text-white">Join Team</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+          )
+        )}
       </View>
-    </TouchableOpacity>
+    </View>
   );
 });

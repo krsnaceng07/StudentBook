@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "282200433589",
+    "project_id": "student-97078",
+    "storage_bucket": "student-97078.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:282200433589:android:6ae01633f145ecbc8e6ffc",
+        "android_client_info": {
+          "package_name": "com.krsna.studentbook"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "282200433589-isiiebgk03t7hl5moqi96gl04vv9i6j3.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.krsna.studentbook",
+            "certificate_hash": "2597cb16058dda30192fd516bccf5abb54f745f3"
+          }
+        },
+        {
+          "client_id": "282200433589-j5i4ho5eh7riaome2ngj4420o12qurq9.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDa4tHhXE0UFOlgpeQREdgqGgRqzovQsZs"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "282200433589-j5i4ho5eh7riaome2ngj4420o12qurq9.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

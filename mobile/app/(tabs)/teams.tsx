@@ -87,7 +87,7 @@ export default function TeamsScreen() {
              </View>
           </View>
           {suggestedTeams.map(team => (
-            <TeamCard key={team._id} team={team} />
+            <TeamCard key={team._id} team={{ ...team, teamId: team._id }} />
           ))}
           <View className="flex-row items-center mb-2 mt-4">
             <Text className="text-slate-500 font-bold uppercase tracking-widest text-[10px]">Recent Teams</Text>
@@ -126,7 +126,7 @@ export default function TeamsScreen() {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#3B82F6" />
         }
         renderItem={({ item }) => (
-          <TeamCard team={item} />
+          <TeamCard team={{ ...item, teamId: item._id }} />
         )}
         ListEmptyComponent={() => (
           !isLoading ? (
