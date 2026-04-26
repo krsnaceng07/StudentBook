@@ -17,24 +17,12 @@ const getHost = () => {
 
 const DEV_IP = getHost();
 
-// PERMANENT LOCAL FIX: 
-// On Android Emulators, 'localhost' or local IP can sometimes fail. 
-// '10.0.2.2' is the magic IP that always points to the host machine.
+// Hardcoded production URL for APK builds
 const getBaseURL = () => {
   const url = process.env.EXPO_PUBLIC_API_URL;
-  if (url) {
-    // Security: Warn if using HTTP in what looks like a production URL
-    if (url.startsWith('http://') && !url.includes('localhost') && !url.includes('10.0.2.2')) {
-      console.warn('[Security] Sensitive data is being sent over unencrypted HTTP!');
-    }
-    return url;
-  }
+  if (url) return url;
   
-  if (Platform.OS === 'android' && (DEV_IP === 'localhost' || DEV_IP === '127.0.0.1')) {
-    return 'http://10.0.2.2:5000/api/v1';
-  }
-  
-  return `http://${DEV_IP}:5000/api/v1`;
+  return 'https://studentbook-1.onrender.com/api/v1';
 };
 
 const API_URL = getBaseURL();
