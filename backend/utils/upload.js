@@ -1,4 +1,5 @@
 const multer = require('multer');
+const path = require('path');
 const cloudinary = require('../config/cloudinary');
 
 const storage = multer.memoryStorage();
@@ -23,12 +24,21 @@ const upload = multer({
       'video/'
     ];
 
-    const isAllowed = allowedMimeTypes.some(type => file.mimetype.startsWith(type));
+    const allowedExtensions = [
+      '.jpg', '.jpeg', '.png', '.gif', '.webp',
+      '.pdf', '.doc', '.docx', '.ppt', '.pptx', '.xls', '.xlsx', '.txt',
+      '.zip', '.rar',
+      '.mp4', '.mov', '.avi'
+    ];
+
+    const ext = path.extname(file.originalname).toLowerCase();
+    const isMimeAllowed = allowedMimeTypes.some(type => file.mimetype.startsWith(type));
+    const isExtAllowed = allowedExtensions.includes(ext);
     
-    if (isAllowed) {
+    if (isMimeAllowed && isExtAllowed) {
       cb(null, true);
     } else {
-      cb(new Error('Invalid file type. Only images, videos, and documents are allowed.'), false);
+      cb(new Error('Invalid file type or extension.'), false);
     }
   }
 });

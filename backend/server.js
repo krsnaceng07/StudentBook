@@ -1,4 +1,8 @@
 require('dotenv').config();
+const environment = process.env.NODE_ENV || 'production';
+if (environment === 'development') {
+  console.warn('⚠️ WARNING: Application is running in DEVELOPMENT mode. Ensure NODE_ENV=production is set in live environments.');
+}
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
@@ -45,12 +49,20 @@ app.use(helmet({
   crossOriginResourcePolicy: { policy: "cross-origin" },
   contentSecurityPolicy: process.env.NODE_ENV === 'production' ? undefined : false
 }));
-app.use(cors());
+
+const corsOptions = {
+  origin: process.env.NODE_ENV === 'production' 
+    ? (process.env.CLIENT_ORIGIN ? [process.env.CLIENT_ORIGIN] : [])
+    : '*',
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
+  credentials: true
+};
+app.use(cors(corsOptions));
 
 // Rate limiting
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 5000, 
+  max: 500, // Balanced for typical student usage while preventing aggressive scraping
 });
 app.use('/api/', limiter);
 

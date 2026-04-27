@@ -113,9 +113,10 @@ const getFeed = async (req, res) => {
     // Build filter
     const filter = { status: { $ne: 'deleted' } };
 
-    if (search && search.trim()) {
+    if (search && typeof search === 'string' && search.trim()) {
       const trimmedSearch = search.trim();
-      const searchRegex = { $regex: trimmedSearch, $options: 'i' };
+      const escapedSearch = trimmedSearch.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const searchRegex = { $regex: escapedSearch, $options: 'i' };
       
       // DEEP SEARCH: Find users whose name/username matches the search
       const matchingUsers = await User.find({

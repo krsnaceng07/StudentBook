@@ -130,8 +130,28 @@ const getProfileByUserId = async (req, res) => {
     // we fetch and then prune if necessary. Better: fetch only if allowed.
     
     const isOwner = req.user && req.user._id.toString() === profile.userId._id.toString();
+    const isPrivate = profile.userId.settings?.isPrivate;
+
+    // Privacy IDOR Check: If private, only owner or connections can view
+    if (isPrivate && !isOwner) {
+      const Connection = require('../models/Connection');
+      const connection = await Connection.findOne({
+        $or: [
+          { requester: req.user._id, recipient: req.params.userId },
+          { requester: req.params.userId, recipient: req.user._id }
+        ],
+        status: 'accepted'
+      });
+
+      if (!connection) {
+        return res.status(403).json({ 
+          success: false, 
+          message: 'This profile is private. You must be connected to view it.',
+          isPrivate: true
+        });
+      }
+    }
     
-    // For now, keep the prune logic but clean up the user object
     if (profileData.userId) {
        if (!isOwner) delete profileData.userId.email;
     }

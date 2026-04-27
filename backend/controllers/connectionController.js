@@ -218,10 +218,22 @@ const disconnectUser = async (req, res) => {
 // @route   GET /api/v1/connections/pending
 const getPendingRequests = async (req, res) => {
   try {
-    const requests = await Connection.find({ 
+    const page = parseInt(req.query.page) || 1;
+    const limit = Math.min(parseInt(req.query.limit) || 20, 100);
+    const skip = (page - 1) * limit;
+
+    const filter = { 
       recipient: req.user._id, 
       status: 'pending' 
-    }).populate('requester', 'name username');
+    };
+
+    const requests = await Connection.find(filter)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .populate('requester', 'name username');
+    
+    const total = await Connection.countDocuments(filter);
 
     // Batch-fetch all profiles in ONE query (eliminates N+1)
     const requesterIds = requests.map(r => r.requester._id);
@@ -245,7 +257,11 @@ const getPendingRequests = async (req, res) => {
       };
     });
 
-    res.json({ success: true, data: formattedRequests });
+    res.json({ 
+      success: true, 
+      data: formattedRequests,
+      pagination: { page, limit, total }
+    });
   } catch (err) {
     console.error('Get Pending Requests Error:', err);
     res.status(500).json({ success: false, message: 'Server error' });
@@ -257,10 +273,23 @@ const getPendingRequests = async (req, res) => {
 // @route   GET /api/v1/connections
 const getConnections = async (req, res) => {
   try {
-    const connections = await Connection.find({
+    const page = parseInt(req.query.page) || 1;
+    const limit = Math.min(parseInt(req.query.limit) || 50, 200);
+    const skip = (page - 1) * limit;
+
+    const filter = {
       $or: [{ requester: req.user._id }, { recipient: req.user._id }],
       status: 'accepted'
-    }).populate('requester', 'name username').populate('recipient', 'name username');
+    };
+
+    const connections = await Connection.find(filter)
+      .sort({ updatedAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .populate('requester', 'name username')
+      .populate('recipient', 'name username');
+    
+    const total = await Connection.countDocuments(filter);
 
     // Batch-fetch all profiles in ONE query (eliminates N+1)
     const otherUsers = connections.map(conn =>
@@ -287,7 +316,11 @@ const getConnections = async (req, res) => {
       };
     });
 
-    res.json({ success: true, data: formatted });
+    res.json({ 
+      success: true, 
+      data: formatted,
+      pagination: { page, limit, total }
+    });
   } catch (err) {
     console.error('Get Connections Error:', err);
     res.status(500).json({ success: false, message: 'Server error' });

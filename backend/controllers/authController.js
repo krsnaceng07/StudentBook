@@ -81,8 +81,8 @@ const registerUser = async (req, res) => {
     }
 
     const user = await User.create({
-      name,
-      username,
+      name: xss(name),
+      username: xss(username),
       email,
       password,
     });
@@ -162,6 +162,13 @@ const firebaseLogin = async (req, res) => {
     } else {
       // Update firebaseUid and provider if not set (for existing email users)
       if (!user.firebaseUid) {
+        // SECURITY: Only link if the Firebase email is verified
+        if (!decodedToken.email_verified) {
+          return res.status(401).json({ 
+            success: false, 
+            message: 'Please verify your email on Google/Apple before linking your account.' 
+          });
+        }
         user.firebaseUid = uid;
         user.provider = decodedToken.firebase?.sign_in_provider === 'apple.com' ? 'apple' : 'google';
         await user.save();
@@ -333,10 +340,11 @@ const resetPassword = async (req, res) => {
       return res.status(400).json({ success: false, message: error.details[0].message });
     }
 
-    // Set new password
+    // Set new password and invalidate existing sessions
     user.password = req.body.password;
     user.resetPasswordToken = undefined;
     user.resetPasswordExpire = undefined;
+    user.lastLogoutAt = Date.now();
     await user.save();
 
     res.status(200).json({ success: true, message: 'Password reset successful. Please log in.' });

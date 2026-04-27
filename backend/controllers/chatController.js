@@ -50,9 +50,17 @@ const createConversation = async (req, res) => {
     });
 
     if (!conversation) {
-      conversation = await Conversation.create({
-        participants: [senderId, recipientId],
-      });
+      // Use $addToSet logic or ensure uniqueness
+      conversation = await Conversation.findOneAndUpdate(
+        { participants: { $all: [senderId, recipientId], $size: 2 } },
+        { 
+          $setOnInsert: { 
+            participants: [senderId, recipientId],
+            type: 'personal' 
+          } 
+        },
+        { upsert: true, new: true }
+      );
     }
 
     res.status(201).json({ success: true, data: conversation });

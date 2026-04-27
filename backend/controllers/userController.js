@@ -45,7 +45,8 @@ const discoverUsers = async (req, res) => {
 
     // Apply Discovery Field Filter
     if (discoveryFilter === 'same_field' && myProfile?.field) {
-      pipeline.push({ $match: { field: { $regex: new RegExp(`^${myProfile.field}$`, 'i') } } });
+      const escapedField = myProfile.field.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      pipeline.push({ $match: { field: { $regex: new RegExp(`^${escapedField}$`, 'i') } } });
     }
 
     // Join with User model
@@ -59,8 +60,9 @@ const discoverUsers = async (req, res) => {
     }, { $unwind: '$user' });
 
     // Global Search / Filters
-    if (search && search.trim()) {
-      const searchRegex = new RegExp(search.trim(), 'i');
+    if (search && typeof search === 'string' && search.trim()) {
+      const escapedSearch = search.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const searchRegex = new RegExp(escapedSearch, 'i');
       pipeline.push({
         $match: {
           $or: [
@@ -73,11 +75,20 @@ const discoverUsers = async (req, res) => {
       });
     }
 
-    if (field) pipeline.push({ $match: { field: { $regex: field, $options: 'i' } } });
+    if (field && typeof field === 'string') {
+      const escapedField = field.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      pipeline.push({ $match: { field: { $regex: escapedField, $options: 'i' } } });
+    }
     
     if (skills) {
       const skillArray = Array.isArray(skills) ? skills : [skills];
-      pipeline.push({ $match: { skills: { $in: skillArray.map(s => new RegExp(s, 'i')) } } });
+      const sanitizedSkills = skillArray
+        .filter(s => typeof s === 'string')
+        .map(s => new RegExp(s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i'));
+        
+      if (sanitizedSkills.length > 0) {
+        pipeline.push({ $match: { skills: { $in: sanitizedSkills } } });
+      }
     }
 
     // Calculate Mutuals using $lookup on the fly
@@ -207,7 +218,12 @@ const searchUsers = async (req, res) => {
       return res.json({ success: true, data: { users: [] } });
     }
 
-    const searchRegex = { $regex: q, $options: 'i' };
+    if (typeof q !== 'string') {
+      return res.status(400).json({ success: false, message: 'Invalid search query' });
+    }
+
+    const escapedQ = q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const searchRegex = { $regex: escapedQ, $options: 'i' };
 
     // 1. Find users by name/username
     const users = await User.find({

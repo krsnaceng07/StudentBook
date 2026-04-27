@@ -160,10 +160,27 @@ const getTeams = async (req, res) => {
       t.hasPendingRequest = pendingSet.has(t._id.toString());
     });
 
+    // Pagination
+    const page = parseInt(req.query.page) || 1;
+    const limit = Math.min(parseInt(req.query.limit) || 10, 50);
+    const skip = (page - 1) * limit;
+
     // Sort by matchScore descending
     enhancedTeams.sort((a, b) => b.matchScore - a.matchScore);
 
-    res.json({ success: true, data: enhancedTeams });
+    const total = enhancedTeams.length;
+    const paginatedTeams = enhancedTeams.slice(skip, skip + limit);
+
+    res.json({ 
+      success: true, 
+      data: paginatedTeams,
+      pagination: {
+        page,
+        limit,
+        total,
+        hasMore: (page * limit) < total
+      }
+    });
   } catch (err) {
     console.error('getTeams Error:', err);
     res.status(500).json({ success: false, message: 'Server error' });
@@ -184,6 +201,15 @@ const getTeamById = async (req, res) => {
 
     if (!team) {
       return res.status(404).json({ success: false, message: 'Team not found' });
+    }
+
+    // Privacy IDOR Check: If team is private, only members can view full details
+    const isMember = team.members.some(m => 
+      (m.user?._id || m.user).toString() === req.user._id.toString()
+    );
+    
+    if (!team.isPublic && !isMember) {
+      return res.status(403).json({ success: false, message: 'This team is private. You must be a member to view its details.' });
     }
 
     // Auto-heal: Ensure older teams have a conversation
@@ -297,18 +323,16 @@ const handleJoinRequest = async (req, res) => {
     await request.save();
 
     if (status === 'accepted') {
-      // Use $addToSet to prevent duplicate memberships if called concurrently
+      // Atomic update to prevent race conditions in team membership
       await Team.findByIdAndUpdate(request.teamId._id, {
         $addToSet: { members: { user: request.requester, role: 'member' } }
       });
 
-      const conversation = await Conversation.findOne({ teamId: request.teamId._id });
-      if (conversation) {
-        if (!conversation.participants.includes(request.requester)) {
-           conversation.participants.push(request.requester);
-           await conversation.save();
-        }
-      }
+      // Atomic update to prevent race conditions in conversation participants
+      await Conversation.updateOne(
+        { teamId: request.teamId._id },
+        { $addToSet: { participants: request.requester } }
+      );
 
       await createNotification({
         recipient: request.requester,
@@ -439,10 +463,13 @@ const manageTeamMember = async (req, res) => {
     }
 
     if (action === 'remove') {
-      team.members.splice(targetMemberIndex, 1);
-      // Remove from conversation too
+      // Atomic removal to prevent race conditions
+      await Team.findByIdAndUpdate(teamId, {
+        $pull: { members: { user: targetUserId } }
+      });
+      
       await Conversation.updateOne(
-        { teamId: team._id },
+        { teamId: teamId },
         { $pull: { participants: targetUserId } }
       );
     } else if (action === 'update_role') {
@@ -479,12 +506,14 @@ const leaveTeam = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Leader cannot leave. Transfer ownership first.' });
     }
 
-    team.members = team.members.filter(m => m.user.toString() !== req.user._id.toString());
-    await team.save();
+    // Atomic leave to prevent race conditions
+    await Team.findByIdAndUpdate(req.params.id, {
+      $pull: { members: { user: req.user._id } }
+    });
 
     // Remove from conversation
     await Conversation.updateOne(
-      { teamId: team._id },
+      { teamId: req.params.id },
       { $pull: { participants: req.user._id } }
     );
 

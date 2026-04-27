@@ -114,8 +114,8 @@ userSchema.methods.matchPassword = async function(enteredPassword) {
 userSchema.methods.getResetPasswordToken = function() {
   const crypto = require('crypto');
   
-  // Generate a random 6-digit number
-  const otp = Math.floor(100000 + Math.random() * 900000).toString();
+  // Generate a random 6-digit number securely
+  const otp = crypto.randomInt(100000, 1000000).toString();
 
   // Hash the OTP and set to resetPasswordToken field
   this.resetPasswordToken = crypto
