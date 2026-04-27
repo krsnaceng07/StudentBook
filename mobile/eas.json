@@ -12,7 +12,7 @@
         "buildType": "apk"
       },
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://studentbook-1.onrender.com/api/v1",
+        "EXPO_PUBLIC_API_URL": "https://studentbook-2.onrender.com/api/v1",
         "EXPO_PUBLIC_FIREBASE_API_KEY": "AIzaSyDa4tHhXE0UFOlgpeQREdgqGgRqzovQsZs",
         "EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN": "student-97078.firebaseapp.com",
         "EXPO_PUBLIC_FIREBASE_PROJECT_ID": "student-97078",
@@ -26,7 +26,7 @@
     },
     "production": {
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://studentbook-1.onrender.com/api/v1",
+        "EXPO_PUBLIC_API_URL": "https://studentbook-2.onrender.com/api/v1",
         "EXPO_PUBLIC_FIREBASE_API_KEY": "AIzaSyDa4tHhXE0UFOlgpeQREdgqGgRqzovQsZs",
         "EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN": "student-97078.firebaseapp.com",
         "EXPO_PUBLIC_FIREBASE_PROJECT_ID": "student-97078",
