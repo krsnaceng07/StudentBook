@@ -1,8 +1,5 @@
 require('dotenv').config();
 const environment = process.env.NODE_ENV || 'production';
-if (environment === 'development') {
-  console.warn('⚠️ WARNING: Application is running in DEVELOPMENT mode. Ensure NODE_ENV=production is set in live environments.');
-}
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');

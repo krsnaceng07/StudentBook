@@ -129,11 +129,26 @@ const getProfileByUserId = async (req, res) => {
     // Note: We already check showEmail in the DB model settings, but for legacy support 
     // we fetch and then prune if necessary. Better: fetch only if allowed.
     
-    const isOwner = req.user && req.user._id.toString() === profile.userId._id.toString();
+    // Robust population check
+    if (!profile.userId) {
+      return res.status(404).json({ success: false, message: 'User for this profile no longer exists' });
+    }
+
+    const profileUserId = profile.userId._id || profile.userId;
+    const isOwner = req.user && req.user._id.toString() === profileUserId.toString();
     const isPrivate = profile.userId.settings?.isPrivate;
 
     // Privacy IDOR Check: If private, only owner or connections can view
     if (isPrivate && !isOwner) {
+      // If guest (not logged in), they can't view private profiles
+      if (!req.user) {
+        return res.status(403).json({ 
+          success: false, 
+          message: 'This profile is private. Please log in to view it.',
+          isPrivate: true
+        });
+      }
+
       const Connection = require('../models/Connection');
       const connection = await Connection.findOne({
         $or: [
@@ -153,7 +168,7 @@ const getProfileByUserId = async (req, res) => {
     }
     
     if (profileData.userId) {
-       if (!isOwner) delete profileData.userId.email;
+       if (!isOwner && profileData.userId) delete profileData.userId.email;
     }
 
     // 🏆 SMART INSIGHTS LOGIC
