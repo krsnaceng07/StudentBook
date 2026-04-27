@@ -22,7 +22,7 @@ const getBaseURL = () => {
   const url = process.env.EXPO_PUBLIC_API_URL;
   if (url) return url;
   
-  return 'https://studentbook-2.onrender.com/api/v1';
+  return 'https://studentbook-3.onrender.com/api/v1';
 };
 
 const API_URL = getBaseURL();
