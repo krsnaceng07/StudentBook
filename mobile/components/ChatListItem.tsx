@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, Image } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useChatStore } from '../store/chatStore';
+import useUIStore from '../store/uiStore';
 
 interface ChatListItemProps {
   conversation: {
@@ -21,6 +22,7 @@ interface ChatListItemProps {
 export default function ChatListItem({ conversation }: ChatListItemProps) {
   const router = useRouter();
   const { typingUsers, onlineUsers } = useChatStore();
+  const { isDarkMode } = useUIStore();
   
   const date = new Date(conversation.updatedAt);
   const timeString = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -36,7 +38,7 @@ export default function ChatListItem({ conversation }: ChatListItemProps) {
   return (
     <TouchableOpacity 
       onPress={() => router.push(`/chat/${conversation._id}`)}
-      className="bg-white/5 rounded-[28px] border border-white/10 p-5 mb-4 flex-row items-center"
+      className={`${isDarkMode ? 'bg-white/5 border-white/10' : 'bg-white border-slate-100 shadow-sm'} rounded-[28px] border p-5 mb-4 flex-row items-center`}
       activeOpacity={0.7}
     >
       <View>
@@ -48,34 +50,34 @@ export default function ChatListItem({ conversation }: ChatListItemProps) {
             }
           }}
           className={`h-16 w-16 rounded-2xl items-center justify-center border overflow-hidden ${
-            isTeam ? 'bg-purple-500/10 border-purple-500/20' : 'bg-[#3B82F6]/10 border-[#3B82F6]/20'
+            isTeam ? (isDarkMode ? 'bg-white/10 border-white/20' : 'bg-purple-500/10 border-purple-500/20') : (isDarkMode ? 'bg-white/10 border-white/20' : 'bg-[#3B82F6]/10 border-[#3B82F6]/20')
           }`}
         >
           {isTeam ? (
-            <Ionicons name="people" size={28} color="#A855F7" />
+            <Ionicons name="people" size={28} color={isDarkMode ? '#FFFFFF' : '#000000'} />
           ) : conversation.otherUser.avatar ? (
             <Image source={{ uri: conversation.otherUser.avatar }} className="w-full h-full" />
           ) : (
-            <Text className="text-[#3B82F6] text-2xl font-black">
+            <Text className={`${isDarkMode ? 'text-white' : 'text-black'} text-2xl font-black`}>
               {conversation.otherUser.name.charAt(0)}
             </Text>
           )}
         </TouchableOpacity>
         
         {isOnline && (
-          <View className="absolute -bottom-1 -right-1 h-4 w-4 bg-emerald-500 rounded-full border-2 border-[#0F172A]" />
+          <View className={`absolute -bottom-1 -right-1 h-4 w-4 bg-emerald-500 rounded-full border-2 ${isDarkMode ? 'border-[#0F172A]' : 'border-white'}`} />
         )}
       </View>
       
       <View className="ml-4 flex-1">
         <View className="flex-row justify-between items-center mb-1">
           <View className="flex-row items-center">
-            <Text className="text-white font-black text-lg" numberOfLines={1}>
+            <Text className={`${isDarkMode ? 'text-white' : 'text-black'} font-black text-lg`} numberOfLines={1}>
               {conversation.otherUser.name}
             </Text>
             {isTeam && (
-              <View className="bg-purple-500/10 px-2 py-0.5 rounded-md ml-2 border border-purple-500/20">
-                <Text className="text-purple-500 text-[8px] font-black uppercase tracking-tighter">Team</Text>
+              <View className={`${isDarkMode ? 'bg-white/10 border-white/20' : 'bg-slate-100 border-slate-200'} px-2 py-0.5 rounded-md ml-2 border`}>
+                <Text className={`${isDarkMode ? 'text-white' : 'text-black'} text-[8px] font-black uppercase tracking-tighter`}>Team</Text>
               </View>
             )}
           </View>
@@ -84,9 +86,9 @@ export default function ChatListItem({ conversation }: ChatListItemProps) {
         
         <View className="flex-row items-center">
           {isTyping ? (
-             <Text className="text-[#3B82F6] text-sm font-bold italic animate-pulse">Typing...</Text>
+             <Text className={`${isDarkMode ? 'text-white' : 'text-[#3B82F6]'} text-sm font-bold italic`}>Typing...</Text>
           ) : (
-            <Text className="text-slate-400 text-sm" numberOfLines={1}>
+            <Text className={`${isDarkMode ? 'text-slate-400' : 'text-slate-500'} text-sm`} numberOfLines={1}>
               {conversation.lastMessage || 'Start collaborating...'}
             </Text>
           )}

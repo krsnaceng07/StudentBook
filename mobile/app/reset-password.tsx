@@ -30,7 +30,7 @@ export default function ResetPasswordScreen() {
       return;
     }
 
-    const result = await resetPassword(token, password);
+    const result = await resetPassword(initialEmail, token, password);
     if (result.success) {
       Alert.alert(
         'Success',

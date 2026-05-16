@@ -48,7 +48,8 @@
           "photosPermission": "Allow StudentBook to access your photos to save study materials.",
           "saveToLibrary": true
         }
-      ]
+      ],
+      "expo-web-browser"
     ],
     "experiments": {
       "typedRoutes": true,

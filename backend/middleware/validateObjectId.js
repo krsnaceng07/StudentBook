@@ -1,20 +1,14 @@
-const mongoose = require('mongoose');
+// A simple UUID v4 validator to replace Mongoose ObjectId validation
+const isUUID = (uuid) => {
+  const regex = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  return regex.test(uuid);
+};
 
-/**
- * Security middleware: validates that any :id, :userId, :postId, :commentId,
- * :teamId, :requestId, or :conversationId route params are valid MongoDB ObjectIds.
- * 
- * Without this, malformed IDs cause Mongoose CastErrors that leak internal
- * stack traces through the error handler.
- */
 const validateObjectId = (...paramNames) => (req, res, next) => {
-  for (const param of paramNames) {
-    const value = req.params[param];
-    if (value && !mongoose.Types.ObjectId.isValid(value)) {
-      return res.status(400).json({
-        success: false,
-        message: `Invalid ID format for parameter: ${param}`
-      });
+  for (const paramName of paramNames) {
+    const id = req.params[paramName];
+    if (!id || !isUUID(id)) {
+      return res.status(400).json({ success: false, message: `Invalid ${paramName}` });
     }
   }
   next();

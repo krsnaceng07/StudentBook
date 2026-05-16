@@ -9,6 +9,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useDiscoverStore } from '../../store/discoverStore';
 import { usePostStore } from '../../store/postStore';
 import { useNotificationStore } from '../../store/notificationStore';
+import useUIStore from '../../store/uiStore';
 import UserCard from '../../components/UserCard';
 import TeamCard from '../../components/TeamCard';
 import PostCard from '../../components/PostCard';
@@ -26,6 +27,7 @@ const AnimatedFlatList = Animated.createAnimatedComponent(FlatList);
 
 // ─── Horizontal scroll "Suggested Matches" at the top (original design) ──────
 const SuggestedUsers = React.memo(({ users, onSeeAll }: { users: any[]; onSeeAll: () => void }) => {
+  const { isDarkMode } = useUIStore();
   if (users.length === 0) return null;
   // Only show USER type in the horizontal scroll (original behaviour)
   const userItems = users.filter(u => u.type === 'user');
@@ -34,9 +36,9 @@ const SuggestedUsers = React.memo(({ users, onSeeAll }: { users: any[]; onSeeAll
   return (
     <View className="mb-8">
       <View className="flex-row items-center justify-between mb-4">
-        <Text className="text-white text-xl font-bold">Suggested Matches</Text>
+        <Text className={`${isDarkMode ? 'text-white' : 'text-black'} text-xl font-bold`}>Suggested Matches</Text>
         <TouchableOpacity onPress={onSeeAll}>
-          <Text className="text-[#3B82F6] text-sm font-medium">See all</Text>
+          <Text className={`${isDarkMode ? 'text-white' : 'text-[#3B82F6]'} text-sm font-medium`}>See all</Text>
         </TouchableOpacity>
       </View>
       <ScrollView
@@ -74,6 +76,7 @@ export default function HomeScreen() {
   } = usePostStore();
 
   const { unreadCount, fetchNotifications } = useNotificationStore();
+  const { isDarkMode } = useUIStore();
 
   const [isCreateModalVisible, setIsCreateModalVisible] = useState(false);
   const [postToEdit, setPostToEdit] = useState<any>(null);
@@ -127,7 +130,7 @@ export default function HomeScreen() {
     const items: any[] = [];
     let sugIdx = 0;
 
-    posts.forEach((post, idx) => {
+    posts.forEach((post: any, idx: number) => {
       items.push({ kind: 'post', data: post, _id: `post-${post._id}` });
 
       if ((idx + 1) % SUGGESTION_EVERY_N_POSTS === 0 && sugIdx < suggestions.length) {
@@ -181,7 +184,7 @@ export default function HomeScreen() {
         users={suggestions}
         onSeeAll={() => router.push('/network/discover')}
       />
-      <Text className="text-white text-xl font-bold mb-4">Campus Feed</Text>
+      <Text className={`${isDarkMode ? 'text-white' : 'text-black'} text-xl font-bold mb-4`}>Campus Feed</Text>
     </View>
   ), [suggestions, router]);
 
@@ -193,9 +196,9 @@ export default function HomeScreen() {
       </View>
     ) : (
       <View className="items-center mt-10 px-10">
-        <Ionicons name="newspaper-outline" size={60} color="#334155" />
-        <Text className="text-slate-500 text-lg font-bold mt-4">No posts yet</Text>
-        <Text className="text-slate-600 text-center mt-2">
+        <Ionicons name="newspaper-outline" size={60} color={isDarkMode ? "#334155" : "#CBD5E1"} />
+        <Text className={`${isDarkMode ? 'text-slate-500' : 'text-slate-400'} text-lg font-bold mt-4`}>No posts yet</Text>
+        <Text className={`${isDarkMode ? 'text-slate-600' : 'text-slate-500'} text-center mt-2`}>
           Be the first to share something with your campus!
         </Text>
       </View>
@@ -203,13 +206,13 @@ export default function HomeScreen() {
   ), [postsLoading]);
 
   return (
-    <View className="flex-1 bg-[#0F172A]">
+    <View className={`flex-1 ${isDarkMode ? 'bg-[#0F172A]' : 'bg-white'}`}>
 
       {/* ── Sticky animated header ──────────────────────────────────────── */}
       <Animated.View
         style={{
           position: 'absolute', top: 0, left: 0, right: 0, zIndex: 100,
-          backgroundColor: '#0F172A',
+          backgroundColor: isDarkMode ? '#0F172A' : '#FFFFFF',
           transform: [{ translateY: headerTranslate }],
           opacity: headerOpacity,
           paddingTop: insets.top + 10,
@@ -217,14 +220,14 @@ export default function HomeScreen() {
       >
         <View className="px-6 mb-4">
           <View className="flex-row items-center justify-between mb-4">
-            <Text className="text-white text-3xl font-bold">Discover</Text>
+            <Text className={`${isDarkMode ? 'text-white' : 'text-black'} text-3xl font-bold`}>Discover</Text>
             <TouchableOpacity
               onPress={() => router.push('/notifications')}
-              className="bg-white/5 h-10 w-10 rounded-full items-center justify-center border border-white/10"
+              className={`${isDarkMode ? 'bg-white/5' : 'bg-slate-100'} h-10 w-10 rounded-full items-center justify-center border ${isDarkMode ? 'border-white/10' : 'border-slate-200'}`}
             >
-              <Ionicons name="notifications-outline" size={20} color="#3B82F6" />
+              <Ionicons name="notifications-outline" size={20} color={isDarkMode ? "#3B82F6" : "#000000"} />
               {unreadCount > 0 && (
-                <View className="absolute -top-1 -right-1 bg-red-500 h-5 w-5 rounded-full items-center justify-center border-2 border-[#0F172A]">
+                <View className={`absolute -top-1 -right-1 bg-red-500 h-5 w-5 rounded-full items-center justify-center border-2 ${isDarkMode ? 'border-[#0F172A]' : 'border-white'}`}>
                   <Text className="text-white text-[10px] font-bold">
                     {unreadCount > 9 ? '9+' : unreadCount}
                   </Text>
@@ -236,11 +239,11 @@ export default function HomeScreen() {
           <TouchableOpacity
             onPress={() => router.push({ pathname: '/search' } as any)}
             activeOpacity={0.8}
-            className="flex-row items-center bg-white/5 rounded-2xl border border-white/10 px-4 py-3 mb-4"
+            className={`${isDarkMode ? 'bg-white/10 border-white/10' : 'bg-slate-50 border-slate-200'} flex-row items-center rounded-2xl border px-4 py-3 mb-4`}
           >
-            <Ionicons name="search" size={20} color="#3B82F6" />
+            <Ionicons name="search" size={20} color={isDarkMode ? '#FFFFFF' : '#64748B'} />
             <Text className="flex-1 ml-3 text-slate-400 text-base">Search students, teams, or posts...</Text>
-            <Ionicons name="options-outline" size={22} color="#94A3B8" />
+            <Ionicons name="options-outline" size={22} color={isDarkMode ? "#94A3B8" : "#64748B"} />
           </TouchableOpacity>
         </View>
       </Animated.View>
@@ -288,9 +291,9 @@ export default function HomeScreen() {
       <TouchableOpacity
         onPress={() => setIsCreateModalVisible(true)}
         activeOpacity={0.8}
-        className="absolute bottom-10 right-6 h-16 w-16 bg-[#3B82F6] rounded-full items-center justify-center shadow-2xl z-[1000] border border-white/20"
+        className={`absolute bottom-10 right-6 h-16 w-16 ${isDarkMode ? 'bg-white' : 'bg-[#3B82F6]'} rounded-full items-center justify-center shadow-2xl z-[1000] border border-white/20`}
       >
-        <Ionicons name="add" size={32} color="white" />
+        <Ionicons name="add" size={32} color={isDarkMode ? 'black' : 'white'} />
       </TouchableOpacity>
 
       {/* ── Create Post Modal ────────────────────────────────────────────── */}

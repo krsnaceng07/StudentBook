@@ -4,11 +4,13 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useSettingsStore } from '../store/settingsStore';
 import { useAuthStore } from '../store/authStore';
+import useUIStore from '../store/uiStore';
 
 export default function SettingsScreen() {
   const router = useRouter();
   const { settings, isLoading, fetchSettings, updateSettings, changePassword, updateEmail, deleteAccount } = useSettingsStore();
   const { logout, user } = useAuthStore();
+  const { isDarkMode, toggleDarkMode } = useUIStore();
   
   const [passwordModal, setPasswordModal] = useState(false);
   const [currentPass, setCurrentPass] = useState('');
@@ -88,33 +90,33 @@ export default function SettingsScreen() {
 
   if (isLoading && !settings) {
     return (
-      <View className="flex-1 bg-[#0F172A] items-center justify-center">
-        <ActivityIndicator size="large" color="#3B82F6" />
+      <View className={`flex-1 ${isDarkMode ? 'bg-[#0F172A]' : 'bg-white'} items-center justify-center`}>
+        <ActivityIndicator size="large" color={isDarkMode ? '#3B82F6' : '#000000'} />
       </View>
     );
   }
 
   const SettingItem = ({ icon, title, subtitle, value, onToggle, type = 'switch', onPress, color = '#3B82F6' }: any) => {
     const content = (
-      <View className="flex-row items-center justify-between py-4 border-b border-white/5">
+      <View className={`flex-row items-center justify-between py-4 border-b ${isDarkMode ? 'border-white/5' : 'border-slate-100'}`}>
         <View className="flex-row items-center flex-1">
           <View className="w-10 h-10 rounded-xl items-center justify-center" style={{ backgroundColor: `${color}15` }}>
             <Ionicons name={icon} size={20} color={color} />
           </View>
           <View className="ml-4 flex-1">
-            <Text className="text-white text-base font-medium">{title}</Text>
-            {subtitle && <Text className="text-slate-500 text-xs mt-0.5">{subtitle}</Text>}
+            <Text className={`${isDarkMode ? 'text-white' : 'text-black'} text-base font-medium`}>{title}</Text>
+            {subtitle && <Text className={`${isDarkMode ? 'text-slate-500' : 'text-slate-400'} text-xs mt-0.5`}>{subtitle}</Text>}
           </View>
         </View>
         {type === 'switch' ? (
           <Switch 
             value={value} 
             onValueChange={onToggle}
-            trackColor={{ false: '#1E293B', true: color }}
-            thumbColor={value ? '#FFFFFF' : '#94A3B8'}
+            trackColor={{ false: isDarkMode ? '#1E293B' : '#E2E8F0', true: isDarkMode ? '#3B82F6' : '#000000' }}
+            thumbColor={'#FFFFFF'}
           />
         ) : (
-          <Ionicons name="chevron-forward" size={20} color="#475569" />
+          <Ionicons name="chevron-forward" size={20} color={isDarkMode ? "#475569" : "#CBD5E1"} />
         )}
       </View>
     );
@@ -126,23 +128,36 @@ export default function SettingsScreen() {
   };
 
   const SectionTitle = ({ title }: { title: string }) => (
-    <Text className="text-slate-500 text-xs font-bold uppercase tracking-widest mt-8 mb-4 px-1">{title}</Text>
+    <Text className={`${isDarkMode ? 'text-slate-500' : 'text-slate-400'} text-xs font-bold uppercase tracking-widest mt-8 mb-4 px-1`}>{title}</Text>
   );
 
   return (
-    <ScrollView className="flex-1 bg-[#0F172A]">
+    <ScrollView className={`flex-1 ${isDarkMode ? 'bg-[#0F172A]' : 'bg-white'}`}>
       <View className="px-6 pt-16 pb-20">
         <View className="flex-row items-center justify-between mb-8">
-          <TouchableOpacity onPress={() => router.back()} className="p-2 -ml-2">
-            <Ionicons name="arrow-back" size={24} color="white" />
+          <TouchableOpacity onPress={() => router.back()} className={`p-2 -ml-2`}>
+            <Ionicons name="arrow-back" size={24} color={isDarkMode ? "white" : "black"} />
           </TouchableOpacity>
-          <Text className="text-white text-2xl font-bold">Settings</Text>
+          <Text className={`${isDarkMode ? 'text-white' : 'text-black'} text-2xl font-bold`}>Settings</Text>
           <View className="w-10" />
+        </View>
+
+        {/* Appearance Section */}
+        <SectionTitle title="Appearance" />
+        <View className={`${isDarkMode ? 'bg-white/10 border-white/10' : 'bg-slate-50 border-slate-100'} rounded-3xl p-4 border`}>
+          <SettingItem 
+            icon="moon-outline" 
+            title="Dark Mode" 
+            subtitle={isDarkMode ? 'Original Blue Theme' : 'Premium Black & White'}
+            value={isDarkMode} 
+            onToggle={toggleDarkMode}
+            color={isDarkMode ? '#3B82F6' : '#000000'}
+          />
         </View>
 
         {/* Account Section */}
         <SectionTitle title="Account" />
-        <View className="bg-white/5 rounded-3xl p-4 border border-white/10">
+        <View className={`${isDarkMode ? 'bg-white/10 border-white/10' : 'bg-slate-50 border-slate-100'} rounded-3xl p-4 border`}>
           <SettingItem 
             icon="mail-outline" 
             title="Update Email" 
@@ -162,7 +177,7 @@ export default function SettingsScreen() {
 
         {/* Privacy Section */}
         <SectionTitle title="Privacy & Security" />
-        <View className="bg-white/5 rounded-3xl p-4 border border-white/10">
+        <View className={`${isDarkMode ? 'bg-white/10 border-white/10' : 'bg-slate-50 border-slate-100'} rounded-3xl p-4 border`}>
           <SettingItem 
             icon="eye-off-outline" 
             title="Private Account" 
@@ -198,7 +213,7 @@ export default function SettingsScreen() {
 
         {/* Networking Strategy Section */}
         <SectionTitle title="Networking Strategy" />
-        <View className="bg-white/5 rounded-3xl p-4 border border-white/10">
+        <View className={`${isDarkMode ? 'bg-white/10 border-white/10' : 'bg-slate-50 border-slate-100'} rounded-3xl p-4 border`}>
           <SettingItem 
             icon="compass-outline" 
             title="Smart Discovery" 
@@ -227,7 +242,7 @@ export default function SettingsScreen() {
 
         {/* Notifications Section */}
         <SectionTitle title="Notification Center" />
-        <View className="bg-white/5 rounded-3xl p-4 border border-white/10">
+        <View className={`${isDarkMode ? 'bg-white/10 border-white/10' : 'bg-slate-50 border-slate-100'} rounded-3xl p-4 border`}>
           <SettingItem 
             icon="chatbubble-outline" 
             title="Direct Messages" 
@@ -268,7 +283,7 @@ export default function SettingsScreen() {
 
         {/* Support Section */}
         <SectionTitle title="Support" />
-        <View className="bg-white/5 rounded-3xl p-4 border border-white/10">
+        <View className={`${isDarkMode ? 'bg-white/10 border-white/10' : 'bg-slate-50 border-slate-100'} rounded-3xl p-4 border`}>
           <SettingItem 
             icon="help-circle-outline" 
             title="Help Center" 
@@ -287,15 +302,15 @@ export default function SettingsScreen() {
 
         {/* Danger Zone */}
         <SectionTitle title="Danger Zone" />
-        <View className="bg-white/5 rounded-3xl p-4 border border-white/10">
+        <View className={`${isDarkMode ? 'bg-white/10 border-white/10' : 'bg-slate-50 border-slate-100'} rounded-3xl p-4 border`}>
           <TouchableOpacity 
             onPress={logout}
-            className="flex-row items-center py-4 border-b border-white/5"
+            className={`flex-row items-center py-4 border-b ${isDarkMode ? 'border-white/5' : 'border-slate-100'}`}
           >
             <View className="w-10 h-10 rounded-xl bg-orange-500/10 items-center justify-center">
               <Ionicons name="log-out-outline" size={20} color="#F97316" />
             </View>
-            <Text className="text-white text-base ml-4 font-medium">Logout</Text>
+            <Text className={`${isDarkMode ? 'text-white' : 'text-black'} text-base ml-4 font-medium`}>Logout</Text>
           </TouchableOpacity>
           
           <TouchableOpacity 
@@ -313,40 +328,40 @@ export default function SettingsScreen() {
       {/* Password Modal */}
       <Modal visible={passwordModal} transparent animationType="slide">
         <View className="flex-1 bg-black/60 justify-end">
-          <View className="bg-[#1E293B] rounded-t-[40px] p-8">
+          <View className={`${isDarkMode ? 'bg-[#1E293B]' : 'bg-white'} rounded-t-[40px] p-8 shadow-2xl`}>
             <View className="flex-row justify-between items-center mb-8">
-              <Text className="text-white text-xl font-bold">Change Password</Text>
+              <Text className={`${isDarkMode ? 'text-white' : 'text-black'} text-xl font-bold`}>Change Password</Text>
               <TouchableOpacity onPress={() => setPasswordModal(false)}>
-                <Ionicons name="close" size={24} color="white" />
+                <Ionicons name="close" size={24} color={isDarkMode ? "white" : "black"} />
               </TouchableOpacity>
             </View>
             <TextInput 
               placeholder="Current Password"
-              placeholderTextColor="#64748B"
+              placeholderTextColor={isDarkMode ? "#64748B" : "#94A3B8"}
               secureTextEntry
               value={currentPass}
               onChangeText={setCurrentPass}
-              className="bg-white/5 border border-white/10 p-4 rounded-2xl text-white mb-4"
+              className={`${isDarkMode ? 'bg-white/5 border-white/10 text-white' : 'bg-slate-50 border-slate-200 text-black'} p-4 rounded-2xl border mb-4`}
             />
             <TextInput 
               placeholder="New Password"
-              placeholderTextColor="#64748B"
+              placeholderTextColor={isDarkMode ? "#64748B" : "#94A3B8"}
               secureTextEntry
               value={newPass}
               onChangeText={setNewPass}
-              className="bg-white/5 border border-white/10 p-4 rounded-2xl text-white mb-4"
+              className={`${isDarkMode ? 'bg-white/5 border-white/10 text-white' : 'bg-slate-50 border-slate-200 text-black'} p-4 rounded-2xl border mb-4`}
             />
             <TextInput 
               placeholder="Confirm New Password"
-              placeholderTextColor="#64748B"
+              placeholderTextColor={isDarkMode ? "#64748B" : "#94A3B8"}
               secureTextEntry
               value={confirmPass}
               onChangeText={setConfirmPass}
-              className="bg-white/5 border border-white/10 p-4 rounded-2xl text-white mb-8"
+              className={`${isDarkMode ? 'bg-white/5 border-white/10 text-white' : 'bg-slate-50 border-slate-200 text-black'} p-4 rounded-2xl border mb-8`}
             />
             <TouchableOpacity 
               onPress={handlePasswordChange}
-              className="bg-[#3B82F6] p-4 rounded-2xl items-center"
+              className={`${isDarkMode ? 'bg-[#3B82F6]' : 'bg-black'} p-4 rounded-2xl items-center shadow-lg`}
             >
               <Text className="text-white font-bold">Update Password</Text>
             </TouchableOpacity>
@@ -357,16 +372,16 @@ export default function SettingsScreen() {
       {/* Email Modal */}
       <Modal visible={emailModal} transparent animationType="slide">
         <View className="flex-1 bg-black/60 justify-end">
-          <View className="bg-[#1E293B] rounded-t-[40px] p-8">
+          <View className={`${isDarkMode ? 'bg-[#1E293B]' : 'bg-white'} rounded-t-[40px] p-8 shadow-2xl`}>
             <View className="flex-row justify-between items-center mb-4">
-              <Text className="text-white text-xl font-bold">Update Email</Text>
+              <Text className={`${isDarkMode ? 'text-white' : 'text-black'} text-xl font-bold`}>Update Email</Text>
               <TouchableOpacity onPress={() => setEmailModal(false)}>
-                <Ionicons name="close" size={24} color="white" />
+                <Ionicons name="close" size={24} color={isDarkMode ? "white" : "black"} />
               </TouchableOpacity>
             </View>
-            <View className="mb-6 bg-white/5 p-4 rounded-2xl border border-white/5">
-              <Text className="text-slate-500 text-xs font-bold uppercase mb-1">Current Email</Text>
-              <Text className="text-white text-base">{user?.email}</Text>
+            <View className={`${isDarkMode ? 'bg-white/5 border-white/5' : 'bg-slate-50 border-slate-100'} p-4 rounded-2xl border mb-6`}>
+              <Text className={`${isDarkMode ? 'text-slate-500' : 'text-slate-400'} text-xs font-bold uppercase mb-1`}>Current Email</Text>
+              <Text className={`${isDarkMode ? 'text-white' : 'text-black'} text-base`}>{user?.email}</Text>
             </View>
             <TextInput 
               placeholder="New Email"

@@ -1,41 +1,15 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, ActivityIndicator, Alert, ScrollView } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, ActivityIndicator, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuthStore } from '../../store/authStore';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import * as Google from 'expo-auth-session/providers/google';
-import * as AppleAuthentication from 'expo-apple-authentication';
-import * as WebBrowser from 'expo-web-browser';
-
-WebBrowser.maybeCompleteAuthSession();
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const { login, loginWithFirebase, isLoading, error } = useAuthStore();
+  const { login, isLoading, error } = useAuthStore();
   const router = useRouter();
-
-  // Google Auth Request
-  const [request, response, promptAsync] = Google.useAuthRequest({
-    iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID,
-    androidClientId: process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID,
-    webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
-  });
-
-  useEffect(() => {
-    if (response?.type === 'success') {
-      const { id_token } = response.params;
-      handleFirebaseLogin(id_token);
-    }
-  }, [response]);
-
-  const handleFirebaseLogin = async (idToken: string) => {
-    const res = await loginWithFirebase(idToken);
-    if (!res.success) {
-      Alert.alert('Social Login Failed', res.error || 'Please try again.');
-    }
-  };
 
   const handleLogin = async () => {
     if (!email) return Alert.alert('Check your email!', 'Please enter your email to log in.');
@@ -47,24 +21,7 @@ export default function LoginScreen() {
     }
   };
 
-  const handleAppleLogin = async () => {
-    try {
-      const credential = await AppleAuthentication.signInAsync({
-        requestedScopes: [
-          AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
-          AppleAuthentication.AppleAuthenticationScope.EMAIL,
-        ],
-      });
-      
-      if (credential.identityToken) {
-        handleFirebaseLogin(credential.identityToken);
-      }
-    } catch (e: any) {
-      if (e.code !== 'ERR_REQUEST_CANCELED') {
-        Alert.alert('Apple Login Error', e.message);
-      }
-    }
-  };
+
 
   return (
     <SafeAreaView className="flex-1 bg-[#0F172A]">
@@ -138,8 +95,8 @@ export default function LoginScreen() {
           {/* Social Buttons */}
           <View className="flex-row gap-4">
             <TouchableOpacity 
-              onPress={() => promptAsync()}
-              disabled={!request || isLoading}
+              onPress={() => Alert.alert('Coming Soon', 'Google sign in via Supabase is coming soon.')}
+              disabled={isLoading}
               className="flex-1 flex-row bg-white/5 border border-white/10 rounded-xl py-4 items-center justify-center"
             >
               <Ionicons name="logo-google" size={20} color="white" />
@@ -148,7 +105,7 @@ export default function LoginScreen() {
 
             {Platform.OS === 'ios' && (
               <TouchableOpacity 
-                onPress={handleAppleLogin}
+                onPress={() => Alert.alert('Coming Soon', 'Apple sign in via Supabase is coming soon.')}
                 disabled={isLoading}
                 className="flex-1 flex-row bg-white/5 border border-white/10 rounded-xl py-4 items-center justify-center"
               >

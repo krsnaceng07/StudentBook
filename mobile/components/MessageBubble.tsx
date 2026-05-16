@@ -54,7 +54,7 @@ const MessageBubble = ({
   onLongPress
 }: MessageBubbleProps) => {
   const router = useRouter();
-  const { showToast } = useUIStore();
+  const { showToast, isDarkMode } = useUIStore();
   const date = new Date(timestamp);
   const time = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
@@ -137,9 +137,9 @@ const MessageBubble = ({
           onLongPress={onLongPress}
           className={`px-3 py-2.5 rounded-2xl ${
             isMe 
-              ? 'bg-[#3B82F6] rounded-tr-none' 
-              : 'bg-white/10 rounded-tl-none border border-white/5'
-          } ${sending ? 'opacity-70' : 'opacity-100'} ${isDeleted ? 'bg-slate-800/50 opacity-60' : ''}`}
+              ? (isDarkMode ? 'bg-white rounded-tr-none' : 'bg-[#3B82F6] rounded-tr-none') 
+              : (isDarkMode ? 'bg-white/5 rounded-tl-none border border-white/10' : 'bg-white/10 rounded-tl-none border border-white/5')
+          } ${sending ? 'opacity-70' : 'opacity-100'} ${isDeleted ? (isDarkMode ? 'bg-white/5 opacity-40' : 'bg-slate-800/50 opacity-60') : ''}`}
         >
           {/* Reply Context */}
           {replyTo && !isDeleted && (
@@ -210,18 +210,18 @@ const MessageBubble = ({
 
           {isDeleted ? (
             <View className="flex-row items-center py-0.5">
-              <Ionicons name="ban-outline" size={14} color="#94A3B8" />
-              <Text className="text-slate-400 italic ml-1.5 text-[13px]">This message was deleted</Text>
+              <Ionicons name="ban-outline" size={14} color={isDarkMode ? '#FFFFFF' : '#94A3B8'} />
+              <Text className={`${isDarkMode ? 'text-white/60' : 'text-slate-400'} italic ml-1.5 text-[13px]`}>This message was deleted</Text>
             </View>
           ) : (
-            text ? <Text className="text-white leading-5 text-[15px]">{text}</Text> : null
+            text ? <Text className={`${isMe && isDarkMode ? 'text-black' : 'text-white'} leading-5 text-[15px]`}>{text}</Text> : null
           )}
           
           {/* Bottom Info (only if not image-only message which has overlay) */}
           {(!attachments?.length || (attachments[0].type !== 'image' && !attachments[0].url.match(/\.(jpeg|jpg|gif|png)$/i))) && !isDeleted && (
             <View className="flex-row items-center justify-end mt-1">
               <Text 
-                className={`text-[9px] ${isMe ? 'text-white/70' : 'text-slate-500'}`}
+                className={`text-[9px] ${isMe ? (isDarkMode ? 'text-black/60' : 'text-white/70') : (isDarkMode ? 'text-white/40' : 'text-slate-500')}`}
               >
                 {time}
               </Text>
@@ -229,7 +229,7 @@ const MessageBubble = ({
                 <Ionicons 
                   name={sending ? "time-outline" : "checkmark-done"} 
                   size={12} 
-                  color={status === 'seen' ? "#10B981" : "white"} 
+                  color={status === 'seen' ? "#10B981" : (isDarkMode && isMe ? "black" : "white")} 
                   style={{ marginLeft: 4, opacity: status === 'seen' ? 1 : 0.7 }} 
                 />
               )}
@@ -238,7 +238,7 @@ const MessageBubble = ({
 
           {/* Reactions Overlay */}
           {!isDeleted && reactionGroups && Object.keys(reactionGroups).length > 0 && (
-            <View className={`absolute -bottom-3 ${isMe ? 'right-0' : 'left-0'} flex-row bg-[#1E293B] border border-white/10 rounded-full px-1.5 py-0.5 shadow-lg`}>
+            <View className={`absolute -bottom-3 ${isMe ? 'right-0' : 'left-0'} flex-row ${isDarkMode ? 'bg-black' : 'bg-[#1E293B]'} border border-white/10 rounded-full px-1.5 py-0.5 shadow-lg`}>
               {Object.entries(reactionGroups).map(([emoji, count]: any) => (
                 <View key={emoji} className="flex-row items-center mx-0.5">
                   <Text className="text-[10px]">{emoji}</Text>

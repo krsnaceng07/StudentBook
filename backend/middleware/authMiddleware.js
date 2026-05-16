@@ -1,5 +1,4 @@
-const jwt = require('jsonwebtoken');
-const User = require('../models/User');
+const { supabaseAdmin } = require('../config/supabase');
 
 const protect = async (req, res, next) => {
   let token;
@@ -11,25 +10,29 @@ const protect = async (req, res, next) => {
     try {
       token = req.headers.authorization.split(' ')[1];
 
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      // Verify token with Supabase
+      const { data: { user }, error } = await supabaseAdmin.auth.getUser(token);
 
-      req.user = await User.findById(decoded.id).select('-password');
-      if (!req.user) {
-        return res.status(401).json({ message: 'Not authorized, user not found' });
+      if (error || !user) {
+        return res.status(401).json({ message: 'Not authorized, token failed' });
       }
 
-      // Security: Token invalidation check (Logout support)
-      if (req.user.lastLogoutAt) {
-        const lastLogoutTime = Math.floor(new Date(req.user.lastLogoutAt).getTime() / 1000);
-        if (decoded.iat < lastLogoutTime) {
-          return res.status(401).json({ message: 'Session expired, please log in again' });
-        }
+      // Fetch user profile from public.profiles
+      const { data: profile, error: profileError } = await supabaseAdmin
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single();
+
+      if (profileError || !profile) {
+        return res.status(401).json({ message: 'Not authorized, profile not found' });
       }
 
-      if (req.user.status === 'banned') {
+      if (profile.status === 'banned') {
          return res.status(403).json({ message: 'User is banned' });
       }
 
+      req.user = profile;
       next();
     } catch (error) {
       console.error(error);
@@ -49,8 +52,20 @@ const optionalProtect = async (req, res, next) => {
   ) {
     try {
       token = req.headers.authorization.split(' ')[1];
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
-      req.user = await User.findById(decoded.id).select('-password');
+      
+      const { data: { user }, error } = await supabaseAdmin.auth.getUser(token);
+      
+      if (!error && user) {
+        const { data: profile } = await supabaseAdmin
+          .from('profiles')
+          .select('*')
+          .eq('id', user.id)
+          .single();
+          
+        if (profile) {
+          req.user = profile;
+        }
+      }
       next();
     } catch (error) {
       next();

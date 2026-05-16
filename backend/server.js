@@ -4,7 +4,6 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
-const connectDB = require('./config/db');
 const { notFound, errorHandler } = require('./middleware/errorMiddleware');
 
 const http = require('http');
@@ -23,6 +22,8 @@ const uploadRoutes = require('./routes/uploadRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
 const settingsRoutes = require('./routes/settingsRoutes');
 const searchRoutes = require('./routes/searchRoutes');
+const studyRoutes = require('./routes/studyRoutes');
+const aiRoutes = require('./routes/aiRoutes');
 
 const app = express();
 const server = http.createServer(app);
@@ -38,8 +39,7 @@ const io = new Server(server, {
 // Pass io to global for controllers
 global.io = io;
 
-// Connect to Database
-connectDB();
+// Supabase is initialized via controllers/middleware
 
 // Security Middleware
 app.use(helmet({
@@ -91,7 +91,7 @@ app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/profile', profileRoutes);
 app.use('/api/v1/match', matchRoutes);
-app.use('/api/v1/connections', connectionRoutes);
+app.use('/api/v1/connections', connectionRoutes); // [DEPRECATED] Moving towards Study Hub
 app.use('/api/v1/users', userRoutes);
 app.use('/api/v1/chat', chatRoutes);
 app.use('/api/v1/teams', teamRoutes);
@@ -100,11 +100,10 @@ app.use('/api/v1/upload', uploadRoutes);
 app.use('/api/v1/notifications', notificationRoutes);
 app.use('/api/v1/settings', settingsRoutes);
 app.use('/api/v1/search', searchRoutes);
+app.use('/api/v1/study', studyRoutes);
+app.use('/api/v1/ai', aiRoutes);
 
-const Team = require('./models/Team');
-const Conversation = require('./models/Conversation');
-
-const jwt = require('jsonwebtoken');
+const { supabaseAdmin } = require('./config/supabase');
 
 const onlineUsers = new Map(); // userId -> socketId
 
@@ -115,8 +114,9 @@ io.on('connection', async (socket) => {
 
   if (token) {
     try {
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
-      userId = decoded.id;
+      const { data: { user }, error } = await supabaseAdmin.auth.getUser(token);
+      if (error || !user) throw new Error('Invalid token');
+      userId = user.id;
     } catch (err) {
       console.log('[Socket Auth Error] Invalid token');
       return socket.disconnect();
@@ -188,24 +188,32 @@ io.on('connection', async (socket) => {
 
 async function joinUserRooms(socket, userId) {
   try {
-    const mongoose = require('mongoose');
-    const uId = mongoose.Types.ObjectId.isValid(userId) ? new mongoose.Types.ObjectId(userId) : userId;
-    
     // 1. Join all Conversation rooms
-    const conversations = await Conversation.find({ participants: uId });
-    conversations.forEach(conv => {
-      socket.join(`conv_${conv._id}`);
-    });
+    const { data: participants } = await supabaseAdmin
+      .from('conversation_participants')
+      .select('conversation_id')
+      .eq('user_id', userId);
+      
+    if (participants) {
+      participants.forEach(p => {
+        socket.join(`conv_${p.conversation_id}`);
+      });
+    }
 
     // 2. Join Team rooms
-    const teams = await Team.find({ 'members.user': uId });
-    teams.forEach(team => {
-      socket.join(`team_${team._id}`);
-      // Also join a conversation-style room for teams if they have one
-      socket.join(`conv_${team._id}`); // We often use teamId as convId for simplicity
-    });
+    const { data: teamMembers } = await supabaseAdmin
+      .from('team_members')
+      .select('team_id')
+      .eq('user_id', userId);
+      
+    if (teamMembers) {
+      teamMembers.forEach(tm => {
+        socket.join(`team_${tm.team_id}`);
+        socket.join(`conv_${tm.team_id}`); // We often use teamId as convId for simplicity
+      });
+    }
 
-    console.log(`[Socket] User ${userId} joined ${conversations.length} conversation rooms and ${teams.length} team rooms.`);
+    console.log(`[Socket] User ${userId} joined ${participants?.length || 0} conversation rooms and ${teamMembers?.length || 0} team rooms.`);
   } catch (err) {
     console.error('[Socket Error] joinUserRooms:', err);
   }

@@ -6,6 +6,7 @@ import { usePostStore } from '../store/postStore';
 import { useAuthStore } from '../store/authStore';
 import { formatDistanceToNow } from '../utils/date';
 import { Image } from 'expo-image';
+import useUIStore from '../store/uiStore';
 
 interface PostCardProps {
   post: {
@@ -33,9 +34,10 @@ export default React.memo(function PostCard({ post, onEdit }: PostCardProps) {
   const router = useRouter();
   const { likePost, deletePost } = usePostStore();
   const { user } = useAuthStore();
+  const { isDarkMode } = useUIStore();
 
-  const isAuthor = (user?._id ?? user?.id) === post.author?._id;
-  const timeAgo = formatDistanceToNow(new Date(post.createdAt));
+  const isAuthor = (user?._id ?? user?.id) === (post.author?._id ?? post.author?.id);
+  const timeAgo = post.createdAt ? formatDistanceToNow(new Date(post.createdAt)) : 'recently';
 
   const handleLike = () => {
     likePost(post._id);
@@ -44,7 +46,7 @@ export default React.memo(function PostCard({ post, onEdit }: PostCardProps) {
   const handleShare = async () => {
     try {
       await Share.share({
-        message: `${post.author.name} posted on StudentSociety: ${post.content}\n\nJoin us at StudentSociety!`,
+        message: `${post.author?.name || 'A user'} posted on StudentSociety: ${post.content}\n\nJoin us at StudentSociety!`,
       });
     } catch (error) {
       console.error('Share Error:', error);
@@ -77,8 +79,8 @@ export default React.memo(function PostCard({ post, onEdit }: PostCardProps) {
         return (
           <Text 
             key={index} 
-            className="text-[#3B82F6] font-bold"
-            onPress={() => router.push({ pathname: '/(tabs)/', params: { search: part } })}
+            className={`${isDarkMode ? 'text-white' : 'text-[#3B82F6]'} font-bold`}
+            onPress={() => router.push({ pathname: '/(tabs)', params: { search: part } })}
           >
             {part}
           </Text>
@@ -87,44 +89,44 @@ export default React.memo(function PostCard({ post, onEdit }: PostCardProps) {
         return (
           <Text 
             key={index} 
-            className="text-[#3B82F6] font-bold"
-            onPress={() => router.push({ pathname: '/(tabs)/', params: { search: part } })}
+            className={`${isDarkMode ? 'text-white' : 'text-[#3B82F6]'} font-bold`}
+            onPress={() => router.push({ pathname: '/(tabs)', params: { search: part } })}
           >
             {part}
           </Text>
         );
       }
-      return <Text key={index}>{part}</Text>;
+      return <Text key={index} className={isDarkMode ? 'text-slate-200' : 'text-slate-800'}>{part}</Text>;
     });
   };
 
   return (
-    <View className="bg-[#1E293B]/50 rounded-3xl border border-white/10 mb-4 overflow-hidden shadow-xl">
+    <View className={`${isDarkMode ? 'bg-white/5 border-white/10' : 'bg-white border-slate-100 shadow-sm'} rounded-3xl border mb-4 overflow-hidden`}>
       {/* Header */}
       <View className="p-4 flex-row items-center justify-between">
         <TouchableOpacity 
-          onPress={() => router.push(`/profile/${post.author._id}`)}
+          onPress={() => post.author?._id && router.push(`/profile/${post.author._id}`)}
           className="flex-row items-center flex-1"
         >
-          <View className="h-11 w-11 bg-slate-800 rounded-full items-center justify-center border border-white/20 overflow-hidden shadow-inner">
-            {post.author.avatar ? (
+          <View className={`${isDarkMode ? 'bg-white/5 border-white/20' : 'bg-slate-100 border-slate-200'} h-11 w-11 rounded-full items-center justify-center border overflow-hidden`}>
+            {post.author?.avatar ? (
               <Image 
-                source={post.author.avatar} 
+                source={{ uri: post.author.avatar || undefined }} 
                 style={{ width: '100%', height: '100%' }}
                 contentFit="cover"
               />
             ) : (
-              <Text className="text-white text-lg font-bold">
-                {post.author.name.charAt(0)}
+              <Text className={`${isDarkMode ? 'text-white' : 'text-black'} text-lg font-bold`}>
+                {(post.author?.name || 'U').charAt(0)}
               </Text>
             )}
           </View>
           <View className="ml-3">
-            <Text className="text-white font-semibold text-[15px] leading-5">{post.author.name}</Text>
+            <Text className={`${isDarkMode ? 'text-white' : 'text-black'} font-semibold text-[15px] leading-5`}>{post.author?.name || 'Unknown User'}</Text>
             <View className="flex-row items-center">
-              <Text className="text-slate-400 text-xs">@{post.author.username}</Text>
-              <View className="h-1 w-1 rounded-full bg-slate-600 mx-1.5" />
-              <Text className="text-slate-500 text-xs">{timeAgo}</Text>
+              <Text className={`${isDarkMode ? 'text-slate-400' : 'text-slate-500'} text-xs`}>@{post.author?.username || 'user'}</Text>
+              <View className={`h-1 w-1 rounded-full ${isDarkMode ? 'bg-slate-600' : 'bg-slate-300'} mx-1.5`} />
+              <Text className={`${isDarkMode ? 'text-slate-500' : 'text-slate-400'} text-xs`}>{timeAgo}</Text>
             </View>
           </View>
         </TouchableOpacity>
@@ -133,13 +135,13 @@ export default React.memo(function PostCard({ post, onEdit }: PostCardProps) {
           <View className="flex-row items-center gap-2">
             <TouchableOpacity 
               onPress={() => onEdit?.(post)}
-              className="bg-white/5 p-2 rounded-full border border-white/10"
+              className={`${isDarkMode ? 'bg-white/5 border-white/10' : 'bg-slate-100 border-slate-200'} p-2 rounded-full border`}
             >
-              <Ionicons name="pencil" size={16} color="#3B82F6" />
+              <Ionicons name="pencil" size={16} color={isDarkMode ? '#FFFFFF' : '#000000'} />
             </TouchableOpacity>
             <TouchableOpacity 
               onPress={handleDelete}
-              className="bg-white/5 p-2 rounded-full border border-white/10"
+              className={`${isDarkMode ? 'bg-white/5 border-white/10' : 'bg-red-50 border-red-100'} p-2 rounded-full border`}
             >
               <Ionicons name="trash" size={16} color="#EF4444" />
             </TouchableOpacity>
@@ -150,7 +152,7 @@ export default React.memo(function PostCard({ post, onEdit }: PostCardProps) {
       {/* Content Text */}
       {post.content ? (
         <View className="px-4 pb-3">
-          <Text className="text-slate-200 text-base leading-[22px]">
+          <Text className={`${isDarkMode ? 'text-slate-200' : 'text-slate-800'} text-base leading-[22px]`}>
             {renderRichText(post.content)}
           </Text>
         </View>
@@ -163,7 +165,7 @@ export default React.memo(function PostCard({ post, onEdit }: PostCardProps) {
           style={{ minHeight: 250, maxHeight: 500 }}
         >
            <Image 
-             source={post.images[0]} 
+             source={{ uri: post.images[0] }} 
              style={{ width: '100%', height: '100%' }}
              contentFit="cover"
              placeholder={blurhash}
@@ -177,15 +179,15 @@ export default React.memo(function PostCard({ post, onEdit }: PostCardProps) {
       {post.tags && post.tags.length > 0 && (
         <View className="px-4 py-2 flex-row flex-wrap gap-2">
           {post.tags.map((tag, idx) => (
-            <TouchableOpacity key={idx} onPress={() => router.push({ pathname: '/(tabs)/', params: { search: `#${tag}` } })}>
-              <Text className="text-[#3B82F6] text-[13px] font-bold">#{tag}</Text>
+            <TouchableOpacity key={idx} onPress={() => router.push({ pathname: '/(tabs)', params: { search: `#${tag}` } })}>
+              <Text className={`${isDarkMode ? 'text-white' : 'text-[#3B82F6]'} text-[13px] font-bold`}>#{tag}</Text>
             </TouchableOpacity>
           ))}
         </View>
       )}
 
       {/* Interactive Actions */}
-      <View className="px-4 py-3 flex-row items-center justify-between border-t border-white/5">
+      <View className={`px-4 py-3 flex-row items-center justify-between border-t ${isDarkMode ? 'border-white/5' : 'border-slate-100'}`}>
         <View className="flex-row items-center gap-8">
           <TouchableOpacity 
             onPress={handleLike}
@@ -218,9 +220,9 @@ export default React.memo(function PostCard({ post, onEdit }: PostCardProps) {
 
         <TouchableOpacity 
           onPress={handleShare}
-          className="h-10 w-10 rounded-full items-center justify-center bg-white/5 border border-white/5"
+          className={`${isDarkMode ? 'bg-white/5 border-white/5' : 'bg-slate-50 border-slate-200'} h-10 w-10 rounded-full items-center justify-center border`}
         >
-          <Ionicons name="share-social-outline" size={20} color="#94A3B8" />
+          <Ionicons name="share-social-outline" size={20} color={isDarkMode ? "#94A3B8" : "#000000"} />
         </TouchableOpacity>
       </View>
     </View>

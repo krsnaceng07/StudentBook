@@ -47,7 +47,8 @@ export const usePostStore = create((set, get) => ({
       const currentPage = isNextPage ? state.page + 1 : 1;
       const searchParam = state.filters.search ? `&search=${state.filters.search}` : '';
       const res = await client.get(`/posts?page=${currentPage}&limit=10${searchParam}`);
-      const { data, pagination } = res.data;
+      const data = res.data.data || [];
+      const pagination = res.data.pagination || { hasMore: false };
 
       set((state) => ({
         posts: isNextPage ? [...state.posts, ...data] : data,
@@ -80,7 +81,8 @@ export const usePostStore = create((set, get) => ({
     try {
       const currentPage = isNextPage ? state.networkPage + 1 : 1;
       const res = await client.get(`/posts/network?page=${currentPage}&limit=10`);
-      const { data, pagination } = res.data;
+      const data = res.data.data || [];
+      const pagination = res.data.pagination || { hasMore: false };
 
       set((state) => ({
         networkPosts: isNextPage ? [...state.networkPosts, ...data] : data,

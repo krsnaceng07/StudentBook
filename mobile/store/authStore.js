@@ -1,82 +1,114 @@
 import { create } from 'zustand';
-import { TokenStorage } from '../utils/storage';
+import { supabase } from '../config/supabase';
 import client from '../api/client';
 
 export const useAuthStore = create((set) => ({
   user: null,
   token: null,
+  session: null,
   isAuthenticated: false,
-  isLoading: false,
+  isLoading: true, // start loading to check session
   error: null,
 
-  setToken: async (token) => {
+  initializeAuth: async () => {
     try {
-      await TokenStorage.setItem('token', token);
+      const { data: { session }, error } = await supabase.auth.getSession();
+      if (error) throw error;
       
-      // The API client now pulls the token dynamically from the store
-      set({ token, isAuthenticated: !!token });
-    } catch (e) {
-      console.error('TokenStorage Set Error:', e);
-    }
-  },
+      set({ 
+        session, 
+        token: session?.access_token || null,
+        isAuthenticated: !!session,
+        isLoading: false
+      });
 
-  loadToken: async () => {
-    try {
-      const token = await TokenStorage.getItem('token');
-      
-      // The API client now pulls the token dynamically from the store
+      if (session) {
+        useAuthStore.getState().fetchMe();
+      }
 
-      set({ token, isAuthenticated: !!token });
-      return token;
+      // Listen for auth changes
+      supabase.auth.onAuthStateChange((_event, newSession) => {
+        set({ 
+          session: newSession, 
+          token: newSession?.access_token || null,
+          isAuthenticated: !!newSession 
+        });
+        
+        if (newSession) {
+           useAuthStore.getState().fetchMe();
+        } else {
+           set({ user: null });
+        }
+      });
     } catch (e) {
-      console.error('TokenStorage Load Error:', e);
-      return null;
+      console.error('Initialize Auth Error:', e);
+      set({ isLoading: false });
     }
   },
 
   login: async (email, password) => {
     set({ isLoading: true, error: null });
     try {
-      const res = await client.post('/auth/login', { email, password });
-      const { token, user } = res.data.data;
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) throw error;
       
-      await TokenStorage.setItem('token', token);
-      
-      // The API client now pulls the token dynamically from the store
-      
-      set({ token, user, isAuthenticated: true, isLoading: false });
+      set({ isLoading: false });
       return { success: true };
     } catch (error) {
-      set({ error: error.response?.data?.message || 'Login failed', isLoading: false });
-      return { success: false, error: error.response?.data?.message };
+      set({ error: error.message || 'Login failed', isLoading: false });
+      return { success: false, error: error.message };
     }
   },
 
   register: async (name, username, email, password) => {
     set({ isLoading: true, error: null });
     try {
-      await client.post('/auth/register', { name, username, email, password });
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            full_name: name,
+            username: username
+          }
+        }
+      });
+      if (error) throw error;
+      
       set({ isLoading: false });
       return { success: true };
     } catch (error) {
-      set({ error: error.response?.data?.message || 'Registration failed', isLoading: false });
-      return { success: false, error: error.response?.data?.message };
+      set({ error: error.message || 'Registration failed', isLoading: false });
+      return { success: false, error: error.message };
     }
   },
 
   fetchMe: async () => {
     try {
-      const res = await client.get('/auth/me');
-      const { user } = res.data.data;
-      set({ user, isAuthenticated: true });
-      return { success: true, user };
-    } catch (error) {
-      console.error('Fetch Me Error:', error);
-      // If token is invalid, log out
-      if (error.response?.status === 401) {
-        await TokenStorage.deleteItem('token');
-        set({ token: null, user: null, isAuthenticated: false });
+      // The Axios client interceptor needs to be updated to pull from supabase.auth.getSession()
+      // But for now, we can also fetch from Supabase directly
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return { success: false };
+
+      const { data: profile, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', session.user.id)
+        .maybeSingle();
+
+      if (error) throw error;
+      
+      if (!profile) {
+        // User exists in Auth but not in Profiles yet
+        console.log('[AuthStore] No profile found for authenticated user.');
+        return { success: false, reason: 'no_profile' };
       }
+
+      set({ user: profile, isAuthenticated: true });
+      return { success: true, user: profile };
+    } catch (error) {
+      // PGRST116 is handled by maybeSingle() returning null
+      console.error('Fetch Me Error:', error);
       return { success: false };
     }
   },
@@ -100,50 +132,45 @@ export const useAuthStore = create((set) => ({
       console.error('Logout cleanup error:', e);
     }
 
-    await TokenStorage.deleteItem('token');
-    set({ token: null, user: null, isAuthenticated: false });
+    await supabase.auth.signOut();
+    set({ session: null, token: null, user: null, isAuthenticated: false });
   },
 
   forgotPassword: async (email) => {
     set({ isLoading: true, error: null });
     try {
-      const res = await client.post('/auth/forgot-password', { email });
+      const { error } = await supabase.auth.resetPasswordForEmail(email);
+      if (error) throw error;
       set({ isLoading: false });
-      return { success: true, message: res.data.message };
+      return { success: true, message: 'Password reset email sent' };
     } catch (error) {
-      const msg = error.response?.data?.message || 'Failed to send reset link';
-      set({ error: msg, isLoading: false });
-      return { success: false, error: msg };
+      set({ error: error.message, isLoading: false });
+      return { success: false, error: error.message };
     }
   },
 
-  resetPassword: async (token, password) => {
+  resetPassword: async (email, token, password) => {
     set({ isLoading: true, error: null });
     try {
-      const res = await client.post(`/auth/reset-password/${token}`, { password });
-      set({ isLoading: false });
-      return { success: true, message: res.data.message };
-    } catch (error) {
-      const msg = error.response?.data?.message || 'Failed to reset password';
-      set({ error: msg, isLoading: false });
-      return { success: false, error: msg };
-    }
-  },
+      // 1. Verify the OTP/Token
+      const { error: verifyError } = await supabase.auth.verifyOtp({
+        email,
+        token,
+        type: 'recovery'
+      });
+      if (verifyError) throw verifyError;
 
-  loginWithFirebase: async (idToken) => {
-    set({ isLoading: true, error: null });
-    try {
-      const res = await client.post('/auth/firebase', { idToken });
-      const { token, user } = res.data.data;
-      
-      await TokenStorage.setItem('token', token);
-      
-      set({ token, user, isAuthenticated: true, isLoading: false });
+      // 2. Update the password (verifyOtp signs the user in)
+      const { error: updateError } = await supabase.auth.updateUser({
+        password: password
+      });
+      if (updateError) throw updateError;
+
+      set({ isLoading: false });
       return { success: true };
     } catch (error) {
-      const msg = error.response?.data?.message || 'Social login failed';
-      set({ error: msg, isLoading: false });
-      return { success: false, error: msg };
+      set({ error: error.message, isLoading: false });
+      return { success: false, error: error.message };
     }
   },
 

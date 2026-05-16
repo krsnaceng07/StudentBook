@@ -3,8 +3,13 @@
   "version": "1.0.0",
   "description": "Root workspace",
   "scripts": {
-    "start": "npm run start --prefix backend",
-    "dev": "npm run dev --prefix backend",
-    "postinstall": "npm install --prefix backend"
+    "install:all": "npm install && npm install --prefix backend && npm install --prefix mobile",
+    "dev:backend": "npm run dev --prefix backend",
+    "dev:mobile": "npm run start --prefix mobile",
+    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:mobile\"",
+    "start": "npm run start --prefix backend"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
   }
 }

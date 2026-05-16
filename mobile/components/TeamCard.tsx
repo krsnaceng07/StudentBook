@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, ActivityIndicator, Image } from 'react-na
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import client from '../api/client';
+import useUIStore from '../store/uiStore';
 
 interface TeamCardProps {
   team: {
@@ -24,6 +25,7 @@ interface TeamCardProps {
 export default React.memo(function TeamCard({ team }: TeamCardProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const { isDarkMode } = useUIStore();
   // Seed initial state from backend so card is correct on first render
   const [requestState, setRequestState] = useState<'none' | 'pending'>(
     team.hasPendingRequest ? 'pending' : 'none'
@@ -84,7 +86,7 @@ export default React.memo(function TeamCard({ team }: TeamCardProps) {
   const isPending = requestState === 'pending';
 
   return (
-    <View className="bg-slate-900/50 rounded-[32px] border border-white/10 p-6 mb-6 overflow-hidden relative">
+    <View className={`${isDarkMode ? 'bg-white/5 border-white/10' : 'bg-white border-slate-100 shadow-sm'} rounded-[32px] border p-6 mb-6 overflow-hidden relative`}>
       {/* Background glow */}
       <View
         className="absolute -top-10 -right-10 h-32 w-32 rounded-full"
@@ -102,17 +104,17 @@ export default React.memo(function TeamCard({ team }: TeamCardProps) {
           className="flex-row items-center flex-1"
         >
           {/* Avatar */}
-          <View className="h-16 w-16 bg-slate-800 rounded-2xl items-center justify-center border border-white/10 overflow-hidden shadow-2xl">
+          <View className={`${isDarkMode ? 'bg-slate-800 border-white/10' : 'bg-slate-100 border-slate-200'} h-16 w-16 rounded-2xl items-center justify-center border overflow-hidden`}>
             {team.avatar ? (
-              <Image source={{ uri: team.avatar }} className="w-full h-full" />
+              <Image source={{ uri: team.avatar || undefined }} className="w-full h-full" />
             ) : (
-              <Ionicons name={icon} size={28} color="#A78BFA" />
+              <Ionicons name={icon} size={28} color={isDarkMode ? "#A78BFA" : "#000000"} />
             )}
           </View>
 
           <View className="ml-4 flex-1">
             <View className="flex-row items-center">
-              <Text className="text-white text-lg font-black flex-1" numberOfLines={1}>
+              <Text className={`${isDarkMode ? 'text-white' : 'text-black'} text-lg font-black flex-1`} numberOfLines={1}>
                 {team.name}
               </Text>
               {team.isLeader && (
@@ -126,7 +128,7 @@ export default React.memo(function TeamCard({ team }: TeamCardProps) {
                 </View>
               )}
             </View>
-            <Text className="text-purple-400 text-xs font-black uppercase tracking-wider">
+            <Text className={`${isDarkMode ? 'text-white/80' : 'text-purple-500'} text-xs font-black uppercase tracking-wider`}>
               {team.category || 'Team'}
             </Text>
           </View>
@@ -146,7 +148,7 @@ export default React.memo(function TeamCard({ team }: TeamCardProps) {
         >
           <Text
             className="font-black text-sm"
-            style={{ color: team.matchScore >= 70 ? '#A78BFA' : '#fff' }}
+            style={{ color: isDarkMode ? '#FFFFFF' : (team.matchScore >= 70 ? '#8B5CF6' : '#000000') }}
           >
             {team.matchScore}% {getMatchEmoji(team.matchScore)}
           </Text>
@@ -157,19 +159,19 @@ export default React.memo(function TeamCard({ team }: TeamCardProps) {
       </View>
 
       {/* Subtitle */}
-      <Text className="text-slate-400 text-sm mb-4 font-bold leading-5">
+      <Text className={`${isDarkMode ? 'text-slate-400' : 'text-slate-500'} text-sm mb-4 font-bold leading-5`}>
         {team.memberCount} member{team.memberCount !== 1 ? 's' : ''} · Public Team
       </Text>
 
       {/* Common Ground */}
       {reasons.length > 0 && (
-        <View className="bg-white/5 rounded-2xl p-4 mb-6 border border-white/5">
+        <View className={`${isDarkMode ? 'bg-white/5 border-white/5' : 'bg-slate-50 border-slate-100'} rounded-2xl p-4 mb-6 border`}>
           <Text className="text-slate-500 text-[10px] font-black uppercase mb-2">
             Why This Team
           </Text>
-          <Text className="text-slate-300 text-xs leading-5">
+          <Text className={`${isDarkMode ? 'text-slate-300' : 'text-slate-700'} text-xs leading-5`}>
             Matches your interest in{' '}
-            <Text className="text-white font-bold">
+            <Text className={`${isDarkMode ? 'text-white' : 'text-black'} font-bold`}>
               {reasons.slice(0, 3).join(', ')}
             </Text>
             {reasons.length > 3 && ' and more.'}
@@ -182,9 +184,9 @@ export default React.memo(function TeamCard({ team }: TeamCardProps) {
         {/* Left: View Team (always visible) */}
         <TouchableOpacity
           onPress={() => router.push(`/teams/${id}` as any)}
-          className={`${isAlreadyInTeam ? 'flex-1' : 'flex-1'} bg-white/5 rounded-3xl py-4 items-center border border-white/10`}
+          className={`${isDarkMode ? 'bg-white/5 border-white/10' : 'bg-slate-50 border-slate-200'} flex-1 rounded-3xl py-4 items-center border`}
         >
-          <Text className="text-white font-black">View Team</Text>
+          <Text className={`${isDarkMode ? 'text-white' : 'text-black'} font-black`}>View Team</Text>
         </TouchableOpacity>
 
         {/* Right: only show for non-members */}
@@ -210,14 +212,14 @@ export default React.memo(function TeamCard({ team }: TeamCardProps) {
               onPress={handleJoin}
               disabled={loading}
               className="flex-[1.5] rounded-3xl py-4 items-center shadow-2xl"
-              style={{ backgroundColor: '#8B5CF6', borderWidth: 1, borderColor: '#8B5CF6' }}
+              style={{ backgroundColor: isDarkMode ? '#FFFFFF' : (isDarkMode ? '#FFFFFF' : '#000000'), borderWidth: 1, borderColor: isDarkMode ? '#FFFFFF' : '#000000' }}
             >
               {loading ? (
-                <ActivityIndicator color="white" size="small" />
+                <ActivityIndicator color={isDarkMode ? 'black' : 'white'} size="small" />
               ) : (
                 <View className="flex-row items-center">
-                  <Ionicons name="person-add" size={18} color="white" />
-                  <Text className="font-black ml-2 text-white">Join Team</Text>
+                  <Ionicons name="person-add" size={18} color={isDarkMode ? 'black' : 'white'} />
+                  <Text className={`font-black ml-2 ${isDarkMode ? 'text-black' : 'text-white'}`}>Join Team</Text>
                 </View>
               )}
             </TouchableOpacity>

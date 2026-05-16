@@ -8,24 +8,21 @@ import { View, ActivityIndicator, Text } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import Toast from '../components/Toast';
 import { useUIStore } from '../store/uiStore';
+import { StatusBar } from 'expo-status-bar';
 
 export default function RootLayout() {
-  const { loadToken, isAuthenticated, token, user } = useAuthStore();
+  const { initializeAuth, isAuthenticated, token, user, isLoading: isAuthLoading } = useAuthStore();
   const { fetchProfile, profile, isProfileLoaded } = useProfileStore();
   const { initSocket, disconnectSocket } = useChatStore();
   const [isStoreInitializing, setIsStoreInitializing] = useState(true);
   const segments = useSegments();
   const router = useRouter();
-  const { toast, hideToast } = useUIStore();
+  const { toast, hideToast, isDarkMode } = useUIStore();
 
   // 1. Initial State Load (Token & User)
   useEffect(() => {
     const initApp = async () => {
-      const tk = await loadToken();
-      if (tk) {
-        // We have a token, fetch the user identity
-        await useAuthStore.getState().fetchMe();
-      }
+      await initializeAuth();
       setIsStoreInitializing(false);
     };
     initApp();
@@ -79,9 +76,9 @@ export default function RootLayout() {
   // Global Loading State
   if (isStoreInitializing || (isAuthenticated && !isProfileLoaded)) {
     return (
-      <View className="flex-1 justify-center items-center bg-[#0F172A]">
-        <ActivityIndicator size="large" color="#3B82F6" />
-        <Text className="text-slate-500 mt-4 font-medium">Synchronizing Secure Session...</Text>
+      <View className={`flex-1 justify-center items-center ${isDarkMode ? 'bg-[#0F172A]' : 'bg-white'}`}>
+        <ActivityIndicator size="large" color={isDarkMode ? '#3B82F6' : '#000000'} />
+        <Text className={`${isDarkMode ? 'text-slate-500' : 'text-slate-400'} mt-4 font-medium`}>Synchronizing Secure Session...</Text>
       </View>
     );
   }
@@ -92,12 +89,13 @@ export default function RootLayout() {
   const isPublicPage = segments[0] === 'forgot-password' || segments[0] === 'reset-password';
   
   if (!isAuthenticated && !inAuthGroup && !isPublicPage) {
-    return <View className="flex-1 bg-[#0F172A]" />;
+    return <View className={`flex-1 ${isDarkMode ? 'bg-[#0F172A]' : 'bg-white'}`} />;
   }
 
 
   return (
     <SafeAreaProvider>
+      <StatusBar style={isDarkMode ? 'light' : 'dark'} />
       <Stack screenOptions={{ headerShown: false }} />
       <Toast 
         message={toast.message}

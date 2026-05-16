@@ -23,6 +23,10 @@ const MAPPING = {
   'person.2.fill': 'people',
   'bubble.left.and.bubble.right.fill': 'chat',
   'person.crop.circle.fill': 'account-circle',
+  'book.fill': 'menu-book',
+  'sparkles': 'auto-awesome',
+  'questionmark.circle.fill': 'help-outline',
+  'doc.fill': 'article',
 } as IconMapping;
 
 /**

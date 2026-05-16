@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useTeamStore } from '../../store/teamStore';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import useUIStore from '../../store/uiStore';
 import TeamCard from '../../components/TeamCard';
 
 const CATEGORIES = ['All', 'Study Group', 'Research', 'Startup', 'Hackathon', 'Competitive Exams', 'Open Source', 'Project'];
@@ -14,6 +15,7 @@ export default function TeamsScreen() {
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [refreshing, setRefreshing] = useState(false);
   const router = useRouter();
+  const { isDarkMode } = useUIStore();
 
   useEffect(() => {
     fetchTeams();
@@ -36,16 +38,16 @@ export default function TeamsScreen() {
   };
 
   const { suggestedTeams, otherTeams } = useMemo(() => {
-    const suggested = teams.filter(t => t.matchScore && t.matchScore >= 50);
-    const others = teams.filter(t => !t.matchScore || t.matchScore < 50);
+    const suggested = teams.filter((t: any) => t.matchScore && t.matchScore >= 50);
+    const others = teams.filter((t: any) => !t.matchScore || t.matchScore < 50);
     return { suggestedTeams: suggested, otherTeams: others };
   }, [teams]);
 
   const renderHeader = () => (
     <View className="mb-6">
       {/* Search Bar */}
-      <View className="bg-white/5 border border-white/10 rounded-3xl px-4 flex-row items-center mb-6">
-        <Ionicons name="search" size={20} color="#64748b" />
+      <View className={`${isDarkMode ? 'bg-white/10' : 'bg-white/5'} border border-white/10 rounded-3xl px-4 flex-row items-center mb-6`}>
+        <Ionicons name="search" size={20} color={isDarkMode ? '#FFFFFF' : '#64748b'} />
         <TextInput
           placeholder="Find your squad..."
           placeholderTextColor="#64748b"
@@ -67,9 +69,9 @@ export default function TeamsScreen() {
             <TouchableOpacity 
               key={cat}
               onPress={() => handleCategorySelect(cat)}
-              className={`px-5 py-2.5 rounded-2xl border ${selectedCategory === cat ? 'bg-[#3B82F6] border-[#3B82F6]' : 'bg-white/5 border-white/10'}`}
+              className={`px-5 py-2.5 rounded-2xl border ${selectedCategory === cat ? (isDarkMode ? 'bg-white border-white' : 'bg-[#3B82F6] border-[#3B82F6]') : (isDarkMode ? 'bg-white/10 border-white/5' : 'bg-white/5 border-white/10')}`}
             >
-              <Text className={`font-bold text-xs ${selectedCategory === cat ? 'text-white' : 'text-slate-400'}`}>{cat}</Text>
+              <Text className={`font-bold text-xs ${selectedCategory === cat ? (isDarkMode ? 'text-black' : 'text-white') : 'text-slate-400'}`}>{cat}</Text>
             </TouchableOpacity>
           ))}
         </View>
@@ -86,7 +88,7 @@ export default function TeamsScreen() {
                </View>
              </View>
           </View>
-          {suggestedTeams.map(team => (
+          {suggestedTeams.map((team: any) => (
             <TeamCard key={team._id} team={{ ...team, teamId: team._id }} />
           ))}
           <View className="flex-row items-center mb-2 mt-4">
@@ -99,7 +101,7 @@ export default function TeamsScreen() {
   );
 
   return (
-    <SafeAreaView className="flex-1 bg-[#0F172A]" edges={['top']}>
+    <SafeAreaView className={`flex-1 ${isDarkMode ? 'bg-black' : 'bg-[#0F172A]'}`} edges={['top']}>
       <FlatList
         data={otherTeams}
         keyExtractor={(item) => item._id}
@@ -114,9 +116,9 @@ export default function TeamsScreen() {
               </View>
               <TouchableOpacity 
                 onPress={() => router.push('/teams/create')}
-                className="bg-[#3B82F6] h-14 w-14 rounded-[22px] items-center justify-center shadow-2xl shadow-[#3B82F6]/40"
+                className={`${isDarkMode ? 'bg-white shadow-white/20' : 'bg-[#3B82F6] shadow-[#3B82F6]/40'} h-14 w-14 rounded-[22px] items-center justify-center shadow-2xl`}
               >
-                <Ionicons name="add" size={32} color="white" />
+                <Ionicons name="add" size={32} color={isDarkMode ? 'black' : 'white'} />
               </TouchableOpacity>
             </View>
             {renderHeader()}

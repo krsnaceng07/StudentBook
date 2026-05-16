@@ -6,29 +6,28 @@ import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
-import { useConnectionStore } from '../../store/connectionStore';
 import { useNotificationStore } from '../../store/notificationStore';
+import useUIStore from '../../store/uiStore';
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
-  const { incomingRequests, fetchPendingRequests } = useConnectionStore();
   const { unreadCount, fetchNotifications } = useNotificationStore();
+  const { isDarkMode } = useUIStore();
 
   React.useEffect(() => {
-    fetchPendingRequests();
     fetchNotifications();
   }, []);
 
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: '#3B82F6',
-        tabBarInactiveTintColor: '#94A3B8',
+        tabBarActiveTintColor: isDarkMode ? '#FFFFFF' : '#3B82F6',
+        tabBarInactiveTintColor: isDarkMode ? '#666666' : '#94A3B8',
         headerShown: false,
         tabBarButton: HapticTab,
         tabBarStyle: {
-          backgroundColor: '#0F172A',
-          borderTopColor: 'rgba(255, 255, 255, 0.1)',
+          backgroundColor: isDarkMode ? '#000000' : '#0F172A',
+          borderTopColor: isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(255, 255, 255, 0.1)',
           paddingTop: 5,
         },
       }}>
@@ -47,11 +46,10 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="network"
+        name="study-hub"
         options={{
-          title: 'Network',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="person.2.fill" color={color} />,
-          tabBarBadge: incomingRequests.length > 0 ? incomingRequests.length : undefined,
+          title: 'Study Hub',
+          tabBarIcon: ({ color }) => <IconSymbol size={28} name="book.fill" color={color} />,
         }}
       />
       <Tabs.Screen
