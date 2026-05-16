@@ -49,37 +49,56 @@ export const useAuthStore = create((set) => ({
   login: async (email, password) => {
     set({ isLoading: true, error: null });
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) throw error;
+      const response = await client.post('/auth/login', { email, password });
+      const { session, user } = response.data.data;
       
-      set({ isLoading: false });
+      // Manually set Supabase session if needed, but the backend uses admin client
+      // For mobile, it's best to let Supabase SDK handle the session for RLS.
+      // So we also call signInWithPassword to get a client-side session.
+      const { error: sbError } = await supabase.auth.setSession({
+        access_token: session.access_token,
+        refresh_token: session.refresh_token
+      });
+      if (sbError) throw sbError;
+
+      set({ 
+        isLoading: false, 
+        user, 
+        session, 
+        token: session.access_token, 
+        isAuthenticated: true 
+      });
       return { success: true };
     } catch (error) {
-      set({ error: error.message || 'Login failed', isLoading: false });
-      return { success: false, error: error.message };
+      const msg = error.response?.data?.message || error.message || 'Login failed';
+      set({ error: msg, isLoading: false });
+      return { success: false, error: msg };
     }
   },
 
-  register: async (name, username, email, password) => {
+  registerStudent: async (data) => {
     set({ isLoading: true, error: null });
     try {
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            full_name: name,
-            username: username
-          }
-        }
-      });
-      if (error) throw error;
-      
+      const response = await client.post('/auth/signup/student', data);
       set({ isLoading: false });
       return { success: true };
     } catch (error) {
-      set({ error: error.message || 'Registration failed', isLoading: false });
-      return { success: false, error: error.message };
+      const msg = error.response?.data?.message || error.message || 'Registration failed';
+      set({ error: msg, isLoading: false });
+      return { success: false, error: msg };
+    }
+  },
+
+  registerCollege: async (data) => {
+    set({ isLoading: true, error: null });
+    try {
+      const response = await client.post('/auth/signup/college', data);
+      set({ isLoading: false });
+      return { success: true };
+    } catch (error) {
+      const msg = error.response?.data?.message || error.message || 'Registration failed';
+      set({ error: msg, isLoading: false });
+      return { success: false, error: msg };
     }
   },
 

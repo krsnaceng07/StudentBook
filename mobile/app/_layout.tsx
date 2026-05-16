@@ -57,9 +57,9 @@ export default function RootLayout() {
     const isPublicPage = segments[0] === 'forgot-password' || segments[0] === 'reset-password';
     const inProfileGroup = segments[0] === 'profile';
 
-    if (!isAuthenticated && !inAuthGroup && !isPublicPage) {
-      // Not logged in and not on a public page, go to login
-      router.replace('/login');
+    if (!isAuthenticated && !inAuthGroup && !isPublicPage && segments[0] !== 'welcome') {
+      // Not logged in and not on a public page, go to welcome
+      router.replace('/welcome');
     } else if (isAuthenticated && isProfileLoaded) {
       if (!profile && !inProfileGroup) {
         // Server says no profile, go to setup
