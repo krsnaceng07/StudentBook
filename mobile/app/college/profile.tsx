@@ -1,23 +1,75 @@
-import React from 'react';
-import { View, Text, TouchableOpacity, ScrollView, Linking } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, TouchableOpacity, ScrollView, Linking, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useUIStore } from '../../store/uiStore';
 import { useAuthStore } from '../../store/authStore';
+import api from '../../utils/api';
+
+interface CollegeProfileData {
+  id: string;
+  name: string;
+  email: string;
+  avatar: string | null;
+  extended_profiles?: {
+    full_name: string;
+    university: string;
+    location: string;
+    bio: string;
+    initials: string;
+    social_links?: any;
+  }[];
+}
 
 export default function CollegeProfile() {
   const { isDarkMode } = useUIStore();
   const { user } = useAuthStore();
+  const [profile, setProfile] = useState<CollegeProfileData | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  const universityName = user?.full_name || 'Tribhuvan University';
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const response = await api.get('/api/v1/profile/me');
+        if (response.data?.success) {
+          setProfile(response.data.data);
+        }
+      } catch (error) {
+        console.error('Failed to fetch profile', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchProfile();
+  }, []);
+
+  const extProfile = profile?.extended_profiles?.[0];
+  const universityName = extProfile?.university || user?.full_name || 'University';
+  const location = extProfile?.location || 'Not specified';
+  const bio = extProfile?.bio || 'Institution overview not provided.';
+  const website = extProfile?.social_links?.github || 'Not provided';
+  const contactEmail = profile?.email || 'Not provided';
+  const initials = extProfile?.initials || 'UN';
 
   const handleWebsitePress = () => {
-    Linking.openURL('https://tu.edu.np');
+    if (website && website !== 'Not provided') {
+      Linking.openURL(website.startsWith('http') ? website : `https://${website}`);
+    }
   };
 
   const handleEmailPress = () => {
-    Linking.openURL('mailto:info@tu.edu.np');
+    if (contactEmail && contactEmail !== 'Not provided') {
+      Linking.openURL(`mailto:${contactEmail}`);
+    }
   };
+
+  if (loading) {
+    return (
+      <View className={`flex-1 justify-center items-center ${isDarkMode ? 'bg-[#0F172A]' : 'bg-[#F8FAFC]'}`}>
+        <ActivityIndicator size="large" color="#10B981" />
+      </View>
+    );
+  }
 
   return (
     <SafeAreaView 
@@ -44,12 +96,12 @@ export default function CollegeProfile() {
           <View className="flex-row items-center gap-4 mt-6">
             {/* Logo Badge */}
             <View className="w-14 h-14 rounded-2xl bg-white/20 border border-white/25 items-center justify-center">
-              <Text className="text-white text-lg font-black tracking-widest">TU</Text>
+              <Text className="text-white text-lg font-black tracking-widest">{initials}</Text>
             </View>
 
             <View className="flex-1 pr-14">
               <Text className="text-white text-2xl font-black mb-1.5 leading-tight">{universityName}</Text>
-              <Text className="text-emerald-100 text-xs font-semibold">University • Kirtipur, Kathmandu</Text>
+              <Text className="text-emerald-100 text-xs font-semibold">{location}</Text>
             </View>
           </View>
         </View>
@@ -62,7 +114,7 @@ export default function CollegeProfile() {
           }`}>
             <Text className={`text-sm font-extrabold mb-2.5 ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>About</Text>
             <Text className={`text-xs leading-relaxed font-semibold ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
-              Nepal's oldest and largest university with 60+ years of academic excellence.
+              {bio}
             </Text>
           </View>
 
@@ -81,7 +133,7 @@ export default function CollegeProfile() {
             </View>
             <View className="flex-1">
               <Text className={`text-[9px] font-bold uppercase mb-0.5 ${isDarkMode ? 'text-slate-500' : 'text-slate-400'}`}>Website</Text>
-              <Text className="text-[#2563EB] text-xs font-bold">tu.edu.np</Text>
+              <Text className="text-[#2563EB] text-xs font-bold" numberOfLines={1}>{website}</Text>
             </View>
           </TouchableOpacity>
 
@@ -100,7 +152,7 @@ export default function CollegeProfile() {
             </View>
             <View className="flex-1">
               <Text className={`text-[9px] font-bold uppercase mb-0.5 ${isDarkMode ? 'text-slate-500' : 'text-slate-400'}`}>Contact</Text>
-              <Text className="text-[#7C3AED] text-xs font-bold">info@tu.edu.np</Text>
+              <Text className="text-[#7C3AED] text-xs font-bold">{contactEmail}</Text>
             </View>
           </TouchableOpacity>
 
