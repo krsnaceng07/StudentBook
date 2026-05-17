@@ -15,7 +15,7 @@ CREATE TABLE IF NOT EXISTS public.profiles (
     username TEXT UNIQUE,
     email TEXT UNIQUE NOT NULL,
     provider TEXT DEFAULT 'email',
-    role TEXT DEFAULT 'user' CHECK (role IN ('user', 'admin')),
+    role TEXT DEFAULT 'student' CHECK (role IN ('student', 'college', 'user', 'admin')),
     status TEXT DEFAULT 'active' CHECK (status IN ('active', 'banned', 'deleted')),
     bio TEXT,
     headline TEXT DEFAULT 'Student at University',
@@ -129,7 +129,42 @@ BEGIN
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='profiles' AND column_name='allow_messages_from') THEN
         ALTER TABLE public.profiles ADD COLUMN allow_messages_from TEXT DEFAULT 'everyone' CHECK (allow_messages_from IN ('everyone', 'connections'));
     END IF;
+
+    -- profiles.role CHECK constraint self-healing upgrade
+    BEGIN
+        ALTER TABLE public.profiles DROP CONSTRAINT IF EXISTS profiles_role_check;
+        ALTER TABLE public.profiles ADD CONSTRAINT profiles_role_check CHECK (role IN ('student', 'college', 'user', 'admin'));
+    EXCEPTION
+        WHEN OTHERS THEN
+            NULL;
+    END;
 END $$;
+
+
+-- Extended Profiles Table
+CREATE TABLE IF NOT EXISTS public.extended_profiles (
+    id            UUID PRIMARY KEY REFERENCES public.profiles(id) ON DELETE CASCADE,
+    initials      TEXT,
+    full_name     TEXT,
+    role_title    TEXT,
+    university    TEXT,
+    location      TEXT,
+    bio           TEXT,
+    skills        TEXT[] DEFAULT '{}',
+    interests     TEXT[] DEFAULT '{}',
+    goal          TEXT,
+    avatar_url    TEXT,
+    updated_at    TIMESTAMPTZ DEFAULT now()
+);
+
+-- RLS for Extended Profiles Table (Public read-only, owner writeable)
+ALTER TABLE public.extended_profiles ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "allow_read_all_extended_profiles" ON public.extended_profiles;
+CREATE POLICY "allow_read_all_extended_profiles" ON public.extended_profiles FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "allow_manage_own_extended_profile" ON public.extended_profiles;
+CREATE POLICY "allow_manage_own_extended_profile" ON public.extended_profiles FOR ALL USING (auth.uid() = id);
 
 
 -- Posts Table
