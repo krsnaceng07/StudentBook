@@ -4,7 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useUIStore } from '../../store/uiStore';
 import { useAuthStore } from '../../store/authStore';
-import api from '../../utils/api';
+import api from '../../api/client';
 
 interface CollegeProfileData {
   id: string;

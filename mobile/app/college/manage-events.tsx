@@ -3,7 +3,7 @@ import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Alert, Ref
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { useUIStore } from '../../store/uiStore';
-import api from '../../utils/api';
+import api from '../../api/client';
 
 interface EventData {
   id: string;

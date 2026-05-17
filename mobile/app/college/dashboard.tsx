@@ -3,7 +3,7 @@ import { View, Text, ScrollView, RefreshControl, ActivityIndicator } from 'react
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useUIStore } from '../../store/uiStore';
 import { useAuthStore } from '../../store/authStore';
-import api from '../../utils/api';
+import api from '../../api/client';
 
 interface DashboardStats {
   activeEvents: number;

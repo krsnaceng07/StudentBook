@@ -4,7 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useUIStore } from '../../store/uiStore';
-import api from '../../utils/api';
+import api from '../../api/client';
 
 const EVENT_TYPES = ['Hackathon', 'Workshop', 'Seminar'];
 
