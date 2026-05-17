@@ -4,125 +4,205 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useUIStore } from '../../store/uiStore';
 
-const EVENT_FILTERS = ['All', 'Hackathon', 'Workshop', 'Competition'];
+const EVENT_FILTERS = ['All Events', 'Hackathon', 'Workshop', 'Competition'];
 
-const MOCK_EVENTS = [
+interface EventItem {
+  id: string;
+  type: 'Hackathon' | 'Workshop' | 'Seminar' | 'Competition';
+  title: string;
+  organizer: string;
+  date: string;
+  prize?: string;
+  teamSize?: string;
+  topAccentColor: string;
+  badgeBg: string;
+  badgeText: string;
+  isBookmarked?: boolean;
+}
+
+const MOCK_EVENTS: EventItem[] = [
   {
-    id: '1',
+    id: 'hacktu_2026',
     type: 'Hackathon',
-    groupTitle: 'Nepal Tech Hackathon 2025',
-    groupColor: 'bg-purple-100',
-    groupText: 'text-purple-700',
-    badgeColor: 'bg-purple-100 text-purple-700',
-    name: 'Nepal Tech Hackathon',
-    date: 'Dec 15–16 · Kathmandu',
-    organizer: 'Organized by TechNepal',
+    title: 'HackTU 2026',
+    organizer: 'Tribhuvan University',
+    date: 'Jun 15',
+    prize: 'NPR 1,00,000',
+    teamSize: '2-4',
+    topAccentColor: 'bg-blue-600',
+    badgeBg: 'bg-blue-50',
+    badgeText: 'text-blue-600',
+    isBookmarked: true
   },
   {
-    id: '2',
+    id: 'web3_workshop',
     type: 'Workshop',
-    groupTitle: 'AI/ML Workshop',
-    groupColor: 'bg-green-100',
-    groupText: 'text-green-700',
-    badgeColor: 'bg-green-100 text-green-700',
-    name: 'Intro to Machine Learning',
-    date: 'Nov 28 · Online',
-    organizer: 'KU Computer Club',
+    title: 'Web3 Workshop Series',
+    organizer: 'Kathmandu University',
+    date: 'May 28',
+    teamSize: '1-1',
+    topAccentColor: 'bg-emerald-600',
+    badgeBg: 'bg-emerald-50',
+    badgeText: 'text-emerald-600',
+    isBookmarked: true
   },
   {
-    id: '3',
-    type: 'Competition',
-    groupTitle: 'Business Idea Competition',
-    groupColor: 'bg-yellow-100',
-    groupText: 'text-yellow-800',
-    badgeColor: 'bg-yellow-100 text-yellow-800',
-    name: 'Student Startup Pitch 2025',
-    date: 'Jan 10 · Pokhara',
-    organizer: 'Entrepreneurs Hub Nepal',
+    id: 'ai_summit',
+    type: 'Seminar',
+    title: 'AI Innovation Summit',
+    organizer: 'Tribhuvan University',
+    date: 'Jul 10',
+    teamSize: '1-1',
+    topAccentColor: 'bg-purple-600',
+    badgeBg: 'bg-purple-50',
+    badgeText: 'text-purple-600',
+    isBookmarked: true
   },
+  {
+    id: 'design_pitch',
+    type: 'Competition',
+    title: 'Design Pitch 2026',
+    organizer: 'Pokhara University',
+    date: 'Aug 05',
+    prize: 'NPR 50,000',
+    teamSize: '1-3',
+    topAccentColor: 'bg-pink-600',
+    badgeBg: 'bg-pink-50',
+    badgeText: 'text-pink-600',
+    isBookmarked: false
+  }
 ];
 
 export default function Events() {
   const { isDarkMode } = useUIStore();
-  const [activeFilter, setActiveFilter] = useState('All');
+  const [activeFilter, setActiveFilter] = useState('All Events');
+  const [events, setEvents] = useState<EventItem[]>(MOCK_EVENTS);
 
-  const filteredEvents =
-    activeFilter === 'All' ? MOCK_EVENTS : MOCK_EVENTS.filter((e) => e.type === activeFilter);
+  const toggleBookmark = (id: string) => {
+    setEvents(prev => prev.map(e => e.id === id ? { ...e, isBookmarked: !e.isBookmarked } : e));
+  };
+
+  const filteredEvents = activeFilter === 'All Events' 
+    ? events 
+    : events.filter(e => e.type === activeFilter);
 
   return (
-    <SafeAreaView className={`flex-1 ${isDarkMode ? 'bg-[#0F172A]' : 'bg-[#F8FAFC]'}`}>
-      <View className="px-6 pt-4 pb-2 flex-row items-center justify-between">
-        <Text className={`text-2xl font-bold tracking-tight ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
+    <SafeAreaView 
+      className={`flex-1 ${isDarkMode ? 'bg-[#0F172A]' : 'bg-[#F8FAFC]'}`}
+      edges={['top']}
+    >
+      {/* Top Header */}
+      <View className={`px-6 pt-4 pb-4 ${isDarkMode ? 'bg-[#0F172A]' : 'bg-white border-b border-slate-100 shadow-sm'}`}>
+        <Text className={`text-2xl font-bold tracking-tight mb-4 ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
           Events
         </Text>
-        <TouchableOpacity className={`w-10 h-10 rounded-full items-center justify-center ${isDarkMode ? 'bg-slate-800' : 'bg-white'}`}>
-          <Ionicons name="options-outline" size={20} color={isDarkMode ? '#94A3B8' : '#475569'} />
-        </TouchableOpacity>
+
+        {/* Filter Pills */}
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mb-2">
+          <View className="flex-row gap-2 pb-2">
+            {EVENT_FILTERS.map((filter) => {
+              const isActive = filter === activeFilter;
+              return (
+                <TouchableOpacity
+                  key={filter}
+                  onPress={() => setActiveFilter(filter)}
+                  className={`px-4 py-1.5 rounded-full border ${
+                    isActive
+                      ? 'bg-blue-600 border-blue-600'
+                      : isDarkMode
+                      ? 'bg-slate-800 border-slate-700'
+                      : 'bg-white border-slate-200'
+                  }`}
+                >
+                  <Text className={`font-semibold text-xs ${isActive ? 'text-white' : isDarkMode ? 'text-slate-300' : 'text-slate-500'}`}>
+                    {filter}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </ScrollView>
       </View>
 
-      {/* Filter Pills */}
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} className="px-6 mb-4" contentContainerStyle={{ gap: 8 }}>
-        {EVENT_FILTERS.map((filter) => {
-          const isActive = filter === activeFilter;
-          return (
-            <TouchableOpacity
-              key={filter}
-              onPress={() => setActiveFilter(filter)}
-              className={`px-4 py-1.5 rounded-full border ${
-                isActive
-                  ? 'bg-blue-500 border-blue-500'
-                  : isDarkMode
-                  ? 'bg-slate-800 border-slate-700'
-                  : 'bg-white border-slate-200'
+      {/* Events List */}
+      <ScrollView 
+        showsVerticalScrollIndicator={false} 
+        contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: 32, paddingTop: 16 }}
+      >
+        <View className="gap-4">
+          {filteredEvents.map((event) => (
+            <View 
+              key={event.id} 
+              className={`rounded-3xl border border-slate-100 overflow-hidden ${
+                isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-white shadow-sm'
               }`}
             >
-              <Text className={`font-medium ${isActive ? 'text-white' : isDarkMode ? 'text-slate-300' : 'text-slate-600'}`}>
-                {filter}
-              </Text>
-            </TouchableOpacity>
-          );
-        })}
-      </ScrollView>
+              {/* Colored Line Accent Header */}
+              <View className={`h-[5px] w-full ${event.topAccentColor}`} />
 
-      {/* Event Groups */}
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: 32, gap: 16 }}>
-        {filteredEvents.map((event) => (
-          <View key={event.id} className={`rounded-2xl overflow-hidden border ${isDarkMode ? 'border-slate-700' : 'border-slate-100'}`}>
-            {/* Group Header */}
-            <View className={`px-4 py-3 ${isDarkMode ? 'bg-slate-800' : event.groupColor}`}>
-              <Text className={`font-bold text-base ${isDarkMode ? 'text-white' : event.groupText}`}>
-                {event.groupTitle}
-              </Text>
-            </View>
+              <View className="p-5">
+                {/* Badge & Bookmark Row */}
+                <View className="flex-row justify-between items-center mb-3">
+                  <View className={`px-3 py-1 rounded-full ${isDarkMode ? 'bg-slate-700' : event.badgeBg}`}>
+                    <Text className={`text-[10px] font-semibold ${isDarkMode ? 'text-slate-300' : event.badgeText}`}>
+                      {event.type}
+                    </Text>
+                  </View>
 
-            {/* Event Card */}
-            <View className={`px-4 pt-3 pb-4 ${isDarkMode ? 'bg-slate-800/60' : 'bg-white'}`}>
-              <View className="flex-row items-start justify-between mb-1">
-                <Text className={`text-base font-bold flex-1 mr-2 ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
-                  {event.name}
-                </Text>
-                <View className={`px-2.5 py-0.5 rounded-full ${isDarkMode ? 'bg-slate-700' : event.badgeColor.split(' ')[0]}`}>
-                  <Text className={`text-xs font-semibold ${isDarkMode ? 'text-slate-300' : event.badgeColor.split(' ')[1]}`}>
-                    {event.type}
-                  </Text>
+                  <TouchableOpacity onPress={() => toggleBookmark(event.id)}>
+                    <Ionicons 
+                      name={event.isBookmarked ? 'bookmark' : 'bookmark-outline'} 
+                      size={18} 
+                      color={event.isBookmarked ? '#F59E0B' : '#94A3B8'} 
+                    />
+                  </TouchableOpacity>
                 </View>
-              </View>
-              <Text className={`text-sm mb-0.5 ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>{event.date}</Text>
-              <Text className={`text-sm mb-4 ${isDarkMode ? 'text-slate-500' : 'text-slate-400'}`}>{event.organizer}</Text>
 
-              <View className="flex-row gap-3">
-                <TouchableOpacity className="flex-1 bg-blue-600 py-3 rounded-xl items-center">
-                  <Text className="text-white font-semibold">Register</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  className={`px-5 py-3 rounded-xl items-center border ${isDarkMode ? 'border-slate-600' : 'border-slate-200'}`}
-                >
-                  <Text className={`font-semibold ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>Save</Text>
-                </TouchableOpacity>
+                {/* Event Name */}
+                <Text className={`text-[17px] font-bold mb-1 ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
+                  {event.title}
+                </Text>
+
+                {/* Organizer */}
+                <Text className={`text-xs mb-4 ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                  {event.organizer}
+                </Text>
+
+                {/* Footer details row with icons */}
+                <View className="flex-row items-center gap-4">
+                  {/* Date info */}
+                  <View className="flex-row items-center gap-1.5">
+                    <Ionicons name="calendar-outline" size={14} color="#94A3B8" />
+                    <Text className={`text-[11px] font-medium ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                      {event.date}
+                    </Text>
+                  </View>
+
+                  {/* Prize Info (Optional) */}
+                  {event.prize && (
+                    <View className="flex-row items-center gap-1.5">
+                      <Ionicons name="trophy-outline" size={14} color="#94A3B8" />
+                      <Text className={`text-[11px] font-medium ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                        {event.prize}
+                      </Text>
+                    </View>
+                  )}
+
+                  {/* Team limit info */}
+                  {event.teamSize && (
+                    <View className="flex-row items-center gap-1.5">
+                      <Ionicons name="people-outline" size={14} color="#94A3B8" />
+                      <Text className={`text-[11px] font-medium ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                        {event.teamSize}
+                      </Text>
+                    </View>
+                  )}
+                </View>
+
               </View>
             </View>
-          </View>
-        ))}
+          ))}
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
