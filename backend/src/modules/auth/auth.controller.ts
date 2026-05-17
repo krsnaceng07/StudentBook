@@ -31,10 +31,10 @@ export const signupStudent = async (req: Request, res: Response) => {
       .from('student_profiles')
       .insert([{ 
         id: userId, 
-        full_name, 
-        college_name, 
-        department, 
-        year 
+        full_name: full_name || email.split('@')[0], 
+        college_name: college_name || 'Not specified', 
+        department: department || '', 
+        year: year || '1st'
       }]);
 
     if (studentError) {
@@ -78,10 +78,10 @@ export const signupCollege = async (req: Request, res: Response) => {
       .from('college_profiles')
       .insert([{ 
         id: userId, 
-        college_name, 
-        college_type, 
-        location, 
-        contact_email 
+        college_name: college_name || email.split('@')[0], 
+        college_type: college_type || 'other', 
+        location: location || 'Not specified', 
+        contact_email: contact_email || email 
       }]);
 
     if (collegeError) {
@@ -131,6 +131,5 @@ export const login = async (req: Request, res: Response) => {
 };
 
 export const getMe = async (req: any, res: Response) => {
-  // req.user is attached by authMiddleware
   return sendSuccess(res, { user: req.user });
 };
