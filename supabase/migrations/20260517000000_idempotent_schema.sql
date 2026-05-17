@@ -130,6 +130,11 @@ BEGIN
         ALTER TABLE public.profiles ADD COLUMN allow_messages_from TEXT DEFAULT 'everyone' CHECK (allow_messages_from IN ('everyone', 'connections'));
     END IF;
 
+    -- profiles.updated_at
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='profiles' AND column_name='updated_at') THEN
+        ALTER TABLE public.profiles ADD COLUMN updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW();
+    END IF;
+
     -- profiles.role CHECK constraint self-healing upgrade
     BEGIN
         ALTER TABLE public.profiles ALTER COLUMN role SET DEFAULT 'student';
