@@ -106,3 +106,9 @@
 ## Phase 21: Business Logic Audit & Threat Modeling (Workflows & Trust Boundaries) ✅
 - [x] Backend: Threat-model signup, login, profile, and dashboard workflows to block step-skipping and parameter manipulation.
 - [x] Backend: Enforce strict trust boundaries and document attack vector mitigations in the codebase.
+
+## Phase 22: Mobilizing Key Screen UIs (Discover, Events, Requests, and Profile Live-Data Connect)
+- [ ] Mobile: Connect the Discover screen UI to backend API to query live user listings.
+- [ ] Mobile: Connect the Profile screen UI to dynamic profile endpoints to fetch authenticated details.
+- [ ] Mobile: Connect the Events screen UI to live endpoints to retrieve active database listings.
+- [ ] Mobile: Connect the Requests screen UI to live connection endpoints.
