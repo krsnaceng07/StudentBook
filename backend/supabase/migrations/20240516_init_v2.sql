@@ -210,3 +210,20 @@ CREATE TABLE public.notifications (
 ALTER TABLE public.notifications ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "notifications_read_update_own" ON public.notifications FOR ALL
   USING (user_id = auth.uid());
+
+-- ==========================================
+-- 7. EVENT BOOKMARKS TABLE
+-- ==========================================
+
+CREATE TABLE public.event_bookmarks (
+  user_id    UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
+  event_id   UUID REFERENCES public.events(id) ON DELETE CASCADE,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  PRIMARY KEY (user_id, event_id)
+);
+
+-- 9. Event Bookmarks RLS Policies
+ALTER TABLE public.event_bookmarks ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "event_bookmarks_read_own" ON public.event_bookmarks FOR SELECT USING (user_id = auth.uid());
+CREATE POLICY "event_bookmarks_insert_own" ON public.event_bookmarks FOR INSERT WITH CHECK (user_id = auth.uid());
+CREATE POLICY "event_bookmarks_delete_own" ON public.event_bookmarks FOR DELETE USING (user_id = auth.uid());
