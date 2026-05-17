@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useUIStore } from '../../store/uiStore';
 import { useAuthStore } from '../../store/authStore';
 import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import client from '../../api/client';
 
 interface DashboardData {
@@ -29,6 +30,7 @@ interface DashboardData {
 export default function HomeIndex() {
   const { isDarkMode } = useUIStore();
   const { user } = useAuthStore();
+  const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [data, setData] = useState<DashboardData>({
@@ -96,8 +98,41 @@ export default function HomeIndex() {
       edges={['top']}
     >
       {/* Top Header */}
-      <View className={`px-6 py-4 flex-row justify-between items-center ${isDarkMode ? 'bg-[#0F172A]' : 'bg-white'}`}>
-        <Text className={`text-xl font-bold ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>CollabSpace</Text>
+      <View className={`px-6 py-4 flex-row justify-between items-center border-b ${isDarkMode ? 'bg-[#0F172A] border-slate-805' : 'bg-white border-slate-100'}`}>
+        <Text className={`text-xl font-extrabold tracking-tight ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>CollabSpace</Text>
+        
+        {/* Quick actions row */}
+        <View className="flex-row items-center gap-3">
+          {/* My Team */}
+          <TouchableOpacity 
+            onPress={() => router.push('/teams')}
+            className={`w-10 h-10 rounded-full items-center justify-center border ${
+              isDarkMode ? 'bg-slate-805 border-slate-700' : 'bg-slate-50 border-slate-100'
+            }`}
+          >
+            <Ionicons name="people-outline" size={18} color={isDarkMode ? '#94A3B8' : '#475569'} />
+          </TouchableOpacity>
+
+          {/* Messages */}
+          <TouchableOpacity 
+            onPress={() => router.push('/messages')}
+            className={`w-10 h-10 rounded-full items-center justify-center border relative ${
+              isDarkMode ? 'bg-slate-805 border-slate-700' : 'bg-slate-50 border-slate-100'
+            }`}
+          >
+            <Ionicons name="chatbubble-ellipses-outline" size={18} color={isDarkMode ? '#94A3B8' : '#475569'} />
+            <View className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-blue-500" />
+          </TouchableOpacity>
+
+          {/* Notifications */}
+          <TouchableOpacity 
+            className={`w-10 h-10 rounded-full items-center justify-center border ${
+              isDarkMode ? 'bg-slate-805 border-slate-700' : 'bg-slate-50 border-slate-100'
+            }`}
+          >
+            <Ionicons name="notifications-outline" size={18} color={isDarkMode ? '#94A3B8' : '#475569'} />
+          </TouchableOpacity>
+        </View>
       </View>
 
       <ScrollView 
