@@ -69,6 +69,6 @@
 - [x] Backend APIs: Ensure endpoints `/api/v1/discover`, `/api/v1/events`, `/api/v1/profile/me`, and `/api/v1/connections` support returning and saving these new fields.
 - [x] Frontend: Re-build Discover, Events, Requests, Profile and Connection Detail screens to match the final screenshots exactly.
 
-## Phase 14: Student-Friendly Navigation Shifting
-- [ ] Frontend: Keep bottom tabs strictly at 5 buttons (Home, Discover, Events, Requests, Profile).
-- [ ] Frontend: Shift Messages and My Team screens to highly intuitive headers (Home screen top-right) and Profile workspace cards.
+## Phase 14: Student-Friendly Navigation Shifting ✅
+- [x] Frontend: Keep bottom tabs strictly at 5 buttons (Home, Discover, Events, Requests, Profile).
+- [x] Frontend: Shift Messages and My Team screens to highly intuitive headers (Home screen top-right) and Profile workspace cards.
