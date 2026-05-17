@@ -102,3 +102,7 @@
 ## Phase 20: DevSecOps Vulnerability Auditing & Hardening (Secrets & Safe Dependencies) ✅
 - [x] Backend: Remediate any moderate or high vulnerabilities in package dependencies using npm audit mechanisms.
 - [x] Backend: Configure robust environment guards inside server configurations to enforce safe NODE_ENV configurations.
+
+## Phase 21: Business Logic Audit & Threat Modeling (Workflows & Trust Boundaries)
+- [ ] Backend: Threat-model signup, login, profile, and dashboard workflows to block step-skipping and parameter manipulation.
+- [ ] Backend: Enforce strict trust boundaries and document attack vector mitigations in the codebase.
