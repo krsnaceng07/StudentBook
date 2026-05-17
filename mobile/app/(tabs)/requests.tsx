@@ -42,7 +42,7 @@ const MOCK_NOTIFICATIONS = {
   ],
 };
 
-export default function Alerts() {
+export default function Requests() {
   const { isDarkMode } = useUIStore();
 
   const renderNotification = (item: any, isNew: boolean) => {

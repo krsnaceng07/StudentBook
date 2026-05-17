@@ -34,7 +34,7 @@ export default function TabLayout() {
         name="discover"
         options={{
           title: 'Discover',
-          tabBarIcon: ({ color, size }) => <Ionicons name="compass-outline" size={size} color={color} />,
+          tabBarIcon: ({ color, size }) => <Ionicons name="people-outline" size={size} color={color} />,
         }}
       />
       <Tabs.Screen
@@ -45,10 +45,10 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="messages"
+        name="requests"
         options={{
-          title: 'Messages',
-          tabBarIcon: ({ color, size }) => <Ionicons name="chatbubble-outline" size={size} color={color} />,
+          title: 'Requests',
+          tabBarIcon: ({ color, size }) => <Ionicons name="handshake-outline" size={size} color={color} />,
         }}
       />
       <Tabs.Screen
