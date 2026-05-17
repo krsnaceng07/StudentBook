@@ -543,10 +543,20 @@ AFTER INSERT ON auth.users
 FOR EACH ROW EXECUTE PROCEDURE public.handle_new_user();
 
 -- Bidirectional Connections Columns Trigger
-DROP TRIGGER IF EXISTS trg_sync_connections_columns ON public.connections;
-CREATE TRIGGER trg_sync_connections_columns
-BEFORE INSERT OR UPDATE ON public.connections
-FOR EACH ROW EXECUTE FUNCTION sync_connections_columns();
+DO $$
+BEGIN
+    IF EXISTS (
+        SELECT 1 FROM pg_trigger 
+        WHERE tgname = 'trg_sync_connections_columns' 
+        AND tgrelid = 'public.connections'::regclass
+    ) THEN
+        EXECUTE 'DROP TRIGGER trg_sync_connections_columns ON public.connections';
+    END IF;
+
+    EXECUTE 'CREATE TRIGGER trg_sync_connections_columns
+             BEFORE INSERT OR UPDATE ON public.connections
+             FOR EACH ROW EXECUTE FUNCTION sync_connections_columns()';
+END $$;
 
 
 -- ===================================================
