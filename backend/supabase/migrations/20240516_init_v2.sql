@@ -5,25 +5,27 @@
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- Cleanup old tables if they exist
+DROP TABLE IF EXISTS public.messages CASCADE;
+DROP TABLE IF EXISTS public.conversation_participants CASCADE;
+DROP TABLE IF EXISTS public.conversations CASCADE;
+DROP TABLE IF EXISTS public.activities CASCADE;
+DROP TABLE IF EXISTS public.connections CASCADE;
+DROP TABLE IF EXISTS public.extended_profiles CASCADE;
+DROP TABLE IF EXISTS public.events CASCADE;
 DROP TABLE IF EXISTS public.reports CASCADE;
 DROP TABLE IF EXISTS public.event_bookmarks CASCADE;
-DROP TABLE IF EXISTS public.messages CASCADE;
-DROP TABLE IF EXISTS public.events CASCADE;
 DROP TABLE IF EXISTS public.college_profiles CASCADE;
 DROP TABLE IF EXISTS public.collaboration_requests CASCADE;
 DROP TABLE IF EXISTS public.student_interests CASCADE;
 DROP TABLE IF EXISTS public.student_skills CASCADE;
 DROP TABLE IF EXISTS public.skills CASCADE;
 DROP TABLE IF EXISTS public.student_profiles CASCADE;
-DROP TABLE IF EXISTS public.profiles CASCADE;
 DROP TABLE IF EXISTS public.posts CASCADE;
 DROP TABLE IF EXISTS public.comments CASCADE;
 DROP TABLE IF EXISTS public.likes CASCADE;
-DROP TABLE IF EXISTS public.conversations CASCADE;
-DROP TABLE IF EXISTS public.conversation_participants CASCADE;
 DROP TABLE IF EXISTS public.teams CASCADE;
 DROP TABLE IF EXISTS public.team_members CASCADE;
-DROP TABLE IF EXISTS public.connections CASCADE;
+DROP TABLE IF EXISTS public.profiles CASCADE;
 
 -- ==========================================
 -- 1. CORE AUTH & PROFILES
