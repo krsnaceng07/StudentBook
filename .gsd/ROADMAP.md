@@ -95,6 +95,6 @@
 - [x] Backend: Build robust Joi validation middleware to block invalid inputs and XSS scripts.
 - [x] Backend: Enforce body validation schemas on auth routes and sanitize query parameters against injections.
 
-## Phase 19: API and Network Security Hardening (Headers, CORS & Rate Limiting)
-- [ ] Backend: Configure helmet HTTP headers and restrict CORS domains to close wildcard vulnerabilities.
-- [ ] Backend: Setup brute-force and request rate-limiting middlewares to secure the application boundaries.
+## Phase 19: API and Network Security Hardening (Headers, CORS & Rate Limiting) ✅
+- [x] Backend: Configure helmet HTTP headers and restrict CORS domains to close wildcard vulnerabilities.
+- [x] Backend: Setup brute-force and request rate-limiting middlewares to secure the application boundaries.
