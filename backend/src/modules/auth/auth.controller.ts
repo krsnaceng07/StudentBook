@@ -16,10 +16,10 @@ export const signupStudent = async (req: Request, res: Response) => {
     if (authError) return sendError(res, authError.message, 400);
     const userId = authData.user.id;
 
-    // 2. Create Profile row
+    // 2. Create Profile row (Upsert to prevent duplicate primary key clash from trigger)
     const { error: profileError } = await supabaseAdmin
       .from('profiles')
-      .insert([{ id: userId, email, role: 'student' }]);
+      .upsert([{ id: userId, email, role: 'student' }]);
 
     if (profileError) {
       await supabaseAdmin.auth.admin.deleteUser(userId);
@@ -70,10 +70,10 @@ export const signupCollege = async (req: Request, res: Response) => {
     if (authError) return sendError(res, authError.message, 400);
     const userId = authData.user.id;
 
-    // 2. Create Profile row
+    // 2. Create Profile row (Upsert to prevent duplicate primary key clash from trigger)
     const { error: profileError } = await supabaseAdmin
       .from('profiles')
-      .insert([{ id: userId, email, role: 'college' }]);
+      .upsert([{ id: userId, email, role: 'college' }]);
 
     if (profileError) {
       await supabaseAdmin.auth.admin.deleteUser(userId);
