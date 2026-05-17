@@ -9,6 +9,7 @@ import messagesRoutes from './modules/messages/messages.routes.js';
 import teamsRoutes from './modules/teams/teams.routes.js';
 import profileRoutes from './modules/profile/profile.routes.js';
 import notificationsRoutes from './modules/notifications/notifications.routes.js';
+import dashboardRoutes from './modules/dashboard/dashboard.routes.js';
 import { authMiddleware } from './middleware/auth.middleware.js';
 import { roleMiddleware } from './middleware/role.middleware.js';
 
@@ -27,6 +28,7 @@ app.use('/api/v1/messages', messagesRoutes);
 app.use('/api/v1/teams', teamsRoutes);
 app.use('/api/v1/profile', profileRoutes);
 app.use('/api/v1/notifications', notificationsRoutes);
+app.use('/api/v1/dashboard', dashboardRoutes);
 
 app.get('/health', (req, res) => {
   res.json({ 
