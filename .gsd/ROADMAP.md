@@ -112,3 +112,9 @@
 - [x] Mobile: Connect the Profile screen UI to dynamic profile endpoints to fetch authenticated details.
 - [x] Mobile: Connect the Events screen UI to live endpoints to retrieve active database listings.
 - [x] Mobile: Connect the Requests screen UI to live connection endpoints.
+
+## Phase 23: College Workspace Live-Data Mobilization
+- [ ] Mobile: Mobilize College Dashboard with live stats and active event listings dynamically fetched from backend API.
+- [ ] Mobile: Mobilize College Events Management panel with real-time post, edit, and delete functionality.
+- [ ] Mobile: Mobilize College Profile screen with live authenticated user data.
+- [ ] Backend: Ensure strict endpoint isolation and data separation so student and college roles do not conflict.
