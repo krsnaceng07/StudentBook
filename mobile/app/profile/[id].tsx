@@ -53,7 +53,7 @@ const DETAILS_MAP: Record<string, ProfileDetails> = {
     skills: ['Node.js', 'React', 'PostgreSQL', 'TypeScript'],
     interests: ['Web Development', 'Open Source'],
     github: 'github.com/rohan',
-    headerColor: 'bg-emerald-650',
+    headerColor: 'bg-emerald-600',
     avatarBg: 'bg-emerald-500',
     avatarText: 'text-emerald-100'
   },
