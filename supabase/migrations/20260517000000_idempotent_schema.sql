@@ -372,12 +372,14 @@ CREATE TABLE IF NOT EXISTS public.team_members (
     PRIMARY KEY (team_id, user_id)
 );
 
--- Connections Table
+-- Connections Table (Dual-compatible supporting user1_id/user2_id & sender_id/receiver_id columns)
 CREATE TABLE IF NOT EXISTS public.connections (
     id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
     user1_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
     user2_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
-    status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'accepted', 'blocked')),
+    sender_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
+    receiver_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
+    status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'accepted', 'blocked', 'declined')),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     UNIQUE(user1_id, user2_id)
 );
@@ -389,20 +391,33 @@ DO $$
 BEGIN
     -- connections.user1_id
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='connections' AND column_name='user1_id') THEN
-        ALTER TABLE public.connections ADD COLUMN user1_id UUID REFERENCES public.profiles(id);
-        -- Copy values if sender_id exists
-        IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='connections' AND column_name='sender_id') THEN
-            UPDATE public.connections SET user1_id = sender_id;
-        END IF;
+        ALTER TABLE public.connections ADD COLUMN user1_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE;
     END IF;
 
     -- connections.user2_id
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='connections' AND column_name='user2_id') THEN
-        ALTER TABLE public.connections ADD COLUMN user2_id UUID REFERENCES public.profiles(id);
-        -- Copy values if receiver_id exists
-        IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='connections' AND column_name='receiver_id') THEN
-            UPDATE public.connections SET user2_id = receiver_id;
-        END IF;
+        ALTER TABLE public.connections ADD COLUMN user2_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE;
+    END IF;
+
+    -- connections.sender_id
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='connections' AND column_name='sender_id') THEN
+        ALTER TABLE public.connections ADD COLUMN sender_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE;
+    END IF;
+
+    -- connections.receiver_id
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='connections' AND column_name='receiver_id') THEN
+        ALTER TABLE public.connections ADD COLUMN receiver_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE;
+    END IF;
+
+    -- Synchronize old records if any
+    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='connections' AND column_name='sender_id') THEN
+        UPDATE public.connections SET user1_id = sender_id WHERE user1_id IS NULL AND sender_id IS NOT NULL;
+        UPDATE public.connections SET sender_id = user1_id WHERE sender_id IS NULL AND user1_id IS NOT NULL;
+    END IF;
+
+    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='connections' AND column_name='receiver_id') THEN
+        UPDATE public.connections SET user2_id = receiver_id WHERE user2_id IS NULL AND receiver_id IS NOT NULL;
+        UPDATE public.connections SET receiver_id = user2_id WHERE receiver_id IS NULL AND user2_id IS NOT NULL;
     END IF;
 END $$;
 
@@ -464,6 +479,28 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
+-- Function to bidirectionally synchronize connections column pairs
+CREATE OR REPLACE FUNCTION sync_connections_columns()
+RETURNS TRIGGER AS $$
+BEGIN
+    -- If sender_id is set, sync to user1_id
+    IF NEW.sender_id IS NOT NULL THEN
+        NEW.user1_id := NEW.sender_id;
+    ELSIF NEW.user1_id IS NOT NULL THEN
+        NEW.sender_id := NEW.user1_id;
+    END IF;
+
+    -- If receiver_id is set, sync to user2_id
+    IF NEW.receiver_id IS NOT NULL THEN
+        NEW.user2_id := NEW.receiver_id;
+    ELSIF NEW.user2_id IS NOT NULL THEN
+        NEW.sender_id := NEW.user2_id;
+    END IF;
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
 
 -- ===================================================
 -- 3. TRIGGERS (DROP IF EXISTS & SAFE RE-CREATE)
@@ -504,6 +541,12 @@ DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 CREATE TRIGGER on_auth_user_created
 AFTER INSERT ON auth.users
 FOR EACH ROW EXECUTE PROCEDURE public.handle_new_user();
+
+-- Bidirectional Connections Columns Trigger
+DROP TRIGGER IF EXISTS trg_sync_connections_columns ON public.connections;
+CREATE TRIGGER trg_sync_connections_columns
+BEFORE INSERT OR UPDATE ON public.connections
+FOR EACH ROW EXECUTE FUNCTION sync_connections_columns();
 
 
 -- ===================================================
