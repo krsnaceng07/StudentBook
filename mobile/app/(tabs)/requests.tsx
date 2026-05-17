@@ -15,7 +15,7 @@ export default function Requests() {
   const fetchRequests = async () => {
     setLoading(true);
     try {
-      const response = await client.get('/dashboard');
+      const response = await client.get('/dashboard/home');
       if (response.data && response.data.success) {
         const stats = response.data.data.stats;
         if (stats && stats.pending > 0) {
@@ -107,7 +107,7 @@ export default function Requests() {
             <View className="items-center px-12 pb-16">
               {/* Mailbox Emoji/Graphics */}
               <View className={`w-24 h-24 rounded-full items-center justify-center mb-6 ${
-                isDarkMode ? 'bg-slate-850' : 'bg-blue-50/50'
+                isDarkMode ? 'bg-slate-800' : 'bg-blue-50/50'
               }`}>
                 <Text className="text-[52px] leading-[60px]">📬</Text>
               </View>
@@ -122,7 +122,7 @@ export default function Requests() {
           ) : activeTab === 'Outgoing' && outgoingRequests.length === 0 ? (
             <View className="items-center px-12 pb-16">
               <View className={`w-24 h-24 rounded-full items-center justify-center mb-6 ${
-                isDarkMode ? 'bg-slate-850' : 'bg-blue-50/50'
+                isDarkMode ? 'bg-slate-800' : 'bg-blue-50/50'
               }`}>
                 <Text className="text-[52px] leading-[60px]">📤</Text>
               </View>
