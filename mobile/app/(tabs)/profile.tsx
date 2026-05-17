@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity, ScrollView, Linking } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import { useUIStore } from '../../store/uiStore';
 
 const PROFILE_DATA = {
@@ -19,6 +20,7 @@ const PROFILE_DATA = {
 
 export default function Profile() {
   const { isDarkMode } = useUIStore();
+  const router = useRouter();
 
   const handleGithubPress = () => {
     Linking.openURL('https://github.com/aarav');
@@ -153,6 +155,22 @@ export default function Profile() {
             <Text className={`text-xs font-semibold ${isDarkMode ? 'text-slate-300' : 'text-slate-600'}`}>
               {PROFILE_DATA.github}
             </Text>
+          </TouchableOpacity>
+
+          {/* Card 5: My Team Workspace */}
+          <TouchableOpacity 
+            onPress={() => router.push('/teams')}
+            className={`p-5 rounded-3xl border border-slate-100 flex-row items-center justify-between ${
+              isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-white shadow-sm'
+            }`}
+          >
+            <View className="flex-row items-center gap-3">
+              <Ionicons name="people-circle-outline" size={20} color={isDarkMode ? '#60A5FA' : '#2563EB'} />
+              <Text className={`text-xs font-bold ${isDarkMode ? 'text-white' : 'text-slate-800'}`}>
+                My Team Workspace
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={16} color={isDarkMode ? '#64748B' : '#94A3B8'} />
           </TouchableOpacity>
 
         </View>
