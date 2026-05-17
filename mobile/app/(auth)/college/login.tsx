@@ -8,18 +8,21 @@ import { useUIStore } from '../../../store/uiStore';
 export default function CollegeLoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const { login, isLoading, error } = useAuthStore();
-  const { isDarkMode } = useUIStore();
+  const { login, isLoading, error: authError } = useAuthStore();
+  const { isDarkMode, showToast } = useUIStore();
   const router = useRouter();
 
   const handleLogin = async () => {
-    if (!email || !password) return Alert.alert('Missing Fields', 'Please enter your admin credentials.');
+    if (!email || !password) {
+      return showToast('Please enter both email and password', 'warning');
+    }
     
     const res = await login(email, password);
     if (res.success) {
+      showToast('Login successful', 'success');
       // Navigation is handled by RootLayout
     } else {
-      Alert.alert('Login Failed', res.error || 'Check your credentials and try again.');
+      showToast(res.error || 'Login failed', 'error');
     }
   };
 
@@ -36,8 +39,8 @@ export default function CollegeLoginScreen() {
           </View>
 
           <View className="space-y-4">
-            {error && <Text className="text-red-400 text-center mb-4">{error}</Text>}
-            
+            {authError && <Text className="text-red-400 text-center mb-4">{authError}</Text>}
+
             <View className={`rounded-xl border px-4 py-3 mb-4 ${isDarkMode ? 'bg-white/5 border-white/10' : 'bg-slate-50 border-slate-200'}`}>
               <Text className={`text-xs uppercase mb-1 font-semibold ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>Admin Email</Text>
               <TextInput

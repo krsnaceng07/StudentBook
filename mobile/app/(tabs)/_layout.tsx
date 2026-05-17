@@ -1,69 +1,61 @@
 import { Tabs } from 'expo-router';
-import React from 'react';
-
-import { HapticTab } from '@/components/haptic-tab';
-import { IconSymbol } from '@/components/ui/icon-symbol';
-import { Colors } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
-
-import { useNotificationStore } from '../../store/notificationStore';
-import useUIStore from '../../store/uiStore';
+import { Ionicons } from '@expo/vector-icons';
+import { useUIStore } from '../../store/uiStore';
 
 export default function TabLayout() {
-  const colorScheme = useColorScheme();
-  const { unreadCount, fetchNotifications } = useNotificationStore();
   const { isDarkMode } = useUIStore();
-
-  React.useEffect(() => {
-    fetchNotifications();
-  }, []);
 
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: isDarkMode ? '#FFFFFF' : '#3B82F6',
-        tabBarInactiveTintColor: isDarkMode ? '#666666' : '#94A3B8',
         headerShown: false,
-        tabBarButton: HapticTab,
         tabBarStyle: {
-          backgroundColor: isDarkMode ? '#000000' : '#0F172A',
-          borderTopColor: isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(255, 255, 255, 0.1)',
-          paddingTop: 5,
+          backgroundColor: isDarkMode ? '#0F172A' : '#FFFFFF',
+          borderTopColor: isDarkMode ? '#1E293B' : '#E2E8F0',
+          height: 60,
+          paddingBottom: 8,
+          paddingTop: 8,
+        },
+        tabBarActiveTintColor: '#3B82F6',
+        tabBarInactiveTintColor: isDarkMode ? '#64748B' : '#94A3B8',
+        tabBarLabelStyle: {
+          fontSize: 12,
+          fontWeight: '500',
         },
       }}>
       <Tabs.Screen
         name="index"
         options={{
+          title: 'Home',
+          tabBarIcon: ({ color, size }) => <Ionicons name="home-outline" size={size} color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="discover"
+        options={{
           title: 'Discover',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="flashlight.on.fill" color={color} />,
+          tabBarIcon: ({ color, size }) => <Ionicons name="compass-outline" size={size} color={color} />,
         }}
       />
       <Tabs.Screen
-        name="teams"
+        name="events"
         options={{
-          title: 'Teams',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="person.3.fill" color={color} />,
+          title: 'Events',
+          tabBarIcon: ({ color, size }) => <Ionicons name="calendar-outline" size={size} color={color} />,
         }}
       />
       <Tabs.Screen
-        name="study-hub"
-        options={{
-          title: 'Study Hub',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="book.fill" color={color} />,
-        }}
-      />
-      <Tabs.Screen
-        name="chat"
+        name="messages"
         options={{
           title: 'Messages',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="bubble.left.and.bubble.right.fill" color={color} />,
+          tabBarIcon: ({ color, size }) => <Ionicons name="chatbubble-outline" size={size} color={color} />,
         }}
       />
       <Tabs.Screen
         name="profile"
         options={{
           title: 'Profile',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="person.crop.circle.fill" color={color} />,
+          tabBarIcon: ({ color, size }) => <Ionicons name="person-outline" size={size} color={color} />,
         }}
       />
     </Tabs>

@@ -1,307 +1,126 @@
-import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
-import { useRouter } from 'expo-router';
-import {
-  View, Text, FlatList, TouchableOpacity, ActivityIndicator,
-  RefreshControl, Animated, Platform, ScrollView
-} from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Image } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useAuthStore } from '../../store/authStore';
+import { useUIStore } from '../../store/uiStore';
 import { Ionicons } from '@expo/vector-icons';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useDiscoverStore } from '../../store/discoverStore';
-import { usePostStore } from '../../store/postStore';
-import { useNotificationStore } from '../../store/notificationStore';
-import useUIStore from '../../store/uiStore';
-import UserCard from '../../components/UserCard';
-import TeamCard from '../../components/TeamCard';
-import PostCard from '../../components/PostCard';
-import SkeletonCard from '../../components/SkeletonCard';
-import CreatePostModal from '../../components/CreatePostModal';
 
-// ─── Constants ───────────────────────────────────────────────────────────────
-const HEADER_HEIGHT = 130;
-const SUGGESTION_EVERY_N_POSTS = 3;
-
-// MUST be defined at module level — NOT inside a component.
-// If created inside a component it gets a new identity every render → FlatList
-// unmounts and remounts every time, causing the visible hang/glitch.
-const AnimatedFlatList = Animated.createAnimatedComponent(FlatList);
-
-// ─── Horizontal scroll "Suggested Matches" at the top (original design) ──────
-const SuggestedUsers = React.memo(({ users, onSeeAll }: { users: any[]; onSeeAll: () => void }) => {
+export default function HomeIndex() {
   const { isDarkMode } = useUIStore();
-  if (users.length === 0) return null;
-  // Only show USER type in the horizontal scroll (original behaviour)
-  const userItems = users.filter(u => u.type === 'user');
-  if (userItems.length === 0) return null;
+  const [loading, setLoading] = useState(false); // mock loading
+  
+  // Mock data matching the design exactly
+  const teammates = [
+    { id: 1, initials: 'SR', name: 'Sita Rai', role: 'UI/UX', location: 'Kathmandu', skill: 'Design', color: 'bg-purple-100 text-purple-600' },
+    { id: 2, initials: 'AK', name: 'Aakash KC', role: 'Backend', location: 'Pokhara', skill: 'Flutter', color: 'bg-green-100 text-green-600' }
+  ];
+
+  const events = [
+    {
+      id: 1,
+      banner: 'Hackathon 2025',
+      title: 'Nepal Tech Hackathon',
+      date: 'Dec 15',
+      location: 'Kathmandu'
+    }
+  ];
+
+  const activities = [
+    { id: 1, initials: 'RB', name: 'Roshan Bhandari', action: 'accepted your connect request', time: '2 hours ago', color: 'bg-orange-100 text-orange-600' },
+    { id: 2, initials: 'NK', name: 'Nisha Karki', action: 'posted a new event: AI Workshop', time: '5 hours ago', color: 'bg-teal-100 text-teal-600' }
+  ];
 
   return (
-    <View className="mb-8">
-      <View className="flex-row items-center justify-between mb-4">
-        <Text className={`${isDarkMode ? 'text-white' : 'text-black'} text-xl font-bold`}>Suggested Matches</Text>
-        <TouchableOpacity onPress={onSeeAll}>
-          <Text className={`${isDarkMode ? 'text-white' : 'text-[#3B82F6]'} text-sm font-medium`}>See all</Text>
-        </TouchableOpacity>
-      </View>
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        className="-mx-6 px-6"
-        decelerationRate="fast"
-        snapToInterval={296}
-        snapToAlignment="start"
-        scrollEventThrottle={16}
-        contentContainerStyle={{ paddingRight: 40 }}
-      >
-        {userItems.map((user: any, idx: number) => (
-          <View key={user._id || `suggested-${idx}`} className="mr-4 w-[280px]">
-            <UserCard user={user} />
+    <SafeAreaView className={`flex-1 ${isDarkMode ? 'bg-[#0F172A]' : 'bg-[#F8FAFC]'}`}>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 24 }}>
+        
+        {/* Header */}
+        <View className="flex-row justify-between items-center px-6 pt-4 pb-2">
+          <Text className="text-blue-600 text-2xl font-bold tracking-tight">CollabMate</Text>
+          <View className="flex-row gap-3">
+            <View className="w-8 h-8 rounded-full bg-slate-200" />
+            <View className="w-8 h-8 rounded-full bg-slate-200" />
           </View>
-        ))}
-      </ScrollView>
-    </View>
-  );
-});
-
-// ─── Main Screen ─────────────────────────────────────────────────────────────
-export default function HomeScreen() {
-  const router = useRouter();
-  const insets = useSafeAreaInsets();
-
-  const {
-    suggestions, suggestionsLoading, fetchSuggestions, fetchUsers,
-  } = useDiscoverStore();
-
-  const {
-    posts, isLoading: postsLoading, isRefreshing: postsRefreshing,
-    hasMore: hasMorePosts, fetchPosts,
-  } = usePostStore();
-
-  const { unreadCount, fetchNotifications } = useNotificationStore();
-  const { isDarkMode } = useUIStore();
-
-  const [isCreateModalVisible, setIsCreateModalVisible] = useState(false);
-  const [postToEdit, setPostToEdit] = useState<any>(null);
-
-  // ── Animation ────────────────────────────────────────────────────────────
-  const scrollY = useRef(new Animated.Value(0)).current;
-  const clampedScroll = Animated.diffClamp(scrollY, 0, HEADER_HEIGHT);
-  const headerTranslate = clampedScroll.interpolate({
-    inputRange: [0, HEADER_HEIGHT],
-    outputRange: [0, -HEADER_HEIGHT],
-    extrapolate: 'clamp',
-  });
-  const headerOpacity = clampedScroll.interpolate({
-    inputRange: [0, HEADER_HEIGHT / 2, HEADER_HEIGHT],
-    outputRange: [1, 0.5, 0],
-    extrapolate: 'clamp',
-  });
-
-  // ── Initial load ─────────────────────────────────────────────────────────
-  useEffect(() => {
-    fetchPosts();
-    fetchSuggestions();
-    fetchNotifications();
-  }, []);
-
-  const onRefresh = useCallback(() => {
-    fetchPosts();
-    fetchSuggestions();
-    fetchUsers();
-    fetchNotifications();
-  }, [fetchPosts, fetchSuggestions, fetchUsers, fetchNotifications]);
-
-  const handleLoadMorePosts = useCallback(() => {
-    if (hasMorePosts && !postsLoading) fetchPosts(true);
-  }, [hasMorePosts, postsLoading, fetchPosts]);
-
-  const handleEditPost = useCallback((post: any) => {
-    setPostToEdit(post);
-    setIsCreateModalVisible(true);
-  }, []);
-
-  const handleCloseModal = useCallback(() => {
-    setIsCreateModalVisible(false);
-    setPostToEdit(null);
-  }, []);
-
-  // ── Build interleaved feed ─────────────────────────────────────────────
-  // Strategy: after every N posts, insert the next suggestion from the list.
-  // Suggestions alternate naturally user/team because backend interleaves them.
-  const feedData = useMemo(() => {
-    const items: any[] = [];
-    let sugIdx = 0;
-
-    posts.forEach((post: any, idx: number) => {
-      items.push({ kind: 'post', data: post, _id: `post-${post._id}` });
-
-      if ((idx + 1) % SUGGESTION_EVERY_N_POSTS === 0 && sugIdx < suggestions.length) {
-        const s = suggestions[sugIdx++];
-        items.push({ kind: 'suggestion', data: s, _id: s._id });
-      }
-    });
-
-    // Append any leftover suggestions after all posts
-    while (sugIdx < suggestions.length) {
-      const s = suggestions[sugIdx++];
-      items.push({ kind: 'suggestion', data: s, _id: s._id });
-    }
-
-    return items;
-  }, [posts, suggestions]);
-
-  // ── Render item ──────────────────────────────────────────────────────────
-  const renderItem = useCallback(({ item }: { item: any }) => {
-    if (item.kind === 'suggestion') {
-      if (item.data.type === 'user') {
-        return (
-          <View className="px-6">
-            <UserCard user={item.data} />
-          </View>
-        );
-      }
-      if (item.data.type === 'team') {
-        return (
-          <View className="px-6">
-            <TeamCard team={item.data} />
-          </View>
-        );
-      }
-      return null;
-    }
-    // Regular post
-    return (
-      <View className="px-4">
-        <PostCard post={item.data} onEdit={handleEditPost} />
-      </View>
-    );
-  }, [handleEditPost]);
-
-  const keyExtractor = useCallback((item: any) => item._id, []);
-
-  // ── ListHeader — horizontal scroll Suggested Matches + "Campus Feed" label ─
-  const ListHeaderComponent = useMemo(() => (
-    <View className="px-6 mb-4">
-      <SuggestedUsers
-        users={suggestions}
-        onSeeAll={() => router.push('/network/discover')}
-      />
-      <Text className={`${isDarkMode ? 'text-white' : 'text-black'} text-xl font-bold mb-4`}>Campus Feed</Text>
-    </View>
-  ), [suggestions, router]);
-
-  // ── Empty state ──────────────────────────────────────────────────────────
-  const ListEmptyComponent = useMemo(() => (
-    postsLoading ? (
-      <View className="px-6">
-        {[1, 2, 3].map(i => <SkeletonCard key={i} />)}
-      </View>
-    ) : (
-      <View className="items-center mt-10 px-10">
-        <Ionicons name="newspaper-outline" size={60} color={isDarkMode ? "#334155" : "#CBD5E1"} />
-        <Text className={`${isDarkMode ? 'text-slate-500' : 'text-slate-400'} text-lg font-bold mt-4`}>No posts yet</Text>
-        <Text className={`${isDarkMode ? 'text-slate-600' : 'text-slate-500'} text-center mt-2`}>
-          Be the first to share something with your campus!
-        </Text>
-      </View>
-    )
-  ), [postsLoading]);
-
-  return (
-    <View className={`flex-1 ${isDarkMode ? 'bg-[#0F172A]' : 'bg-white'}`}>
-
-      {/* ── Sticky animated header ──────────────────────────────────────── */}
-      <Animated.View
-        style={{
-          position: 'absolute', top: 0, left: 0, right: 0, zIndex: 100,
-          backgroundColor: isDarkMode ? '#0F172A' : '#FFFFFF',
-          transform: [{ translateY: headerTranslate }],
-          opacity: headerOpacity,
-          paddingTop: insets.top + 10,
-        }}
-      >
-        <View className="px-6 mb-4">
-          <View className="flex-row items-center justify-between mb-4">
-            <Text className={`${isDarkMode ? 'text-white' : 'text-black'} text-3xl font-bold`}>Discover</Text>
-            <TouchableOpacity
-              onPress={() => router.push('/notifications')}
-              className={`${isDarkMode ? 'bg-white/5' : 'bg-slate-100'} h-10 w-10 rounded-full items-center justify-center border ${isDarkMode ? 'border-white/10' : 'border-slate-200'}`}
-            >
-              <Ionicons name="notifications-outline" size={20} color={isDarkMode ? "#3B82F6" : "#000000"} />
-              {unreadCount > 0 && (
-                <View className={`absolute -top-1 -right-1 bg-red-500 h-5 w-5 rounded-full items-center justify-center border-2 ${isDarkMode ? 'border-[#0F172A]' : 'border-white'}`}>
-                  <Text className="text-white text-[10px] font-bold">
-                    {unreadCount > 9 ? '9+' : unreadCount}
-                  </Text>
-                </View>
-              )}
-            </TouchableOpacity>
-          </View>
-
-          <TouchableOpacity
-            onPress={() => router.push({ pathname: '/search' } as any)}
-            activeOpacity={0.8}
-            className={`${isDarkMode ? 'bg-white/10 border-white/10' : 'bg-slate-50 border-slate-200'} flex-row items-center rounded-2xl border px-4 py-3 mb-4`}
-          >
-            <Ionicons name="search" size={20} color={isDarkMode ? '#FFFFFF' : '#64748B'} />
-            <Text className="flex-1 ml-3 text-slate-400 text-base">Search students, teams, or posts...</Text>
-            <Ionicons name="options-outline" size={22} color={isDarkMode ? "#94A3B8" : "#64748B"} />
-          </TouchableOpacity>
         </View>
-      </Animated.View>
 
-      {/* ── Main feed ───────────────────────────────────────────────────── */}
-      <AnimatedFlatList
-        data={feedData}
-        keyExtractor={keyExtractor}
-        renderItem={renderItem}
-        ListHeaderComponent={ListHeaderComponent}
-        ListEmptyComponent={ListEmptyComponent}
-        ListFooterComponent={() =>
-          hasMorePosts && postsLoading ? (
-            <View className="py-6">
-              <ActivityIndicator color="#3B82F6" />
+        {/* Suggested teammates */}
+        <View className="mt-6 px-6">
+          <View className="flex-row justify-between items-end mb-4">
+            <Text className={`text-lg font-semibold ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>Suggested teammates</Text>
+            <TouchableOpacity><Text className="text-blue-500 font-medium">See all</Text></TouchableOpacity>
+          </View>
+          
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} className="overflow-visible">
+            <View className="flex-row gap-4">
+              {teammates.map((t) => (
+                <View key={t.id} className={`w-40 rounded-2xl p-4 items-center border border-slate-100 ${isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-white shadow-sm'}`}>
+                  <View className={`w-14 h-14 rounded-full items-center justify-center mb-2 ${t.color.split(' ')[0]}`}>
+                    <Text className={`text-lg font-semibold ${t.color.split(' ')[1]}`}>{t.initials}</Text>
+                  </View>
+                  <Text className={`font-semibold mb-0.5 ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>{t.name}</Text>
+                  <Text className={`text-xs text-center mb-2 ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>{t.role} · {t.location}</Text>
+                  <View className="bg-blue-50 px-3 py-1 rounded-full mb-4">
+                    <Text className="text-blue-600 text-xs font-medium">{t.skill}</Text>
+                  </View>
+                  <TouchableOpacity className="w-full bg-blue-50 py-2 rounded-xl items-center">
+                    <Text className="text-blue-500 font-semibold text-sm">Connect</Text>
+                  </TouchableOpacity>
+                </View>
+              ))}
             </View>
-          ) : null
-        }
-        onEndReached={handleLoadMorePosts}
-        onEndReachedThreshold={0.5}
-        removeClippedSubviews={Platform.OS === 'android'}
-        initialNumToRender={6}
-        maxToRenderPerBatch={10}
-        windowSize={11}
-        scrollEventThrottle={16}
-        refreshControl={
-          <RefreshControl
-            refreshing={postsRefreshing}
-            onRefresh={onRefresh}
-            tintColor="#3B82F6"
-            progressViewOffset={HEADER_HEIGHT + 20}
-          />
-        }
-        onScroll={Animated.event(
-          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-          { useNativeDriver: true }
-        )}
-        contentContainerStyle={{
-          paddingTop: HEADER_HEIGHT + insets.top + 20,
-          paddingBottom: 100,
-        }}
-      />
+          </ScrollView>
+        </View>
 
-      {/* ── FAB ─────────────────────────────────────────────────────────── */}
-      <TouchableOpacity
-        onPress={() => setIsCreateModalVisible(true)}
-        activeOpacity={0.8}
-        className={`absolute bottom-10 right-6 h-16 w-16 ${isDarkMode ? 'bg-white' : 'bg-[#3B82F6]'} rounded-full items-center justify-center shadow-2xl z-[1000] border border-white/20`}
-      >
-        <Ionicons name="add" size={32} color={isDarkMode ? 'black' : 'white'} />
-      </TouchableOpacity>
+        {/* Upcoming events */}
+        <View className="mt-8 px-6">
+          <View className="flex-row justify-between items-end mb-4">
+            <Text className={`text-lg font-semibold ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>Upcoming events</Text>
+            <TouchableOpacity><Text className="text-blue-500 font-medium">See all</Text></TouchableOpacity>
+          </View>
 
-      {/* ── Create Post Modal ────────────────────────────────────────────── */}
-      <CreatePostModal
-        isVisible={isCreateModalVisible}
-        onClose={handleCloseModal}
-        postToEdit={postToEdit}
-      />
-    </View>
+          {events.map((e) => (
+            <View key={e.id} className={`rounded-2xl overflow-hidden border border-slate-100 ${isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-white shadow-sm'}`}>
+              <View className="h-32 bg-blue-50 items-center justify-center">
+                <Text className="text-blue-600 font-medium">{e.banner}</Text>
+              </View>
+              <View className="p-4">
+                <Text className={`text-lg font-semibold mb-1 ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>{e.title}</Text>
+                <Text className={`text-sm mb-4 ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>{e.date} · {e.location}</Text>
+                <View className="flex-row gap-3">
+                  <TouchableOpacity className="flex-1 bg-blue-600 py-3 rounded-xl items-center">
+                    <Text className="text-white font-semibold">Register</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity className={`px-4 py-3 rounded-xl items-center border border-slate-200 ${isDarkMode ? 'border-slate-600' : ''}`}>
+                    <Text className={`font-semibold ${isDarkMode ? 'text-white' : 'text-slate-700'}`}>Find team</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </View>
+          ))}
+        </View>
+
+        {/* Recent activity */}
+        <View className="mt-8 px-6">
+          <Text className={`text-lg font-semibold mb-4 ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>Recent activity</Text>
+          
+          <View className={`rounded-2xl border border-slate-100 overflow-hidden ${isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-white shadow-sm'}`}>
+            {activities.map((act, index) => (
+              <View key={act.id} className={`flex-row p-4 items-center ${index > 0 ? 'border-t border-slate-100' : ''}`}>
+                <View className={`w-12 h-12 rounded-full items-center justify-center mr-4 ${act.color.split(' ')[0]}`}>
+                  <Text className={`font-semibold ${act.color.split(' ')[1]}`}>{act.initials}</Text>
+                </View>
+                <View className="flex-1">
+                  <Text className={`text-sm ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>
+                    <Text className={`font-semibold ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>{act.name}</Text> {act.action}
+                  </Text>
+                  <Text className="text-xs text-slate-400 mt-1">{act.time}</Text>
+                </View>
+              </View>
+            ))}
+          </View>
+        </View>
+
+      </ScrollView>
+    </SafeAreaView>
   );
 }

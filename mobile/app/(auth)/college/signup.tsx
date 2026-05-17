@@ -13,32 +13,37 @@ export default function CollegeSignupScreen() {
   const [location, setLocation] = useState('');
   const [contactEmail, setContactEmail] = useState('');
 
-  const { registerCollege, isLoading, error } = useAuthStore();
-  const { isDarkMode } = useUIStore();
+  const { registerCollege, isLoading, error: authError } = useAuthStore();
+  const { isDarkMode, showToast } = useUIStore();
   const router = useRouter();
 
+  const validateForm = () => {
+    if (!collegeName.trim()) return 'Institution name is required';
+    if (!email.includes('@')) return 'Please enter a valid admin email';
+    if (password.length < 6) return 'Password must be at least 6 characters';
+    return null;
+  };
+
   const handleSignup = async () => {
-    if (!collegeName || !email || !password || !location) {
-      return Alert.alert('Required Fields', 'Please fill in the essential college details to register.');
+    const validationError = validateForm();
+    if (validationError) {
+      return showToast(validationError, 'warning');
     }
     
     const res = await registerCollege({
-      email,
+      email: email.trim(),
       password,
-      college_name: collegeName,
+      college_name: collegeName.trim(),
       college_type: collegeType,
-      location,
-      contact_email: contactEmail || email
+      location: location.trim(),
+      contact_email: contactEmail.trim() || email.trim()
     });
 
     if (res.success) {
-      Alert.alert(
-        'Welcome onboard!', 
-        'Your college profile has been initialized. Our team will verify your details soon.',
-        [{ text: 'Login Now', onPress: () => router.replace('/(auth)/college/login') }]
-      );
+      showToast('Registration successful!', 'success');
+      router.replace('/(auth)/college/login');
     } else {
-      Alert.alert('Registration Failed', res.error || 'Something went wrong.');
+      showToast(res.error || 'Registration failed', 'error');
     }
   };
 
@@ -66,28 +71,12 @@ export default function CollegeSignupScreen() {
           </View>
 
           <View className="space-y-4">
-            {error && <Text className="text-red-400 text-center mb-4">{error}</Text>}
+            {authError && <Text className="text-red-400 text-center mb-4">{authError}</Text>}
             
             <InputField label="Institution Name" value={collegeName} onChangeText={setCollegeName} placeholder="Global Institute of Tech" />
             <InputField label="Admin Email" value={email} onChangeText={setEmail} placeholder="admin@institute.edu" keyboardType="email-address" autoCapitalize="none" />
             <InputField label="Password" value={password} onChangeText={setPassword} placeholder="••••••••" secureTextEntry />
-            <InputField label="Location" value={location} onChangeText={setLocation} placeholder="City, Country" />
-            <InputField label="Public Contact Email" value={contactEmail} onChangeText={setContactEmail} placeholder="info@institute.edu" keyboardType="email-address" />
-            
-            <View className={`rounded-xl border px-4 py-3 mb-4 ${isDarkMode ? 'bg-white/5 border-white/10' : 'bg-slate-50 border-slate-200'}`}>
-              <Text className={`text-xs uppercase mb-1 font-semibold ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>Institution Type</Text>
-              <View className="flex-row flex-wrap mt-2">
-                {['university', 'engineering', 'management', 'polytechnic'].map((t) => (
-                  <TouchableOpacity 
-                    key={t}
-                    onPress={() => setCollegeType(t)}
-                    className={`px-4 py-2 rounded-lg mr-2 mb-2 ${collegeType === t ? 'bg-indigo-600' : (isDarkMode ? 'bg-white/10' : 'bg-slate-200')}`}
-                  >
-                    <Text className={`text-xs font-bold capitalize ${collegeType === t ? 'text-white' : (isDarkMode ? 'text-slate-300' : 'text-slate-700')}`}>{t}</Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </View>
+
 
             <TouchableOpacity onPress={handleSignup} disabled={isLoading} className="bg-indigo-600 rounded-xl py-4 mt-6 items-center shadow-lg shadow-indigo-600/30">
               {isLoading ? <ActivityIndicator color="white" /> : <Text className="text-white font-bold text-lg">Register Institution</Text>}
