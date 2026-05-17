@@ -25,9 +25,9 @@ function NavigationGuard({ children }: { children: React.ReactNode }) {
       } else if (isAuthenticated && user) {
         if (inAuthGroup || !segments.length || segments[0] === 'welcome') {
           if (user.role === 'college') {
-            router.replace('/college/dashboard');
+            router.replace('/(college)/dashboard');
           } else {
-            router.replace('/(tabs)');
+            router.replace('/(student)');
           }
         }
       }
