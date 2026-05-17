@@ -46,7 +46,9 @@ CREATE TABLE public.extended_profiles (
   initials      TEXT,
   full_name     TEXT,
   role_title    TEXT,
+  university    TEXT,
   location      TEXT,
+  bio           TEXT,
   skills        TEXT[],
   avatar_url    TEXT,
   updated_at    TIMESTAMPTZ DEFAULT now()
