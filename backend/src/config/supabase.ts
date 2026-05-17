@@ -9,6 +9,12 @@ const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 if (!supabaseUrl || !supabaseServiceKey) {
   console.error('Missing Supabase environment variables');
+} else {
+  console.log('Supabase Config Loaded:', { 
+    url: supabaseUrl, 
+    keyLength: supabaseServiceKey.length,
+    isServiceRole: supabaseServiceKey.includes('service_role')
+  });
 }
 
 // @ts-ignore
@@ -23,6 +29,8 @@ export const supabaseAdmin = createClient(supabaseUrl!, supabaseServiceKey!, {
     persistSession: false,
   },
   global: {
-    WebSocket: ws
+    headers: {
+      Authorization: `Bearer ${supabaseServiceKey}`
+    }
   }
 });

@@ -9,7 +9,7 @@ const sanitizeObject = (obj: any): any => {
   const sanitized: any = {};
   for (const key of Object.keys(obj)) {
     if (typeof obj[key] === 'string') {
-      sanitized[key] = xss.filterXSS(obj[key].trim());
+      sanitized[key] = xss(obj[key].trim());
     } else if (typeof obj[key] === 'object' && obj[key] !== null) {
       sanitized[key] = sanitizeObject(obj[key]);
     } else {
