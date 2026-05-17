@@ -99,6 +99,6 @@
 - [x] Backend: Configure helmet HTTP headers and restrict CORS domains to close wildcard vulnerabilities.
 - [x] Backend: Setup brute-force and request rate-limiting middlewares to secure the application boundaries.
 
-## Phase 20: DevSecOps Vulnerability Auditing & Hardening (Secrets & Safe Dependencies)
-- [ ] Backend: Remediate any moderate or high vulnerabilities in package dependencies using npm audit mechanisms.
-- [ ] Backend: Configure robust environment guards inside server configurations to enforce safe NODE_ENV configurations.
+## Phase 20: DevSecOps Vulnerability Auditing & Hardening (Secrets & Safe Dependencies) ✅
+- [x] Backend: Remediate any moderate or high vulnerabilities in package dependencies using npm audit mechanisms.
+- [x] Backend: Configure robust environment guards inside server configurations to enforce safe NODE_ENV configurations.
