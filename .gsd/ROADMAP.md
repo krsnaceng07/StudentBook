@@ -43,10 +43,10 @@
 - [x] Backend APIs: Endpoint for conversation message history.
 - [x] Frontend: Build 1-on-1 Chat screen with speech bubbles, online status header, message input bar.
 
-## Phase 9: Team Screen Implementation
-- [ ] Database Schema: Add `teams` and `team_members` tables with roles.
-- [ ] Backend APIs: Endpoint for `GET /api/v1/teams/my` to return user's team and member list.
-- [ ] Frontend: Build "My Team" screen with member cards, role badges, open slot, and Invite button.
+## Phase 9: Team Screen Implementation ✅
+- [x] Database Schema: Add `teams` and `team_members` tables with roles.
+- [x] Backend APIs: Endpoint for `GET /api/v1/teams/my` to return user's team and member list.
+- [x] Frontend: Build "My Team" screen with member cards, role badges, open slot, and Invite button.
 
 ## Phase 10: Profile Screen Implementation
 - [ ] Database Schema: Add `interests` and `goal` fields to `extended_profiles`.
