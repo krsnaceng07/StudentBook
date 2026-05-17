@@ -19,17 +19,22 @@ function NavigationGuard({ children }: { children: React.ReactNode }) {
     const inAuthGroup = segments[0] === '(auth)';
     const isPublicPage = segments[0] === 'forgot-password' || segments[0] === 'reset-password';
 
-    if (!isAuthenticated && !inAuthGroup && !isPublicPage && segments[0] !== 'welcome') {
-      router.replace('/welcome');
-    } else if (isAuthenticated && user) {
-      if (inAuthGroup || !segments.length || segments[0] === 'welcome') {
-        if (user.role === 'college') {
-          router.replace('/college/dashboard');
-        } else {
-          router.replace('/(tabs)');
+    const performNavigation = () => {
+      if (!isAuthenticated && !inAuthGroup && !isPublicPage && segments[0] !== 'welcome') {
+        router.replace('/welcome');
+      } else if (isAuthenticated && user) {
+        if (inAuthGroup || !segments.length || segments[0] === 'welcome') {
+          if (user.role === 'college') {
+            router.replace('/college/dashboard');
+          } else {
+            router.replace('/(tabs)');
+          }
         }
       }
-    }
+    };
+
+    const timer = setTimeout(performNavigation, 0);
+    return () => clearTimeout(timer);
   }, [isAuthenticated, isStoreInitializing, segments, user]);
 
   return <>{children}</>;
