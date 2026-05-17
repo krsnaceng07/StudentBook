@@ -48,10 +48,10 @@
 - [x] Backend APIs: Endpoint for `GET /api/v1/teams/my` to return user's team and member list.
 - [x] Frontend: Build "My Team" screen with member cards, role badges, open slot, and Invite button.
 
-## Phase 10: Profile Screen Implementation
-- [ ] Database Schema: Add `interests` and `goal` fields to `extended_profiles`.
-- [ ] Backend APIs: Endpoint for `GET /api/v1/profile/me` returning stats, skills, interests, goal.
-- [ ] Frontend: Build "My Profile" screen with stats, skill/interest badges, and goal section.
+## Phase 10: Profile Screen Implementation ✅
+- [x] Database Schema: Add `interests` and `goal` fields to `extended_profiles`.
+- [x] Backend APIs: Endpoint for `GET /api/v1/profile/me` returning stats, skills, interests, goal.
+- [x] Frontend: Build "My Profile" screen with stats, skill/interest badges, and goal section.
 
 ## Phase 11: Notifications Screen Implementation
 - [ ] Database Schema: Add `notifications` table with type, actor, and action fields.
