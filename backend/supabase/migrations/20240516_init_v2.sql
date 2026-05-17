@@ -58,6 +58,8 @@ CREATE TABLE public.events (
   id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   title         TEXT NOT NULL,
   description   TEXT,
+  event_type    TEXT CHECK (event_type IN ('Hackathon', 'Workshop', 'Competition')),
+  organizer     TEXT,
   event_date    DATE,
   location      TEXT,
   banner_url    TEXT,
@@ -113,3 +115,41 @@ CREATE POLICY "connections_insert_own" ON public.connections FOR INSERT WITH CHE
 ALTER TABLE public.activities ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "activities_read_all" ON public.activities FOR SELECT USING (true);
 CREATE POLICY "activities_insert_own" ON public.activities FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+-- ==========================================
+-- 4. MESSAGING TABLES
+-- ==========================================
+
+CREATE TABLE public.conversations (
+  id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE TABLE public.conversation_participants (
+  conversation_id UUID REFERENCES public.conversations(id) ON DELETE CASCADE,
+  user_id         UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
+  PRIMARY KEY (conversation_id, user_id)
+);
+
+CREATE TABLE public.messages (
+  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  conversation_id UUID REFERENCES public.conversations(id) ON DELETE CASCADE,
+  sender_id       UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
+  content         TEXT NOT NULL,
+  created_at      TIMESTAMPTZ DEFAULT now()
+);
+
+-- 6. Messaging RLS Policies
+ALTER TABLE public.conversations ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "conversations_read_participant" ON public.conversations FOR SELECT
+  USING (id IN (SELECT conversation_id FROM public.conversation_participants WHERE user_id = auth.uid()));
+
+ALTER TABLE public.conversation_participants ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "conv_participants_read_own" ON public.conversation_participants FOR SELECT
+  USING (user_id = auth.uid());
+
+ALTER TABLE public.messages ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "messages_read_participant" ON public.messages FOR SELECT
+  USING (conversation_id IN (SELECT conversation_id FROM public.conversation_participants WHERE user_id = auth.uid()));
+CREATE POLICY "messages_insert_own" ON public.messages FOR INSERT
+  WITH CHECK (auth.uid() = sender_id);
