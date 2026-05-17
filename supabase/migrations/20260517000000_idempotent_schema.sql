@@ -179,6 +179,33 @@ CREATE TABLE IF NOT EXISTS public.conversations (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+-- ===================================================
+-- SELF-HEALING: DYNAMICALLY UPGRADE CONVERSATIONS COLUMNS IF THEY ARE MISSING
+-- ===================================================
+DO $$
+BEGIN
+    -- conversations.is_group
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='conversations' AND column_name='is_group') THEN
+        ALTER TABLE public.conversations ADD COLUMN is_group BOOLEAN DEFAULT false;
+    END IF;
+
+    -- conversations.name
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='conversations' AND column_name='name') THEN
+        ALTER TABLE public.conversations ADD COLUMN name TEXT;
+    END IF;
+
+    -- conversations.avatar
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='conversations' AND column_name='avatar') THEN
+        ALTER TABLE public.conversations ADD COLUMN avatar TEXT;
+    END IF;
+
+    -- conversations.last_message_at
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='conversations' AND column_name='last_message_at') THEN
+        ALTER TABLE public.conversations ADD COLUMN last_message_at TIMESTAMP WITH TIME ZONE DEFAULT NOW();
+    END IF;
+END $$;
+
+
 -- Conversation Participants Table
 CREATE TABLE IF NOT EXISTS public.conversation_participants (
     conversation_id UUID REFERENCES public.conversations(id) ON DELETE CASCADE,
@@ -187,6 +214,23 @@ CREATE TABLE IF NOT EXISTS public.conversation_participants (
     joined_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     PRIMARY KEY (conversation_id, user_id)
 );
+
+-- ===================================================
+-- SELF-HEALING: DYNAMICALLY UPGRADE CONVERSATION PARTICIPANTS COLUMNS IF THEY ARE MISSING
+-- ===================================================
+DO $$
+BEGIN
+    -- conversation_participants.role
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='conversation_participants' AND column_name='role') THEN
+        ALTER TABLE public.conversation_participants ADD COLUMN role TEXT DEFAULT 'member';
+    END IF;
+
+    -- conversation_participants.joined_at
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='conversation_participants' AND column_name='joined_at') THEN
+        ALTER TABLE public.conversation_participants ADD COLUMN joined_at TIMESTAMP WITH TIME ZONE DEFAULT NOW();
+    END IF;
+END $$;
+
 
 -- Messages Table
 CREATE TABLE IF NOT EXISTS public.messages (
@@ -200,6 +244,41 @@ CREATE TABLE IF NOT EXISTS public.messages (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
+
+-- ===================================================
+-- SELF-HEALING: DYNAMICALLY UPGRADE MESSAGES COLUMNS IF THEY ARE MISSING
+-- ===================================================
+DO $$
+BEGIN
+    -- messages.text
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='messages' AND column_name='text') THEN
+        ALTER TABLE public.messages ADD COLUMN text TEXT;
+        IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='messages' AND column_name='content') THEN
+            UPDATE public.messages SET text = content;
+        END IF;
+    END IF;
+
+    -- messages.attachments
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='messages' AND column_name='attachments') THEN
+        ALTER TABLE public.messages ADD COLUMN attachments JSONB DEFAULT '[]';
+    END IF;
+
+    -- messages.reply_to
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='messages' AND column_name='reply_to') THEN
+        ALTER TABLE public.messages ADD COLUMN reply_to UUID REFERENCES public.messages(id);
+    END IF;
+
+    -- messages.status
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='messages' AND column_name='status') THEN
+        ALTER TABLE public.messages ADD COLUMN status TEXT DEFAULT 'sent' CHECK (status IN ('sent', 'delivered', 'seen', 'deleted'));
+    END IF;
+
+    -- messages.updated_at
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='messages' AND column_name='updated_at') THEN
+        ALTER TABLE public.messages ADD COLUMN updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW();
+    END IF;
+END $$;
+
 
 -- Teams Table
 CREATE TABLE IF NOT EXISTS public.teams (
@@ -302,6 +381,31 @@ CREATE TABLE IF NOT EXISTS public.connections (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     UNIQUE(user1_id, user2_id)
 );
+
+-- ===================================================
+-- SELF-HEALING: DYNAMICALLY UPGRADE CONNECTIONS COLUMNS IF THEY ARE MISSING
+-- ===================================================
+DO $$
+BEGIN
+    -- connections.user1_id
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='connections' AND column_name='user1_id') THEN
+        ALTER TABLE public.connections ADD COLUMN user1_id UUID REFERENCES public.profiles(id);
+        -- Copy values if sender_id exists
+        IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='connections' AND column_name='sender_id') THEN
+            UPDATE public.connections SET user1_id = sender_id;
+        END IF;
+    END IF;
+
+    -- connections.user2_id
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='connections' AND column_name='user2_id') THEN
+        ALTER TABLE public.connections ADD COLUMN user2_id UUID REFERENCES public.profiles(id);
+        -- Copy values if receiver_id exists
+        IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='connections' AND column_name='receiver_id') THEN
+            UPDATE public.connections SET user2_id = receiver_id;
+        END IF;
+    END IF;
+END $$;
+
 
 -- Discussions Table
 CREATE TABLE IF NOT EXISTS public.discussions (
@@ -489,7 +593,7 @@ DROP POLICY IF EXISTS "allow_read_own_connections" ON public.connections;
 CREATE POLICY "allow_read_own_connections" ON public.connections FOR SELECT USING (auth.uid() = user1_id OR auth.uid() = user2_id);
 
 DROP POLICY IF EXISTS "allow_insert_own_connections" ON public.connections;
-CREATE POLICY "allow_insert_own_connections" ON public.connections FOR INSERT WITH CHECK (auth.uid() = user1_id OR auth.uid() = user2_id);
+CREATE POLICY "allow_insert_own_connections" ON public.connections FOR INSERT WITH CHECK (auth.role() = 'authenticated' AND (auth.uid() = user1_id OR auth.uid() = user2_id));
 
 -- Discussions Policies
 DROP POLICY IF EXISTS "anyone_read_discussions" ON public.discussions;
