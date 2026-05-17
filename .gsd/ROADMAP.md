@@ -119,3 +119,9 @@
 - [x] Mobile: Mobilize College Events Management panel with real-time post, edit, and delete functionality.
 - [x] Mobile: Mobilize College Profile screen with live authenticated user data.
 - [x] Backend: Ensure strict endpoint isolation and data separation so student and college roles do not conflict.
+
+## Phase 24: Strict Architectural Separation of Student and College Roles
+- [ ] Mobile: Isolate Expo Router navigation completely between `/(student)` and `/(college)` path layers to prevent layout bleed.
+- [ ] Mobile: Separate API client abstractions into Student API and College API contexts.
+- [ ] Backend: Refactor routes into `/student/*` and `/college/*` sub-namespaces to eliminate conflicting route definitions or mixed logic.
+- [ ] Backend: Audit database schemas and role middlewares to enforce isolated data domains physically and logically.
