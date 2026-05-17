@@ -5,6 +5,7 @@
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- Cleanup old tables if they exist
+DROP TABLE IF EXISTS public.notifications CASCADE;
 DROP TABLE IF EXISTS public.messages CASCADE;
 DROP TABLE IF EXISTS public.conversation_participants CASCADE;
 DROP TABLE IF EXISTS public.conversations CASCADE;
@@ -190,3 +191,22 @@ CREATE POLICY "teams_insert_all" ON public.teams FOR INSERT
 ALTER TABLE public.team_members ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "team_members_read_member" ON public.team_members FOR SELECT
   USING (team_id IN (SELECT team_id FROM public.team_members WHERE user_id = auth.uid()));
+
+-- ==========================================
+-- 6. NOTIFICATIONS TABLE
+-- ==========================================
+
+CREATE TABLE public.notifications (
+  id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id    UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
+  actor_id   UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
+  type       TEXT CHECK (type IN ('connection_accepted', 'team_invite', 'event_post', 'connection_request')),
+  content    TEXT NOT NULL,
+  is_read    BOOLEAN DEFAULT false,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- 8. Notifications RLS Policies
+ALTER TABLE public.notifications ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "notifications_read_update_own" ON public.notifications FOR ALL
+  USING (user_id = auth.uid());
