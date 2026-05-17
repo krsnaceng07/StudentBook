@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, Linking, Alert } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, TouchableOpacity, ScrollView, Linking, Alert, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useUIStore } from '../../store/uiStore';
+import client from '../../api/client';
 
 interface ProfileDetails {
   initials: string;
@@ -94,17 +95,61 @@ export default function ProfileDetailsScreen() {
   const router = useRouter();
   const { isDarkMode } = useUIStore();
   const [requestSent, setRequestSent] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [data, setData] = useState<ProfileDetails | null>(null);
 
-  // Fallback to Priya Thapa if not matched
-  const profileKey = (typeof id === 'string' && DETAILS_MAP[id]) ? id : 'priya_thapa';
-  const data = DETAILS_MAP[profileKey];
+  useEffect(() => {
+    const fetchProfileData = async () => {
+      setLoading(true);
+      try {
+        if (typeof id === 'string' && DETAILS_MAP[id]) {
+          // It's a static mock ID
+          setData(DETAILS_MAP[id]);
+        } else if (typeof id === 'string' && id.length > 10) {
+          // Try to fetch dynamically from API (Supabase UUID or long ID)
+          const response = await client.get(`/profile/${id}`);
+          if (response.data && response.data.success && response.data.data.profile) {
+            const p = response.data.data.profile;
+            setData({
+              initials: p.initials || '??',
+              name: p.full_name || 'Anonymous User',
+              university: p.university || 'University Student',
+              year: p.role_title || 'Student',
+              department: 'Software Engineering',
+              status: 'Looking for Team',
+              availability: 'Available',
+              bio: p.bio || 'Welcome to my profile.',
+              skills: p.skills || [],
+              interests: ['AI', 'FinTech'],
+              github: 'github.com',
+              headerColor: 'bg-blue-600',
+              avatarBg: 'bg-blue-500',
+              avatarText: 'text-blue-100'
+            });
+          } else {
+            setData(DETAILS_MAP.priya_thapa);
+          }
+        } else {
+          setData(DETAILS_MAP.priya_thapa);
+        }
+      } catch (err) {
+        console.warn('Error fetching custom profile detail, falling back to mock:', err);
+        setData(DETAILS_MAP.priya_thapa);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProfileData();
+  }, [id]);
 
   const handleGithubPress = () => {
+    if (!data) return;
     Linking.openURL(`https://${data.github}`);
   };
 
   const handleSendRequest = () => {
-    if (requestSent) return;
+    if (!data || requestSent) return;
     
     setRequestSent(true);
     Alert.alert(
@@ -113,6 +158,14 @@ export default function ProfileDetailsScreen() {
       [{ text: "Awesome" }]
     );
   };
+
+  if (loading || !data) {
+    return (
+      <SafeAreaView className={`flex-1 justify-center items-center ${isDarkMode ? 'bg-[#0F172A]' : 'bg-white'}`}>
+        <ActivityIndicator size="large" color="#2563EB" />
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView 
