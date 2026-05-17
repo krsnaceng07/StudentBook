@@ -120,7 +120,7 @@ export default function Requests() {
             <View className="items-center px-12 pb-16 pt-20">
               {/* Mailbox Emoji/Graphics */}
               <View className={`w-24 h-24 rounded-full items-center justify-center mb-6 ${
-                isDarkMode ? 'bg-slate-800' : 'bg-blue-50/50'
+                isDarkMode ? 'bg-slate-800' : 'bg-blue-50'
               }`}>
                 <Text className="text-[52px] leading-[60px]">📬</Text>
               </View>
@@ -135,7 +135,7 @@ export default function Requests() {
           ) : activeTab === 'Outgoing' && outgoingRequests.length === 0 ? (
             <View className="items-center px-12 pb-16 pt-20">
               <View className={`w-24 h-24 rounded-full items-center justify-center mb-6 ${
-                isDarkMode ? 'bg-slate-800' : 'bg-blue-50/50'
+                isDarkMode ? 'bg-slate-800' : 'bg-blue-50'
               }`}>
                 <Text className="text-[52px] leading-[60px]">📤</Text>
               </View>
@@ -194,7 +194,9 @@ export default function Requests() {
                         <TouchableOpacity
                           onPress={() => handleRespond(item.id, 'declined')}
                           disabled={actionLoadingId !== null}
-                          className="flex-1 bg-slate-200 dark:bg-slate-700 py-2.5 rounded-xl items-center justify-center"
+                          className={`flex-1 py-2.5 rounded-xl items-center justify-center ${
+                            isDarkMode ? 'bg-slate-700' : 'bg-slate-200'
+                          }`}
                         >
                           <Text className={`font-bold text-xs ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>Decline</Text>
                         </TouchableOpacity>
@@ -204,8 +206,12 @@ export default function Requests() {
                     {/* Pending label for Outgoing requests */}
                     {activeTab === 'Outgoing' && (
                       <View className="mt-2 flex-row justify-end">
-                        <View className="bg-amber-100 dark:bg-amber-900/30 px-3 py-1.5 rounded-full">
-                          <Text className="text-amber-600 dark:text-amber-400 font-bold text-[10px]">
+                        <View className={`px-3 py-1.5 rounded-full ${
+                          isDarkMode ? 'bg-amber-950/40' : 'bg-amber-100'
+                        }`}>
+                          <Text className={`font-bold text-[10px] ${
+                            isDarkMode ? 'text-amber-400' : 'text-amber-600'
+                          }`}>
                             Pending Response
                           </Text>
                         </View>
