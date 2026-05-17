@@ -103,6 +103,31 @@ export default function CollegeProfile() {
               <Text className="text-[#7C3AED] text-xs font-bold">info@tu.edu.np</Text>
             </View>
           </TouchableOpacity>
+
+          {/* Sign Out Card */}
+          <TouchableOpacity 
+            onPress={async () => {
+              const { logout } = useAuthStore.getState();
+              await logout();
+            }}
+            activeOpacity={0.85}
+            className={`rounded-3xl border p-5 flex-row items-center justify-between ${
+              isDarkMode ? 'bg-red-950/25 border-red-900/30' : 'bg-red-50 border-red-100 shadow-sm'
+            }`}
+          >
+            <View className="flex-row items-center gap-4.5">
+              <View className={`w-10 h-10 rounded-2xl items-center justify-center ${
+                isDarkMode ? 'bg-red-950/50' : 'bg-red-100/50'
+              }`}>
+                <Ionicons name="log-out-outline" size={20} color="#EF4444" />
+              </View>
+              <View>
+                <Text className={`text-[9px] font-bold uppercase mb-0.5 ${isDarkMode ? 'text-red-400/80' : 'text-red-500/80'}`}>Session</Text>
+                <Text className="text-red-500 text-xs font-bold">Sign Out</Text>
+              </View>
+            </View>
+            <Ionicons name="chevron-forward" size={16} color="#EF4444" />
+          </TouchableOpacity>
         </View>
       </ScrollView>
     </SafeAreaView>
