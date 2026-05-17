@@ -4,6 +4,8 @@ import cors from 'cors';
 import authRoutes from './modules/auth/auth.routes.js';
 import homeRoutes from './modules/home/home.routes.js';
 import discoverRoutes from './modules/discover/discover.routes.js';
+import eventsRoutes from './modules/events/events.routes.js';
+import messagesRoutes from './modules/messages/messages.routes.js';
 import { authMiddleware } from './middleware/auth.middleware.js';
 import { roleMiddleware } from './middleware/role.middleware.js';
 
@@ -17,6 +19,8 @@ app.use(express.json());
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/home', homeRoutes);
 app.use('/api/v1/discover', discoverRoutes);
+app.use('/api/v1/events', eventsRoutes);
+app.use('/api/v1/messages', messagesRoutes);
 
 app.get('/health', (req, res) => {
   res.json({ 
