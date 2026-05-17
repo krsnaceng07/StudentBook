@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, Text, TextInput, ScrollView, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useUIStore } from '../../store/uiStore';
+import api from '../../utils/api';
 
 const EVENT_TYPES = ['Hackathon', 'Workshop', 'Seminar'];
 
@@ -22,16 +23,34 @@ export default function PostEvent() {
 
   const handlePublish = async () => {
     if (!title || !date || !venue) {
-      alert('Please fill out Title, Date, and Venue!');
+      Alert.alert('Error', 'Please fill out Title, Date, and Venue!');
       return;
     }
 
     setLoading(true);
-    // Mimic API post
-    setTimeout(() => {
+    try {
+      const response = await api.post('/api/v1/events', {
+        title,
+        description,
+        event_date: new Date(date).toISOString(),
+        location: venue,
+        event_type: eventType,
+        tags: [eventType.toLowerCase()],
+        member_limit: teamSize ? parseInt(teamSize) : null
+      });
+
+      if (response.data?.success) {
+        Alert.alert('Success', 'Event posted successfully!');
+        router.back();
+      } else {
+        Alert.alert('Error', 'Failed to post event.');
+      }
+    } catch (error: any) {
+      console.error('Failed to post event:', error);
+      Alert.alert('Error', error.response?.data?.error || 'Failed to post event');
+    } finally {
       setLoading(false);
-      router.back();
-    }, 1000);
+    }
   };
 
   return (
