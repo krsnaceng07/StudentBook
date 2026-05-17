@@ -38,3 +38,22 @@
 - [x] Database Schema: Implement conversations and messages tables.
 - [x] Backend APIs: Endpoints for inbox and chat history.
 - [x] Frontend: Build Messages inbox UI matching the reference image.
+
+## Phase 8: Chat Screen Implementation
+- [ ] Backend APIs: Endpoint for conversation message history.
+- [ ] Frontend: Build 1-on-1 Chat screen with speech bubbles, online status header, message input bar.
+
+## Phase 9: Team Screen Implementation
+- [ ] Database Schema: Add `teams` and `team_members` tables with roles.
+- [ ] Backend APIs: Endpoint for `GET /api/v1/teams/my` to return user's team and member list.
+- [ ] Frontend: Build "My Team" screen with member cards, role badges, open slot, and Invite button.
+
+## Phase 10: Profile Screen Implementation
+- [ ] Database Schema: Add `interests` and `goal` fields to `extended_profiles`.
+- [ ] Backend APIs: Endpoint for `GET /api/v1/profile/me` returning stats, skills, interests, goal.
+- [ ] Frontend: Build "My Profile" screen with stats, skill/interest badges, and goal section.
+
+## Phase 11: Notifications Screen Implementation
+- [ ] Database Schema: Add `notifications` table with type, actor, and action fields.
+- [ ] Backend APIs: Endpoint for `GET /api/v1/notifications` returning grouped New/Earlier notifications.
+- [ ] Frontend: Build Notifications screen with Accept/Decline buttons for connection and team invites.
