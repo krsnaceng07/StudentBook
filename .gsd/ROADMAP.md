@@ -58,6 +58,8 @@
 - [x] Backend APIs: Endpoint for `GET /api/v1/notifications` returning grouped New/Earlier notifications.
 - [x] Frontend: Build Notifications screen with Accept/Decline buttons for connection and team invites.
 
-## Phase 12: Final UI Update
-- [ ] Frontend: Update bottom tab bar structure (Home, Discover, Events, Requests, Profile).
-- [ ] Frontend: Re-build Home screen to match the final top banner and cards layout.
+## Phase 12: Final UI Update ✅
+- [x] Database Schema: Add `event_bookmarks` table.
+- [x] Backend APIs: Endpoint for `GET /api/v1/dashboard/home` returning connectionsCount, bookmarksCount, pendingCount, and upcomingEvents.
+- [x] Frontend: Update bottom tab bar structure (Home, Discover, Events, Requests, Profile).
+- [x] Frontend: Re-build Home screen to match the final top banner and cards layout.
