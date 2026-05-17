@@ -1,147 +1,159 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, ScrollView, Image } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, Linking } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useUIStore } from '../../store/uiStore';
 
-const MOCK_PROFILE = {
-  initials: 'KS',
-  name: 'Krishna Sharma',
+const PROFILE_DATA = {
+  initials: 'AS',
+  name: 'Aarav Sharma',
   university: 'Tribhuvan University',
-  location: 'Kathmandu, Nepal',
-  role_title: 'Android Developer',
-  year: 'Final Year',
-  stats: {
-    connections: 12,
-    events_joined: 3,
-    teams: 2,
-  },
-  skills: [
-    { name: 'Kotlin', color: 'bg-green-100 text-green-700' },
-    { name: 'Android', color: 'bg-green-100 text-green-700' },
-    { name: 'Firebase', color: 'bg-green-100 text-green-700' },
-    { name: 'Figma', color: 'bg-green-100 text-green-700' },
-  ],
-  interests: [
-    { name: 'Hackathons', color: 'bg-blue-100 text-blue-700' },
-    { name: 'AI/ML', color: 'bg-blue-100 text-blue-700' },
-    { name: 'Startups', color: 'bg-blue-100 text-blue-700' },
-  ],
-  goal: "Looking to collaborate on innovative mobile applications, especially those focused on education and productivity. Open to joining hackathon teams!",
+  year: '3rd Year',
+  status: 'Looking for Team',
+  availability: 'Available',
+  bio: 'Passionate about AI and open source. Looking to build impactful products.',
+  skills: ['React Native', 'Python', 'Machine Learning'],
+  interests: ['AI', 'FinTech'],
+  github: 'github.com/aarav'
 };
 
 export default function Profile() {
   const { isDarkMode } = useUIStore();
 
+  const handleGithubPress = () => {
+    Linking.openURL('https://github.com/aarav');
+  };
+
   return (
-    <SafeAreaView className={`flex-1 ${isDarkMode ? 'bg-[#0F172A]' : 'bg-[#F8FAFC]'}`} edges={['top']}>
-      <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
-        
-        {/* Banner Section */}
-        <View className={`h-40 ${isDarkMode ? 'bg-blue-900' : 'bg-blue-100'} relative`}>
-          <View className="absolute top-4 left-6 right-6 flex-row justify-between items-center z-10">
-            <Text className={`text-xl font-bold ${isDarkMode ? 'text-blue-100' : 'text-blue-900'}`}>My profile</Text>
-            <TouchableOpacity>
-              <Ionicons name="settings-outline" size={24} color={isDarkMode ? '#DBEAFE' : '#1E3A8A'} />
+    <SafeAreaView 
+      className={`flex-1 ${isDarkMode ? 'bg-[#0F172A]' : 'bg-[#F8FAFC]'}`}
+      edges={['top']}
+    >
+      {/* Top Header */}
+      <View className={`px-6 pt-4 pb-4 ${isDarkMode ? 'bg-[#0F172A]' : 'bg-white border-b border-slate-100 shadow-sm'}`}>
+        <Text className={`text-2xl font-bold tracking-tight ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
+          Profile
+        </Text>
+      </View>
+
+      <ScrollView 
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: 40 }}
+      >
+        {/* Blue Banner Header */}
+        <View className="px-6 pt-5">
+          <View className="bg-blue-600 rounded-[32px] p-6 relative flex-row items-center">
+            {/* Edit Button */}
+            <TouchableOpacity className="absolute top-4 right-4 bg-blue-500/50 px-4 py-2 rounded-2xl flex-row items-center border border-blue-400/20">
+              <Text className="text-white font-bold text-xs mr-1">Edit</Text>
+              <Ionicons name="pencil" size={12} color="#F97316" />
             </TouchableOpacity>
+
+            {/* Avatar & Meta info */}
+            <View className="w-16 h-16 rounded-full bg-blue-500 border-2 border-white items-center justify-center mr-4">
+              <Text className="text-white text-xl font-bold">{PROFILE_DATA.initials}</Text>
+            </View>
+
+            <View className="flex-1 pr-12">
+              <Text className="text-white text-lg font-bold mb-0.5">{PROFILE_DATA.name}</Text>
+              <Text className="text-blue-100 text-xs font-semibold">{PROFILE_DATA.university} - 3rd</Text>
+            </View>
           </View>
         </View>
 
-        {/* Profile Content */}
-        <View className={`flex-1 px-6 ${isDarkMode ? 'bg-[#0F172A]' : 'bg-white'} rounded-t-3xl -mt-6 pt-0`}>
+        {/* Info Cards List on Light Gray Background */}
+        <View className="px-6 mt-5 gap-4">
           
-          {/* Avatar (Overlapping banner) */}
-          <View className="items-center -mt-16 mb-4">
-            <View className={`w-32 h-32 rounded-full items-center justify-center border-4 ${isDarkMode ? 'bg-blue-600 border-[#0F172A]' : 'bg-blue-500 border-white'}`}>
-              <Text className="text-white text-4xl font-bold">{MOCK_PROFILE.initials}</Text>
+          {/* Card 1: Status & Bio */}
+          <View className={`p-5 rounded-3xl border border-slate-100 ${
+            isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-white shadow-sm'
+          }`}>
+            <View className="flex-row items-center justify-between mb-4">
+              <View className={`px-3 py-1 rounded-full ${
+                isDarkMode ? 'bg-slate-900' : 'bg-blue-50'
+              }`}>
+                <Text className={`text-[10px] font-semibold ${
+                  isDarkMode ? 'text-blue-400' : 'text-blue-600'
+                }`}>
+                  {PROFILE_DATA.status}
+                </Text>
+              </View>
+
+              <View className="flex-row items-center gap-1.5">
+                <View className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
+                <Text className={`text-[10px] font-semibold ${
+                  isDarkMode ? 'text-slate-400' : 'text-slate-500'
+                }`}>
+                  {PROFILE_DATA.availability}
+                </Text>
+              </View>
             </View>
+
+            <Text className={`text-xs leading-5 ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>
+              {PROFILE_DATA.bio}
+            </Text>
           </View>
 
-          {/* Info */}
-          <View className="items-center mb-6">
-            <Text className={`text-2xl font-bold mb-1 ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
-              {MOCK_PROFILE.name}
+          {/* Card 2: Skills */}
+          <View className={`p-5 rounded-3xl border border-slate-100 ${
+            isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-white shadow-sm'
+          }`}>
+            <Text className={`text-sm font-bold mb-3.5 ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
+              Skills
             </Text>
-            <Text className={`text-sm mb-2 ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
-              {MOCK_PROFILE.university} • {MOCK_PROFILE.location}
-            </Text>
-            <Text className={`text-[15px] font-medium ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`}>
-              {MOCK_PROFILE.role_title} • {MOCK_PROFILE.year}
-            </Text>
-          </View>
 
-          {/* Stats Row */}
-          <View className={`flex-row justify-between items-center py-4 border-y ${isDarkMode ? 'border-slate-800' : 'border-slate-100'} mb-8`}>
-            <View className="items-center flex-1">
-              <Text className={`text-xl font-bold ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
-                {MOCK_PROFILE.stats.connections}
-              </Text>
-              <Text className={`text-xs ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>Connections</Text>
-            </View>
-            <View className={`h-8 w-[1px] ${isDarkMode ? 'bg-slate-700' : 'bg-slate-200'}`} />
-            <View className="items-center flex-1">
-              <Text className={`text-xl font-bold ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
-                {MOCK_PROFILE.stats.events_joined}
-              </Text>
-              <Text className={`text-xs ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>Events joined</Text>
-            </View>
-            <View className={`h-8 w-[1px] ${isDarkMode ? 'bg-slate-700' : 'bg-slate-200'}`} />
-            <View className="items-center flex-1">
-              <Text className={`text-xl font-bold ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
-                {MOCK_PROFILE.stats.teams}
-              </Text>
-              <Text className={`text-xs ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>Teams</Text>
-            </View>
-          </View>
-
-          {/* Skills Section */}
-          <View className="mb-6">
-            <View className="flex-row justify-between items-center mb-3">
-              <Text className={`text-lg font-bold ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>Skills</Text>
-              <TouchableOpacity>
-                <Ionicons name="pencil" size={18} color={isDarkMode ? '#64748B' : '#94A3B8'} />
-              </TouchableOpacity>
-            </View>
             <View className="flex-row flex-wrap gap-2">
-              {MOCK_PROFILE.skills.map((skill, index) => (
-                <View key={index} className={`px-4 py-1.5 rounded-full ${isDarkMode ? 'bg-green-900/30' : 'bg-green-100'}`}>
-                  <Text className={`text-[13px] font-medium ${isDarkMode ? 'text-green-400' : 'text-green-700'}`}>{skill.name}</Text>
+              {PROFILE_DATA.skills.map((skill) => (
+                <View 
+                  key={skill} 
+                  className={`px-4 py-2 rounded-2xl border ${
+                    isDarkMode ? 'bg-slate-900 border-slate-700' : 'bg-slate-50 border-slate-100'
+                  }`}
+                >
+                  <Text className={`text-xs font-semibold ${isDarkMode ? 'text-slate-300' : 'text-slate-600'}`}>
+                    {skill}
+                  </Text>
                 </View>
               ))}
             </View>
           </View>
 
-          {/* Interests Section */}
-          <View className="mb-6">
-            <View className="flex-row justify-between items-center mb-3">
-              <Text className={`text-lg font-bold ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>Interests</Text>
-              <TouchableOpacity>
-                <Ionicons name="pencil" size={18} color={isDarkMode ? '#64748B' : '#94A3B8'} />
-              </TouchableOpacity>
-            </View>
+          {/* Card 3: Interests */}
+          <View className={`p-5 rounded-3xl border border-slate-100 ${
+            isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-white shadow-sm'
+          }`}>
+            <Text className={`text-sm font-bold mb-3.5 ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
+              Interests
+            </Text>
+
             <View className="flex-row flex-wrap gap-2">
-              {MOCK_PROFILE.interests.map((interest, index) => (
-                <View key={index} className={`px-4 py-1.5 rounded-full ${isDarkMode ? 'bg-blue-900/30' : 'bg-blue-100'}`}>
-                  <Text className={`text-[13px] font-medium ${isDarkMode ? 'text-blue-400' : 'text-blue-700'}`}>{interest.name}</Text>
+              {PROFILE_DATA.interests.map((interest) => (
+                <View 
+                  key={interest} 
+                  className={`px-4 py-2 rounded-2xl border ${
+                    isDarkMode ? 'bg-slate-900 border-slate-700' : 'bg-slate-50 border-slate-100'
+                  }`}
+                >
+                  <Text className={`text-xs font-semibold ${isDarkMode ? 'text-slate-300' : 'text-slate-600'}`}>
+                    {interest}
+                  </Text>
                 </View>
               ))}
             </View>
           </View>
 
-          {/* Goal Section */}
-          <View className="mb-8">
-            <View className="flex-row justify-between items-center mb-3">
-              <Text className={`text-lg font-bold ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>Current Goal</Text>
-              <TouchableOpacity>
-                <Ionicons name="pencil" size={18} color={isDarkMode ? '#64748B' : '#94A3B8'} />
-              </TouchableOpacity>
-            </View>
-            <View className={`p-4 rounded-xl ${isDarkMode ? 'bg-slate-800' : 'bg-slate-50'}`}>
-              <Text className={`text-[15px] leading-6 ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>
-                {MOCK_PROFILE.goal}
-              </Text>
-            </View>
-          </View>
+          {/* Card 4: Social Link */}
+          <TouchableOpacity 
+            onPress={handleGithubPress}
+            className={`p-5 rounded-3xl border border-slate-100 flex-row items-center gap-3 ${
+              isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-white shadow-sm'
+            }`}
+          >
+            <Ionicons name="logo-github" size={18} color={isDarkMode ? '#F8FAFC' : '#1E293B'} />
+            <Text className={`text-xs font-semibold ${isDarkMode ? 'text-slate-300' : 'text-slate-600'}`}>
+              {PROFILE_DATA.github}
+            </Text>
+          </TouchableOpacity>
 
         </View>
       </ScrollView>
