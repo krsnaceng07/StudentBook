@@ -21,7 +21,7 @@ export default function ManageEvents() {
 
   const fetchEvents = async () => {
     try {
-      const response = await api.get('/api/v1/events/my-events');
+      const response = await api.get('/api/v1/college/events/my-events');
       if (response.data?.success) {
         setEvents(response.data.data);
       }
@@ -55,7 +55,7 @@ export default function ManageEvents() {
           style: 'destructive',
           onPress: async () => {
             try {
-              const response = await api.delete(`/api/v1/events/${id}`);
+              const response = await api.delete(`/api/v1/college/events/${id}`);
               if (response.data?.success) {
                 setEvents(events.filter(e => e.id !== id));
               }

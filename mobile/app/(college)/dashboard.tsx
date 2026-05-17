@@ -31,7 +31,7 @@ export default function CollegeDashboard() {
 
   const fetchDashboardData = async () => {
     try {
-      const response = await api.get('/api/v1/dashboard/college');
+      const response = await api.get('/api/v1/college/dashboard');
       if (response.data?.success) {
         setStats(response.data.data.stats);
         setRecentEvents(response.data.data.recentEvents || []);
