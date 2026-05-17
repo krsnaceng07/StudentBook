@@ -132,6 +132,7 @@ BEGIN
 
     -- profiles.role CHECK constraint self-healing upgrade
     BEGIN
+        ALTER TABLE public.profiles ALTER COLUMN role SET DEFAULT 'student';
         ALTER TABLE public.profiles DROP CONSTRAINT IF EXISTS profiles_role_check;
         ALTER TABLE public.profiles ADD CONSTRAINT profiles_role_check CHECK (role IN ('student', 'college', 'user', 'admin'));
     EXCEPTION
