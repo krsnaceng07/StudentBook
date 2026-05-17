@@ -52,6 +52,8 @@ CREATE TABLE public.extended_profiles (
   location      TEXT,
   bio           TEXT,
   skills        TEXT[],
+  interests     TEXT[],
+  goal          TEXT,
   avatar_url    TEXT,
   updated_at    TIMESTAMPTZ DEFAULT now()
 );
