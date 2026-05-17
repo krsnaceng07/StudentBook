@@ -67,3 +67,38 @@ export const getInbox = async (req: Request, res: Response) => {
     res.status(500).json({ success: false, error: error.message });
   }
 };
+
+export const getChatHistory = async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).user?.id;
+    if (!userId) return res.status(401).json({ success: false, error: 'Unauthorized' });
+
+    const { conversationId } = req.params;
+
+    // Verify participant
+    const { data: participation, error: partError } = await supabase
+      .from('conversation_participants')
+      .select('*')
+      .eq('conversation_id', conversationId)
+      .eq('user_id', userId)
+      .single();
+
+    if (partError || !participation) {
+      return res.status(403).json({ success: false, error: 'Forbidden: You are not a participant.' });
+    }
+
+    // Fetch messages
+    const { data: messages, error: msgError } = await supabase
+      .from('messages')
+      .select('id, sender_id, content, created_at')
+      .eq('conversation_id', conversationId)
+      .order('created_at', { ascending: true });
+
+    if (msgError) throw msgError;
+
+    res.status(200).json({ success: true, data: messages || [] });
+  } catch (error: any) {
+    console.error('Error fetching chat history:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
