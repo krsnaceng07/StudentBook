@@ -39,9 +39,9 @@
 - [x] Backend APIs: Endpoints for inbox and chat history.
 - [x] Frontend: Build Messages inbox UI matching the reference image.
 
-## Phase 8: Chat Screen Implementation
-- [ ] Backend APIs: Endpoint for conversation message history.
-- [ ] Frontend: Build 1-on-1 Chat screen with speech bubbles, online status header, message input bar.
+## Phase 8: Chat Screen Implementation ✅
+- [x] Backend APIs: Endpoint for conversation message history.
+- [x] Frontend: Build 1-on-1 Chat screen with speech bubbles, online status header, message input bar.
 
 ## Phase 9: Team Screen Implementation
 - [ ] Database Schema: Add `teams` and `team_members` tables with roles.
