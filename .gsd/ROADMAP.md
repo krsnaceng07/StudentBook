@@ -24,7 +24,7 @@
 - [x] Backend APIs: Endpoints for teammates, events, and recent activity.
 - [x] Frontend: Implement Bottom Tabs and Home Screen matching the CollabMate UI design.
 
-## Phase 5: Discover Screen Implementation
-- [ ] Database Schema: Add `university` and `bio` fields to `extended_profiles`.
-- [ ] Backend APIs: Create `GET /api/v1/discover` endpoint with search and filter capabilities.
-- [ ] Frontend: Build Discover screen UI matching the "Find teammates" design with search bar, filter pills, and user cards.
+## Phase 5: Discover Screen Implementation ✅
+- [x] Database Schema: Add `university` and `bio` fields to `extended_profiles`.
+- [x] Backend APIs: Create `GET /api/v1/discover` endpoint with search and filter capabilities.
+- [x] Frontend: Build Discover screen UI matching the "Find teammates" design with search bar, filter pills, and user cards.
