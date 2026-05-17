@@ -26,15 +26,22 @@ export const signupStudent = async (req: Request, res: Response) => {
       return sendError(res, profileError.message, 400);
     }
 
-    // 3. Create Student Profile row
+    // 3. Create Student Profile row in extended_profiles
+    const initials = full_name 
+      ? full_name.split(' ').map((n: string) => n[0]).join('').toUpperCase().substring(0, 2)
+      : email.split('@')[0].substring(0, 2).toUpperCase();
+
     const { error: studentError } = await supabaseAdmin
-      .from('student_profiles')
+      .from('extended_profiles')
       .insert([{ 
         id: userId, 
+        initials,
         full_name: full_name || email.split('@')[0], 
-        college_name: college_name || 'Not specified', 
-        department: department || '', 
-        year: year || '1st'
+        role_title: department ? `${department} - ${year}` : `${year} Year`,
+        university: college_name || 'Not specified',
+        bio: 'Hey! I am a student here.',
+        skills: [],
+        interests: []
       }]);
 
     if (studentError) {
@@ -73,15 +80,23 @@ export const signupCollege = async (req: Request, res: Response) => {
       return sendError(res, profileError.message, 400);
     }
 
-    // 3. Create College Profile row
+    // 3. Create College Profile row in extended_profiles
+    const initials = college_name 
+      ? college_name.split(' ').map((n: string) => n[0]).join('').toUpperCase().substring(0, 2)
+      : email.split('@')[0].substring(0, 2).toUpperCase();
+
     const { error: collegeError } = await supabaseAdmin
-      .from('college_profiles')
+      .from('extended_profiles')
       .insert([{ 
         id: userId, 
-        college_name: college_name || email.split('@')[0], 
-        college_type: college_type || 'other', 
-        location: location || 'Not specified', 
-        contact_email: contact_email || email 
+        initials,
+        full_name: college_name || email.split('@')[0], 
+        role_title: college_type || 'Institution',
+        university: college_name || 'Institution',
+        location: location || 'Not specified',
+        bio: `Contact: ${contact_email || email}`,
+        skills: [],
+        interests: []
       }]);
 
     if (collegeError) {
