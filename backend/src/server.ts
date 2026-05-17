@@ -1,4 +1,18 @@
 import 'dotenv/config';
+
+// Secure Environment Validation Guard: halt boot-up if vital Supabase keys are missing
+const requiredEnvVars = ['SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY'];
+for (const envVar of requiredEnvVars) {
+  if (!process.env[envVar]) {
+    console.error(`❌ CRITICAL DEVSECOPS CONFIG FAILURE: Environment variable ${envVar} is missing!`);
+    process.exit(1);
+  }
+}
+
+if (process.env.NODE_ENV !== 'production') {
+  console.warn('⚠️ DEVSECOPS WARNING: NODE_ENV is not set to "production". Ensure proper environment context in production deployments.');
+}
+
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
