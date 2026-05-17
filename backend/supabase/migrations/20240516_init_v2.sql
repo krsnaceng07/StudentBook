@@ -155,3 +155,36 @@ CREATE POLICY "messages_read_participant" ON public.messages FOR SELECT
   USING (conversation_id IN (SELECT conversation_id FROM public.conversation_participants WHERE user_id = auth.uid()));
 CREATE POLICY "messages_insert_own" ON public.messages FOR INSERT
   WITH CHECK (auth.uid() = sender_id);
+
+-- ==========================================
+-- 5. TEAMS TABLES
+-- ==========================================
+
+CREATE TABLE public.teams (
+  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name        TEXT NOT NULL,
+  event_name  TEXT,
+  created_by  UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
+  max_members INT DEFAULT 4,
+  created_at  TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE TABLE public.team_members (
+  team_id   UUID REFERENCES public.teams(id) ON DELETE CASCADE,
+  user_id   UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
+  role      TEXT CHECK (role IN ('Leader', 'Member')) DEFAULT 'Member',
+  skill_tag TEXT,
+  joined_at TIMESTAMPTZ DEFAULT now(),
+  PRIMARY KEY (team_id, user_id)
+);
+
+-- 7. Teams RLS Policies
+ALTER TABLE public.teams ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "teams_read_member" ON public.teams FOR SELECT
+  USING (id IN (SELECT team_id FROM public.team_members WHERE user_id = auth.uid()));
+CREATE POLICY "teams_insert_all" ON public.teams FOR INSERT
+  WITH CHECK (true);
+
+ALTER TABLE public.team_members ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "team_members_read_member" ON public.team_members FOR SELECT
+  USING (team_id IN (SELECT team_id FROM public.team_members WHERE user_id = auth.uid()));
