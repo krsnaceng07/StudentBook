@@ -9,7 +9,7 @@ import { useUIStore } from '../store/uiStore';
 import { StatusBar } from 'expo-status-bar';
 
 function NavigationGuard({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated, isStoreInitializing } = useAuthStore();
+  const { isAuthenticated, isStoreInitializing, user } = useAuthStore();
   const segments = useSegments();
   const router = useRouter();
 
@@ -21,12 +21,16 @@ function NavigationGuard({ children }: { children: React.ReactNode }) {
 
     if (!isAuthenticated && !inAuthGroup && !isPublicPage && segments[0] !== 'welcome') {
       router.replace('/welcome');
-    } else if (isAuthenticated) {
-      if (inAuthGroup || !segments.length) {
-        router.replace('/(tabs)');
+    } else if (isAuthenticated && user) {
+      if (inAuthGroup || !segments.length || segments[0] === 'welcome') {
+        if (user.role === 'college') {
+          router.replace('/college/dashboard');
+        } else {
+          router.replace('/(tabs)');
+        }
       }
     }
-  }, [isAuthenticated, isStoreInitializing, segments]);
+  }, [isAuthenticated, isStoreInitializing, segments, user]);
 
   return <>{children}</>;
 }
