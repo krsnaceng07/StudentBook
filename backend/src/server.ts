@@ -26,6 +26,7 @@ import teamsRoutes from './modules/teams/teams.routes.js';
 import profileRoutes from './modules/profile/profile.routes.js';
 import notificationsRoutes from './modules/notifications/notifications.routes.js';
 import dashboardRoutes from './modules/dashboard/dashboard.routes.js';
+import connectionsRoutes from './modules/connections/connections.routes.js';
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -85,6 +86,7 @@ app.use('/api/v1/teams', teamsRoutes);
 app.use('/api/v1/profile', profileRoutes);
 app.use('/api/v1/notifications', notificationsRoutes);
 app.use('/api/v1/dashboard', dashboardRoutes);
+app.use('/api/v1/connections', connectionsRoutes);
 
 app.get('/health', (req, res) => {
   res.json({ 

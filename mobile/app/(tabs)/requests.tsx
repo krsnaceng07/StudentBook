@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, ActivityIndicator, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useUIStore } from '../../store/uiStore';
 import { Ionicons } from '@expo/vector-icons';
@@ -11,32 +11,45 @@ export default function Requests() {
   const [loading, setLoading] = useState(false);
   const [incomingRequests, setIncomingRequests] = useState<any[]>([]);
   const [outgoingRequests, setOutgoingRequests] = useState<any[]>([]);
+  const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
 
   const fetchRequests = async () => {
     setLoading(true);
     try {
-      const response = await client.get('/dashboard/home');
-      if (response.data && response.data.success) {
-        const stats = response.data.data.stats;
-        if (stats && stats.pending > 0) {
-          setIncomingRequests([
-            {
-              id: 'incoming_req_1',
-              name: 'Priya Thapa',
-              university: 'Kathmandu University',
-              avatar_color: 'bg-purple-100 text-purple-600',
-              role: 'IoT Builder'
-            }
-          ]);
-        } else {
-          setIncomingRequests([]);
+      if (activeTab === 'Incoming') {
+        const response = await client.get('/connections/incoming');
+        if (response.data && response.data.success) {
+          setIncomingRequests(response.data.data);
         }
-        setOutgoingRequests([]);
+      } else {
+        const response = await client.get('/connections/outgoing');
+        if (response.data && response.data.success) {
+          setOutgoingRequests(response.data.data);
+        }
       }
     } catch (err) {
-      console.warn('Error fetching requests, using mock lists:', err);
+      console.warn('Error fetching requests:', err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleRespond = async (requestId: string, status: 'accepted' | 'declined') => {
+    setActionLoadingId(requestId);
+    try {
+      const response = await client.put('/connections/respond', { requestId, status });
+      if (response.data && response.data.success) {
+        Alert.alert("Success", `Collaboration request successfully ${status}!`);
+        fetchRequests();
+      } else {
+        Alert.alert("Error", response.data.error || "Failed to respond to request.");
+      }
+    } catch (err: any) {
+      console.error(err);
+      const errMsg = err.response?.data?.error || "Failed to process request.";
+      Alert.alert("Error", errMsg);
+    } finally {
+      setActionLoadingId(null);
     }
   };
 
@@ -100,11 +113,11 @@ export default function Requests() {
         </View>
       ) : (
         <ScrollView 
-          contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', alignItems: 'center' }}
+          contentContainerStyle={{ flexGrow: 1, justifyContent: 'flex-start', alignItems: 'center' }}
           className="flex-1"
         >
           {activeTab === 'Incoming' && incomingRequests.length === 0 ? (
-            <View className="items-center px-12 pb-16">
+            <View className="items-center px-12 pb-16 pt-20">
               {/* Mailbox Emoji/Graphics */}
               <View className={`w-24 h-24 rounded-full items-center justify-center mb-6 ${
                 isDarkMode ? 'bg-slate-800' : 'bg-blue-50/50'
@@ -120,7 +133,7 @@ export default function Requests() {
               </Text>
             </View>
           ) : activeTab === 'Outgoing' && outgoingRequests.length === 0 ? (
-            <View className="items-center px-12 pb-16">
+            <View className="items-center px-12 pb-16 pt-20">
               <View className={`w-24 h-24 rounded-full items-center justify-center mb-6 ${
                 isDarkMode ? 'bg-slate-800' : 'bg-blue-50/50'
               }`}>
@@ -137,18 +150,70 @@ export default function Requests() {
           ) : (
             // If requests list is not empty, render cards
             <View className="w-full px-6 py-4 gap-4">
-              {(activeTab === 'Incoming' ? incomingRequests : outgoingRequests).map((item) => (
-                <View 
-                  key={item.id}
-                  className={`p-5 rounded-3xl border border-slate-100 ${
-                    isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-white shadow-sm'
-                  }`}
-                >
-                  <Text className={`text-sm ${isDarkMode ? 'text-white' : 'text-slate-800'}`}>
-                    {item.message}
-                  </Text>
-                </View>
-              ))}
+              {(activeTab === 'Incoming' ? incomingRequests : outgoingRequests).map((item) => {
+                const userObj = activeTab === 'Incoming' ? item.sender : item.receiver;
+                return (
+                  <View 
+                    key={item.id}
+                    className={`p-5 rounded-3xl border border-slate-100 ${
+                      isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-white shadow-sm'
+                    }`}
+                  >
+                    <View className="flex-row items-center mb-3">
+                      {/* Avatar */}
+                      <View className="w-12 h-12 rounded-full bg-blue-600 items-center justify-center mr-3">
+                        <Text className="text-white font-bold text-base">{userObj.initials || '??'}</Text>
+                      </View>
+
+                      {/* Info */}
+                      <View className="flex-1">
+                        <Text className={`text-sm font-bold ${isDarkMode ? 'text-white' : 'text-slate-800'}`}>
+                          {userObj.full_name || 'Anonymous Student'}
+                        </Text>
+                        <Text className={`text-[11px] ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                          {userObj.university || 'Classmate'}
+                        </Text>
+                      </View>
+                    </View>
+
+                    {/* Action buttons for Incoming requests */}
+                    {activeTab === 'Incoming' && (
+                      <View className="flex-row gap-2 mt-4">
+                        <TouchableOpacity
+                          onPress={() => handleRespond(item.id, 'accepted')}
+                          disabled={actionLoadingId !== null}
+                          className="flex-1 bg-blue-600 py-2.5 rounded-xl items-center justify-center"
+                        >
+                          {actionLoadingId === item.id ? (
+                            <ActivityIndicator size="small" color="#fff" />
+                          ) : (
+                            <Text className="text-white font-bold text-xs">Accept</Text>
+                          )}
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                          onPress={() => handleRespond(item.id, 'declined')}
+                          disabled={actionLoadingId !== null}
+                          className="flex-1 bg-slate-200 dark:bg-slate-700 py-2.5 rounded-xl items-center justify-center"
+                        >
+                          <Text className={`font-bold text-xs ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>Decline</Text>
+                        </TouchableOpacity>
+                      </View>
+                    )}
+
+                    {/* Pending label for Outgoing requests */}
+                    {activeTab === 'Outgoing' && (
+                      <View className="mt-2 flex-row justify-end">
+                        <View className="bg-amber-100 dark:bg-amber-900/30 px-3 py-1.5 rounded-full">
+                          <Text className="text-amber-600 dark:text-amber-400 font-bold text-[10px]">
+                            Pending Response
+                          </Text>
+                        </View>
+                      </View>
+                    )}
+                  </View>
+                );
+              })}
             </View>
           )}
         </ScrollView>

@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useUIStore } from '../../store/uiStore';
+import { useAuthStore } from '../../store/authStore';
 import client from '../../api/client';
 
 interface ProfileDetails {
@@ -94,9 +95,12 @@ export default function ProfileDetailsScreen() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
   const { isDarkMode } = useUIStore();
+  const { user } = useAuthStore();
   const [requestSent, setRequestSent] = useState(false);
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<ProfileDetails | null>(null);
+
+  const isOwnProfile = user?.id === id;
 
   useEffect(() => {
     const fetchProfileData = async () => {
@@ -148,15 +152,26 @@ export default function ProfileDetailsScreen() {
     Linking.openURL(`https://${data.github}`);
   };
 
-  const handleSendRequest = () => {
-    if (!data || requestSent) return;
+  const handleSendRequest = async () => {
+    if (!data || requestSent || isOwnProfile) return;
     
-    setRequestSent(true);
-    Alert.alert(
-      "Request Sent",
-      `Your collaboration request has been successfully sent to ${data.name}!`,
-      [{ text: "Awesome" }]
-    );
+    try {
+      const response = await client.post('/connections/request', { receiverId: id });
+      if (response.data && response.data.success) {
+        setRequestSent(true);
+        Alert.alert(
+          "Request Sent",
+          `Your collaboration request has been successfully sent to ${data.name}!`,
+          [{ text: "Awesome" }]
+        );
+      } else {
+        Alert.alert("Error", response.data.error || "Failed to send request.");
+      }
+    } catch (err: any) {
+      console.error(err);
+      const errMsg = err.response?.data?.error || "Failed to send collaboration request.";
+      Alert.alert("Error", errMsg);
+    }
   };
 
   if (loading || !data) {
@@ -313,13 +328,21 @@ export default function ProfileDetailsScreen() {
       }`}>
         <TouchableOpacity 
           onPress={handleSendRequest}
-          disabled={requestSent}
+          disabled={requestSent || isOwnProfile}
           className={`w-full py-4 rounded-2xl items-center justify-center ${
-            requestSent ? 'bg-slate-400' : 'bg-blue-600 shadow-lg'
+            isOwnProfile 
+              ? 'bg-slate-500 shadow-sm opacity-80'
+              : requestSent 
+              ? 'bg-slate-400' 
+              : 'bg-blue-600 shadow-lg'
           }`}
         >
           <Text className="text-white font-bold text-sm">
-            {requestSent ? 'Collaboration Request Sent' : 'Send Collaboration Request'}
+            {isOwnProfile 
+              ? 'This is your profile' 
+              : requestSent 
+              ? 'Collaboration Request Sent' 
+              : 'Send Collaboration Request'}
           </Text>
         </TouchableOpacity>
       </View>
