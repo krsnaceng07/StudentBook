@@ -48,7 +48,7 @@ export default function TabLayout() {
         name="requests"
         options={{
           title: 'Requests',
-          tabBarIcon: ({ color, size }) => <Ionicons name="handshake-outline" size={size} color={color} />,
+          tabBarIcon: ({ color, size }) => <Ionicons name="person-add-outline" size={size} color={color} />,
         }}
       />
       <Tabs.Screen

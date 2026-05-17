@@ -24,13 +24,38 @@ export const authMiddleware = async (req: any, res: Response, next: NextFunction
       .single();
 
     if (profileError || !profile) {
-      return sendError(res, 'User profile not found', 404);
-    }
+      console.log(`[AuthMiddleware] Profile missing for user ${user.id}. Creating default...`);
+      
+      const { data: newProfile, error: insertError } = await supabaseAdmin
+        .from('profiles')
+        .insert([{ id: user.id, email: user.email, role: 'student' }])
+        .select()
+        .single();
+      
+      if (insertError) {
+        console.error('[AuthMiddleware] Failed to auto-create profile:', insertError);
+        return sendError(res, 'User profile not found', 404);
+      }
 
-    req.user = {
-      ...user,
-      role: profile.role
-    };
+      // Also ensure extended_profile exists
+      await supabaseAdmin
+        .from('extended_profiles')
+        .insert([{ 
+          id: user.id, 
+          full_name: user.email?.split('@')[0] || 'Aarav Sharma', 
+          university: 'Tribhuvan University' 
+        }]);
+
+      req.user = {
+        ...user,
+        role: 'student'
+      };
+    } else {
+      req.user = {
+        ...user,
+        role: profile.role
+      };
+    }
 
     next();
   } catch (error) {
