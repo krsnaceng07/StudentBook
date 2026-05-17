@@ -87,6 +87,6 @@
 - [x] Frontend: Connect stats cards (Connections, Bookmarks, Pending) and complete profile banner to active routing.
 - [x] Frontend: Configure upcoming events list items to trigger premium detail routes dynamically.
 
-## Phase 17: Backend API Authentication and Authorization Hardening (RBAC & Security Audit)
-- [ ] Backend: Enforce strict Role-Based Access Control (RBAC) on all protected routes using `roleMiddleware`.
-- [ ] Backend: Perform complete code security audit and verify IDOR and privilege escalation mitigations.
+## Phase 17: Backend API Authentication and Authorization Hardening (RBAC & Security Audit) ✅
+- [x] Backend: Enforce strict Role-Based Access Control (RBAC) on all protected routes using `roleMiddleware`.
+- [x] Backend: Perform complete code security audit and verify IDOR and privilege escalation mitigations.
