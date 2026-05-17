@@ -1,12 +1,13 @@
 # Project State: CollabSpace v2.0
 
 ## Current Position
-- **Phase**: 5 (completed)
-- **Task**: All tasks complete
-- **Status**: Verified
+- **Phase**: 6
+- **Task**: Planning complete (Phase 6 & 7 planned)
+- **Status**: Ready for execution
 
 ## Last Session Summary
-Phase 5 executed successfully. 3 plans, 3 tasks completed. Updated the database schema, created the backend Discover API route, and built the frontend Discover screen matching the provided UI image perfectly.
+Phases 6 and 7 added to roadmap and fully planned. Phase 6 covers the Events screen (DB schema, backend API, frontend UI). Phase 7 covers the Messages inbox (DB schema, backend API, frontend UI).
 
 ## Next Steps
-1. Proceed to Phase 6 or review UI changes.
+1. /execute 6  — Execute Events screen
+2. /execute 7  — Execute Messages inbox

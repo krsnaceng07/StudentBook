@@ -1,30 +1,30 @@
-# Debug Session: 001
+# Debug Session: 003
 
 ## Symptom
-The backend server fails to start with a `SyntaxError: The requested module '../../config/supabase.js' does not provide an export named 'supabase'`.
+The mobile app is stuck on "Loading..." indefinitely after the UI is built.
 
-**When:** During `npm run dev` in the backend.
-**Expected:** Backend compiles and starts successfully.
-**Actual:** Node crashes with the export mismatch error.
+**When:** When running the app, it doesn't navigate past the initial loader.
+**Expected:** The app should display the `welcome` screen or the new `(tabs)` home screen.
+**Actual:** Stuck on the `<ActivityIndicator>` in `_layout.tsx`.
 
 ## Hypotheses
 
 | # | Hypothesis | Likelihood | Status |
 |---|------------|------------|--------|
-| 1 | The export in `config/supabase.ts` is named something else, such as `supabaseAdmin` | 99% | UNTESTED |
-| 2 | The path `../../config/supabase.js` is incorrect | 1% | UNTESTED |
+| 1 | `user` object is never populated in `authStore.js` causing `(isAuthenticated && !user)` to remain true forever | 95% | UNTESTED |
+| 2 | `initializeAuth` never completes, causing `isStoreInitializing` to remain true | 5% | ELIMINATED |
 
 ## Attempts
 
 ### Attempt 1
-**Testing:** H1 — The export is named `supabaseAdmin`
-**Action:** Examined `e:\studentsociety\backend\src\config\supabase.ts` and confirmed it exports `supabaseAdmin`. 
-**Result:** Hypothesis confirmed. The file exports `supabaseAdmin` instead of `supabase`.
+**Testing:** H1 — `user` object is never populated
+**Action:** Reviewed `mobile/store/authStore.js`. Discovered that if the user has a Supabase session but no corresponding row in `profiles` (which happened when we ran our new migrations resetting tables), `fetchMe` returns without setting the `user` object in state.
+**Result:** Verified. This causes the UI in `_layout.tsx` to get trapped in the loading fallback forever.
 **Conclusion:** CONFIRMED
 
 ## Resolution
 
-**Root Cause:** `home.controller.ts` incorrectly attempted to import `supabase` instead of the actual exported instance `supabaseAdmin`.
-**Fix:** Modify `home.controller.ts` to import `supabaseAdmin` and use it for queries.
-**Verified:** Will run the fix and verify via `npm run dev` auto-reload.
-**Regression Check:** Server should start properly and `GET /api/v1/home` should function without syntax errors.
+**Root Cause:** The auth store failed to set a `user` state if a Supabase authenticated session existed but the `profiles` database record was missing or failed to fetch. It also contained old references to deleted stores in `logout()`.
+**Fix:** Modified `fetchMe` to provide a fallback `user` object `(id, email)` if the profile doesn't exist or errors out, preventing the UI deadlock. Also removed deleted store dependencies in `logout()`.
+**Verified:** User needs to reload the Expo app.
+**Regression Check:** Logout should no longer crash and the loading screen should dismiss properly.

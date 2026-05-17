@@ -28,3 +28,13 @@
 - [x] Database Schema: Add `university` and `bio` fields to `extended_profiles`.
 - [x] Backend APIs: Create `GET /api/v1/discover` endpoint with search and filter capabilities.
 - [x] Frontend: Build Discover screen UI matching the "Find teammates" design with search bar, filter pills, and user cards.
+
+## Phase 6: Events Screen Implementation
+- [ ] Database Schema: Add `event_type` and `organizer` fields to `events`.
+- [ ] Backend APIs: Create `GET /api/v1/events` endpoint with search and filter capabilities.
+- [ ] Frontend: Build Events screen UI matching the reference image.
+
+## Phase 7: Messages Screen Implementation
+- [ ] Database Schema: Implement conversations and messages tables.
+- [ ] Backend APIs: Endpoints for inbox and chat history.
+- [ ] Frontend: Build Messages inbox UI matching the reference image.
