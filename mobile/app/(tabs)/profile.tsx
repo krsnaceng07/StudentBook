@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useUIStore } from '../../store/uiStore';
+import { useAuthStore } from '../../store/authStore';
 import client from '../../api/client';
 
 const PROFILE_DATA_DEFAULT = {
@@ -21,6 +22,7 @@ const PROFILE_DATA_DEFAULT = {
 
 export default function Profile() {
   const { isDarkMode } = useUIStore();
+  const { logout } = useAuthStore();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [profile, setProfile] = useState<any>(PROFILE_DATA_DEFAULT);
@@ -204,6 +206,24 @@ export default function Profile() {
               </Text>
             </View>
             <Ionicons name="chevron-forward" size={16} color={isDarkMode ? '#64748B' : '#94A3B8'} />
+          </TouchableOpacity>
+
+          {/* Card 6: Sign Out */}
+          <TouchableOpacity 
+            onPress={async () => {
+              await logout();
+            }}
+            className={`p-5 rounded-3xl border mt-2 flex-row items-center justify-between ${
+              isDarkMode ? 'bg-red-950/25 border-red-900/30' : 'bg-red-50 border-red-100'
+            }`}
+          >
+            <View className="flex-row items-center gap-3">
+              <Ionicons name="log-out-outline" size={20} color="#EF4444" />
+              <Text className="text-xs font-bold text-red-500">
+                Sign Out
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={16} color="#EF4444" />
           </TouchableOpacity>
 
         </View>
