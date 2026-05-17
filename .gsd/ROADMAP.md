@@ -63,3 +63,8 @@
 - [x] Backend APIs: Endpoint for `GET /api/v1/dashboard/home` returning connectionsCount, bookmarksCount, pendingCount, and upcomingEvents.
 - [x] Frontend: Update bottom tab bar structure (Home, Discover, Events, Requests, Profile).
 - [x] Frontend: Re-build Home screen to match the final top banner and cards layout.
+
+## Phase 13: Premium Screen Design and Real-Data Integration
+- [ ] Database Schema: Ensure profiles, events, connections tables support the new fields (e.g. status_badge, bio, university_year, event details like prize/member limit, social links like github).
+- [ ] Backend APIs: Ensure endpoints `/api/v1/discover`, `/api/v1/events`, `/api/v1/profile/me`, and `/api/v1/connections` support returning and saving these new fields.
+- [ ] Frontend: Re-build Discover, Events, Requests, Profile and Connection Detail screens to match the final screenshots exactly.
