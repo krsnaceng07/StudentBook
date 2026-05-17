@@ -6,6 +6,7 @@ import { useAuthStore } from '../../store/authStore';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import client from '../../api/client';
+import { supabase } from '../../config/supabase';
 
 interface DashboardData {
   profile: {
@@ -75,6 +76,39 @@ export default function HomeIndex() {
   useEffect(() => {
     setLoading(true);
     fetchDashboard().finally(() => setLoading(false));
+
+    // Supabase Postgres Realtime Subscription for instant live changes!
+    const channel = supabase
+      .channel('home-realtime-sync')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'connections' },
+        (payload) => {
+          console.log('[Realtime] Connections updated:', payload);
+          fetchDashboard();
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'event_bookmarks' },
+        (payload) => {
+          console.log('[Realtime] Bookmarks updated:', payload);
+          fetchDashboard();
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'events' },
+        (payload) => {
+          console.log('[Realtime] Events updated:', payload);
+          fetchDashboard();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   const onRefresh = React.useCallback(() => {
@@ -152,31 +186,43 @@ export default function HomeIndex() {
         {/* Stats Section (Row of 3 cards) */}
         <View className="flex-row justify-between px-6 -mt-6">
           {/* Card 1: Connections */}
-          <View className={`w-[30%] rounded-2xl p-4 items-center justify-center border ${isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-100 shadow-sm'}`}>
+          <TouchableOpacity 
+            onPress={() => router.push('/requests')}
+            activeOpacity={0.85}
+            className={`w-[30%] rounded-2xl p-4 items-center justify-center border ${isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-100 shadow-sm'}`}
+          >
             <Text className="text-2xl mb-1">🤝</Text>
             <Text className={`text-lg font-bold mb-0.5 ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
               {data.stats.connections}
             </Text>
             <Text className={`text-[10px] ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>Connections</Text>
-          </View>
+          </TouchableOpacity>
 
           {/* Card 2: Bookmarks */}
-          <View className={`w-[30%] rounded-2xl p-4 items-center justify-center border ${isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-100 shadow-sm'}`}>
+          <TouchableOpacity 
+            onPress={() => router.push('/discover')}
+            activeOpacity={0.85}
+            className={`w-[30%] rounded-2xl p-4 items-center justify-center border ${isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-100 shadow-sm'}`}
+          >
             <Text className="text-2xl mb-1">🔖</Text>
             <Text className={`text-lg font-bold mb-0.5 ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
               {data.stats.bookmarks}
             </Text>
             <Text className={`text-[10px] ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>Bookmarks</Text>
-          </View>
+          </TouchableOpacity>
 
           {/* Card 3: Pending */}
-          <View className={`w-[30%] rounded-2xl p-4 items-center justify-center border ${isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-100 shadow-sm'}`}>
+          <TouchableOpacity 
+            onPress={() => router.push('/requests')}
+            activeOpacity={0.85}
+            className={`w-[30%] rounded-2xl p-4 items-center justify-center border ${isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-100 shadow-sm'}`}
+          >
             <Text className="text-2xl mb-1">📬</Text>
             <Text className={`text-lg font-bold mb-0.5 ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
               {data.stats.pending}
             </Text>
             <Text className={`text-[10px] ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>Pending</Text>
-          </View>
+          </TouchableOpacity>
         </View>
 
         {loading ? (
@@ -191,8 +237,10 @@ export default function HomeIndex() {
 
               <View className="gap-4">
                 {data.upcomingEvents.map((event) => (
-                  <View 
+                  <TouchableOpacity 
                     key={event.id}
+                    onPress={() => router.push({ pathname: '/events/[id]', params: { id: event.id } })}
+                    activeOpacity={0.85}
                     className={`flex-row rounded-2xl p-4 border items-center ${isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-100 shadow-sm'}`}
                   >
                     {/* Event Icon Block */}
@@ -223,14 +271,18 @@ export default function HomeIndex() {
                         </View>
                       </View>
                     </View>
-                  </View>
+                  </TouchableOpacity>
                 ))}
               </View>
             </View>
 
             {/* Profile Completion Callout */}
             <View className="mt-8 px-6 mb-8">
-              <View className={`rounded-2xl p-5 border flex-row items-center justify-between ${isDarkMode ? 'bg-blue-950/30 border-blue-900' : 'bg-blue-50/50 border-blue-100'}`}>
+              <TouchableOpacity 
+                onPress={() => router.push('/profile')}
+                activeOpacity={0.85}
+                className={`rounded-2xl p-5 border flex-row items-center justify-between ${isDarkMode ? 'bg-blue-950/30 border-blue-900' : 'bg-blue-50/50 border-blue-100'}`}
+              >
                 <View className="flex-1 mr-4">
                   <Text className={`font-bold text-[15px] mb-1 ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`}>
                     Complete your profile
@@ -240,7 +292,7 @@ export default function HomeIndex() {
                   </Text>
                 </View>
                 <Ionicons name="arrow-forward" size={20} color="#2563EB" />
-              </View>
+              </TouchableOpacity>
             </View>
           </>
         )}
