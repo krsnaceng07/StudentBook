@@ -90,3 +90,7 @@
 ## Phase 17: Backend API Authentication and Authorization Hardening (RBAC & Security Audit) ✅
 - [x] Backend: Enforce strict Role-Based Access Control (RBAC) on all protected routes using `roleMiddleware`.
 - [x] Backend: Perform complete code security audit and verify IDOR and privilege escalation mitigations.
+
+## Phase 18: Penetration Testing & API Input Validation Hardening (Injection & Sanitization)
+- [ ] Backend: Build robust Joi validation middleware to block invalid inputs and XSS scripts.
+- [ ] Backend: Enforce body validation schemas on auth routes and sanitize query parameters against injections.
