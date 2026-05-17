@@ -53,7 +53,7 @@
 - [x] Backend APIs: Endpoint for `GET /api/v1/profile/me` returning stats, skills, interests, goal.
 - [x] Frontend: Build "My Profile" screen with stats, skill/interest badges, and goal section.
 
-## Phase 11: Notifications Screen Implementation
-- [ ] Database Schema: Add `notifications` table with type, actor, and action fields.
-- [ ] Backend APIs: Endpoint for `GET /api/v1/notifications` returning grouped New/Earlier notifications.
-- [ ] Frontend: Build Notifications screen with Accept/Decline buttons for connection and team invites.
+## Phase 11: Notifications Screen Implementation ✅
+- [x] Database Schema: Add `notifications` table with type, actor, and action fields.
+- [x] Backend APIs: Endpoint for `GET /api/v1/notifications` returning grouped New/Earlier notifications.
+- [x] Frontend: Build Notifications screen with Accept/Decline buttons for connection and team invites.
