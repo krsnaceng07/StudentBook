@@ -102,3 +102,45 @@ export const getChatHistory = async (req: Request, res: Response) => {
     res.status(500).json({ success: false, error: error.message });
   }
 };
+
+export const sendMessage = async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).user?.id;
+    const { conversationId, content } = req.body;
+
+    if (!userId) return res.status(401).json({ success: false, error: 'Unauthorized' });
+    if (!conversationId || !content) {
+      return res.status(400).json({ success: false, error: 'Conversation ID and content are required' });
+    }
+
+    // Verify user is a participant
+    const { data: participation, error: partError } = await supabase
+      .from('conversation_participants')
+      .select('*')
+      .eq('conversation_id', conversationId)
+      .eq('user_id', userId)
+      .single();
+
+    if (partError || !participation) {
+      return res.status(403).json({ success: false, error: 'Forbidden: You are not a participant.' });
+    }
+
+    // Insert message
+    const { data: newMessage, error: msgError } = await supabase
+      .from('messages')
+      .insert({
+        conversation_id: conversationId,
+        sender_id: userId,
+        content
+      })
+      .select()
+      .single();
+
+    if (msgError) throw msgError;
+
+    res.status(201).json({ success: true, data: newMessage });
+  } catch (error: any) {
+    console.error('Error sending message:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
