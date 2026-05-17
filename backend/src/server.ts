@@ -27,6 +27,8 @@ import profileRoutes from './modules/profile/profile.routes.js';
 import notificationsRoutes from './modules/notifications/notifications.routes.js';
 import dashboardRoutes from './modules/dashboard/dashboard.routes.js';
 import connectionsRoutes from './modules/connections/connections.routes.js';
+import studentRoutes from './routes/student.routes.js';
+import collegeRoutes from './routes/college.routes.js';
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -76,17 +78,17 @@ const generalLimiter = rateLimit({
 // Apply general API rate limiter globally to all API routes
 app.use('/api/v1', generalLimiter);
 
-// Public & Guarded Routes
-app.use('/api/v1/auth', authLimiter, authRoutes); // Double-protect auth routes with stricter brute-force limiters
-app.use('/api/v1/home', homeRoutes);
-app.use('/api/v1/discover', discoverRoutes);
-app.use('/api/v1/events', eventsRoutes);
-app.use('/api/v1/messages', messagesRoutes);
-app.use('/api/v1/teams', teamsRoutes);
+// Public & Shared Guarded Routes
+app.use('/api/v1/auth', authLimiter, authRoutes);
 app.use('/api/v1/profile', profileRoutes);
 app.use('/api/v1/notifications', notificationsRoutes);
-app.use('/api/v1/dashboard', dashboardRoutes);
-app.use('/api/v1/connections', connectionsRoutes);
+
+// Shared feeds (read-only for all authenticated users)
+app.use('/api/v1/events', eventsRoutes);
+
+// Isolated Role Namespaces
+app.use('/api/v1/student', studentRoutes);
+app.use('/api/v1/college', collegeRoutes);
 
 app.get('/health', (req, res) => {
   res.json({ 
