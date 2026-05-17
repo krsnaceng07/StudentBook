@@ -1,5 +1,5 @@
--- Supabase Combined Master Schema (Idempotent & Safe)
--- Designed to be run multiple times without errors (Skips existing tables/triggers/policies)
+-- Supabase Combined Master Schema (Self-Healing & Idempotent)
+-- Designed to upgrade existing tables dynamically if they exist, or create them new!
 
 -- Enable UUID extension
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
@@ -34,6 +34,103 @@ CREATE TABLE IF NOT EXISTS public.profiles (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
+
+-- ===================================================
+-- SELF-HEALING: DYNAMICALLY UPGRADE PROFILES COLUMNS IF THEY ARE MISSING
+-- ===================================================
+DO $$
+BEGIN
+    -- profiles.name
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='profiles' AND column_name='name') THEN
+        ALTER TABLE public.profiles ADD COLUMN name TEXT NOT NULL DEFAULT 'Student';
+    END IF;
+
+    -- profiles.username
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='profiles' AND column_name='username') THEN
+        ALTER TABLE public.profiles ADD COLUMN username TEXT UNIQUE;
+    END IF;
+
+    -- profiles.provider
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='profiles' AND column_name='provider') THEN
+        ALTER TABLE public.profiles ADD COLUMN provider TEXT DEFAULT 'email';
+    END IF;
+
+    -- profiles.status
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='profiles' AND column_name='status') THEN
+        ALTER TABLE public.profiles ADD COLUMN status TEXT DEFAULT 'active' CHECK (status IN ('active', 'banned', 'deleted'));
+    END IF;
+
+    -- profiles.bio
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='profiles' AND column_name='bio') THEN
+        ALTER TABLE public.profiles ADD COLUMN bio TEXT;
+    END IF;
+
+    -- profiles.headline
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='profiles' AND column_name='headline') THEN
+        ALTER TABLE public.profiles ADD COLUMN headline TEXT DEFAULT 'Student at University';
+    END IF;
+
+    -- profiles.experience_level
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='profiles' AND column_name='experience_level') THEN
+        ALTER TABLE public.profiles ADD COLUMN experience_level TEXT DEFAULT 'Beginner';
+    END IF;
+
+    -- profiles.field
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='profiles' AND column_name='field') THEN
+        ALTER TABLE public.profiles ADD COLUMN field TEXT;
+    END IF;
+
+    -- profiles.skills
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='profiles' AND column_name='skills') THEN
+        ALTER TABLE public.profiles ADD COLUMN skills TEXT[] DEFAULT '{}';
+    END IF;
+
+    -- profiles.interests
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='profiles' AND column_name='interests') THEN
+        ALTER TABLE public.profiles ADD COLUMN interests TEXT[] DEFAULT '{}';
+    END IF;
+
+    -- profiles.goals
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='profiles' AND column_name='goals') THEN
+        ALTER TABLE public.profiles ADD COLUMN goals TEXT[] DEFAULT '{}';
+    END IF;
+
+    -- profiles.availability
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='profiles' AND column_name='availability') THEN
+        ALTER TABLE public.profiles ADD COLUMN availability TEXT DEFAULT 'Open for Projects';
+    END IF;
+
+    -- profiles.avatar
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='profiles' AND column_name='avatar') THEN
+        ALTER TABLE public.profiles ADD COLUMN avatar TEXT;
+    END IF;
+
+    -- profiles.is_private
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='profiles' AND column_name='is_private') THEN
+        ALTER TABLE public.profiles ADD COLUMN is_private BOOLEAN DEFAULT false;
+    END IF;
+
+    -- profiles.show_email
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='profiles' AND column_name='show_email') THEN
+        ALTER TABLE public.profiles ADD COLUMN show_email BOOLEAN DEFAULT false;
+    END IF;
+
+    -- profiles.show_online_status
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='profiles' AND column_name='show_online_status') THEN
+        ALTER TABLE public.profiles ADD COLUMN show_online_status BOOLEAN DEFAULT true;
+    END IF;
+
+    -- profiles.show_mutual_connections
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='profiles' AND column_name='show_mutual_connections') THEN
+        ALTER TABLE public.profiles ADD COLUMN show_mutual_connections BOOLEAN DEFAULT true;
+    END IF;
+
+    -- profiles.allow_messages_from
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='profiles' AND column_name='allow_messages_from') THEN
+        ALTER TABLE public.profiles ADD COLUMN allow_messages_from TEXT DEFAULT 'everyone' CHECK (allow_messages_from IN ('everyone', 'connections'));
+    END IF;
+END $$;
+
 
 -- Posts Table
 CREATE TABLE IF NOT EXISTS public.posts (
@@ -121,6 +218,71 @@ CREATE TABLE IF NOT EXISTS public.teams (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
+
+-- ===================================================
+-- SELF-HEALING: DYNAMICALLY UPGRADE TEAMS COLUMNS IF THEY ARE MISSING
+-- ===================================================
+DO $$
+BEGIN
+    -- teams.description
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='teams' AND column_name='description') THEN
+        ALTER TABLE public.teams ADD COLUMN description TEXT DEFAULT 'Study Group and Project Collaboration';
+    END IF;
+
+    -- teams.category
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='teams' AND column_name='category') THEN
+        ALTER TABLE public.teams ADD COLUMN category TEXT DEFAULT 'Study Group';
+    END IF;
+
+    -- teams.tags
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='teams' AND column_name='tags') THEN
+        ALTER TABLE public.teams ADD COLUMN tags TEXT[] DEFAULT '{}';
+    END IF;
+
+    -- teams.looking_for
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='teams' AND column_name='looking_for') THEN
+        ALTER TABLE public.teams ADD COLUMN looking_for TEXT[] DEFAULT '{}';
+    END IF;
+
+    -- teams.status
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='teams' AND column_name='status') THEN
+        ALTER TABLE public.teams ADD COLUMN status TEXT DEFAULT 'Recruiting' CHECK (status IN ('Recruiting', 'Active', 'Full', 'Archived'));
+    END IF;
+
+    -- teams.is_public
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='teams' AND column_name='is_public') THEN
+        ALTER TABLE public.teams ADD COLUMN is_public BOOLEAN DEFAULT true;
+    END IF;
+
+    -- teams.leader_id
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='teams' AND column_name='leader_id') THEN
+        -- If 'created_by' exists, populate 'leader_id' from it
+        IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='teams' AND column_name='created_by') THEN
+            ALTER TABLE public.teams ADD COLUMN leader_id UUID REFERENCES public.profiles(id);
+            UPDATE public.teams SET leader_id = created_by;
+            ALTER TABLE public.teams ALTER COLUMN leader_id SET NOT NULL;
+        ELSE
+            -- Fallback if no created_by exists
+            ALTER TABLE public.teams ADD COLUMN leader_id UUID REFERENCES public.profiles(id);
+        END IF;
+    END IF;
+
+    -- teams.avatar
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='teams' AND column_name='avatar') THEN
+        ALTER TABLE public.teams ADD COLUMN avatar TEXT;
+    END IF;
+
+    -- teams.links
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='teams' AND column_name='links') THEN
+        ALTER TABLE public.teams ADD COLUMN links JSONB DEFAULT '[]';
+    END IF;
+
+    -- teams.conversation_id
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='teams' AND column_name='conversation_id') THEN
+        ALTER TABLE public.teams ADD COLUMN conversation_id UUID REFERENCES public.conversations(id);
+    END IF;
+END $$;
+
 
 -- Team Members Table
 CREATE TABLE IF NOT EXISTS public.team_members (
