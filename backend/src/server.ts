@@ -3,6 +3,7 @@ import express from 'express';
 import cors from 'cors';
 import authRoutes from './modules/auth/auth.routes.js';
 import homeRoutes from './modules/home/home.routes.js';
+import discoverRoutes from './modules/discover/discover.routes.js';
 import { authMiddleware } from './middleware/auth.middleware.js';
 import { roleMiddleware } from './middleware/role.middleware.js';
 
@@ -15,6 +16,7 @@ app.use(express.json());
 // Public Routes
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/home', homeRoutes);
+app.use('/api/v1/discover', discoverRoutes);
 
 app.get('/health', (req, res) => {
   res.json({ 
