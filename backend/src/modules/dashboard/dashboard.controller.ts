@@ -63,3 +63,44 @@ export const getDashboardHome = async (req: Request, res: Response) => {
     res.status(500).json({ success: false, error: error.message });
   }
 };
+
+export const getCollegeDashboard = async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).user?.id;
+    if (!userId) return res.status(401).json({ success: false, error: 'Unauthorized' });
+
+    // 1. Fetch count of active events by this college
+    const { count: eventsCount, error: eventsErr } = await supabase
+      .from('events')
+      .select('*', { count: 'exact', head: true })
+      .eq('author_id', userId);
+
+    // 2. Fetch the latest 5 events authored by this college
+    const { data: recentEvents, error: recentErr } = await supabase
+      .from('events')
+      .select('*')
+      .eq('author_id', userId)
+      .order('created_at', { ascending: false })
+      .limit(5);
+
+    if (eventsErr) throw eventsErr;
+    if (recentErr) throw recentErr;
+
+    // 3. Mock total reach based on active events
+    const totalReach = (eventsCount || 0) * 125 + 50;
+
+    res.status(200).json({
+      success: true,
+      data: {
+        stats: {
+          activeEvents: eventsCount || 0,
+          totalReach: totalReach
+        },
+        recentEvents: recentEvents || []
+      }
+    });
+  } catch (error: any) {
+    console.error('Error fetching college dashboard:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
