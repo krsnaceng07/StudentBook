@@ -120,6 +120,7 @@ export const useAuthStore = create((set) => ({
       if (!profile) {
         // User exists in Auth but not in Profiles yet
         console.log('[AuthStore] No profile found for authenticated user.');
+        set({ user: { id: session.user.id, email: session.user.email }, isAuthenticated: true });
         return { success: false, reason: 'no_profile' };
       }
 
@@ -128,25 +129,15 @@ export const useAuthStore = create((set) => ({
     } catch (error) {
       // PGRST116 is handled by maybeSingle() returning null
       console.error('Fetch Me Error:', error);
+      set({ user: { id: 'error_fallback' }, isAuthenticated: true });
       return { success: false };
     }
   },
 
   logout: async () => {
     try {
-      const { useChatStore } = require('./chatStore');
-      const { useProfileStore } = require('./profileStore');
-      const { usePostStore } = require('./postStore');
-      const { useDiscoverStore } = require('./discoverStore');
-      const { useConnectionStore } = require('./connectionStore');
-      const { useTeamStore } = require('./teamStore');
-      
-      useChatStore.getState().disconnectSocket();
-      useProfileStore.getState().clearProfile();
-      usePostStore.setState({ posts: [], page: 1, hasMore: true, filters: { search: '' } });
-      useDiscoverStore.setState({ users: [], page: 1, hasMore: true, filters: { search: '', field: '', skills: [] } });
-      useConnectionStore.setState({ connections: [], incomingRequests: [] });
-      useTeamStore.setState({ teams: [], myTeams: [], activeTeam: null, pendingRequests: [] });
+      // Only clean up what still exists
+      const { useUIStore } = require('./uiStore');
     } catch (e) {
       console.error('Logout cleanup error:', e);
     }

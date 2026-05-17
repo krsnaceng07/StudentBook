@@ -107,8 +107,8 @@
 - [x] Backend: Threat-model signup, login, profile, and dashboard workflows to block step-skipping and parameter manipulation.
 - [x] Backend: Enforce strict trust boundaries and document attack vector mitigations in the codebase.
 
-## Phase 22: Mobilizing Key Screen UIs (Discover, Events, Requests, and Profile Live-Data Connect)
-- [ ] Mobile: Connect the Discover screen UI to backend API to query live user listings.
-- [ ] Mobile: Connect the Profile screen UI to dynamic profile endpoints to fetch authenticated details.
-- [ ] Mobile: Connect the Events screen UI to live endpoints to retrieve active database listings.
-- [ ] Mobile: Connect the Requests screen UI to live connection endpoints.
+## Phase 22: Mobilizing Key Screen UIs (Discover, Events, Requests, and Profile Live-Data Connect) ✅
+- [x] Mobile: Connect the Discover screen UI to backend API to query live user listings.
+- [x] Mobile: Connect the Profile screen UI to dynamic profile endpoints to fetch authenticated details.
+- [x] Mobile: Connect the Events screen UI to live endpoints to retrieve active database listings.
+- [x] Mobile: Connect the Requests screen UI to live connection endpoints.

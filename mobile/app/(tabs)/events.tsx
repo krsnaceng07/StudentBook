@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useUIStore } from '../../store/uiStore';
+import client from '../../api/client';
 
 const EVENT_FILTERS = ['All Events', 'Hackathon', 'Workshop', 'Competition'];
 
@@ -77,6 +78,38 @@ export default function Events() {
   const { isDarkMode } = useUIStore();
   const [activeFilter, setActiveFilter] = useState('All Events');
   const [events, setEvents] = useState<EventItem[]>(MOCK_EVENTS);
+  const [loading, setLoading] = useState(false);
+
+  const fetchEvents = async () => {
+    setLoading(true);
+    try {
+      const response = await client.get('/events');
+      if (response.data && response.data.success && response.data.data.length > 0) {
+        const liveEvents = response.data.data.map((e: any) => ({
+          id: e.id,
+          type: e.event_type || 'Hackathon',
+          title: e.title,
+          organizer: e.organizer || 'Society Team',
+          date: e.event_date ? new Date(e.event_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'TBD',
+          prize: 'NPR 1,00,000',
+          teamSize: '2-4',
+          topAccentColor: e.event_type === 'Workshop' ? 'bg-emerald-600' : e.event_type === 'Seminar' ? 'bg-purple-600' : 'bg-blue-600',
+          badgeBg: e.event_type === 'Workshop' ? 'bg-emerald-50' : e.event_type === 'Seminar' ? 'bg-purple-50' : 'bg-blue-50',
+          badgeText: e.event_type === 'Workshop' ? 'text-emerald-600' : e.event_type === 'Seminar' ? 'text-purple-600' : 'text-blue-600',
+          isBookmarked: false
+        }));
+        setEvents(liveEvents);
+      }
+    } catch (err) {
+      console.warn('Error fetching events, using mocks:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchEvents();
+  }, []);
 
   const toggleBookmark = (id: string) => {
     setEvents(prev => prev.map(e => e.id === id ? { ...e, isBookmarked: !e.isBookmarked } : e));

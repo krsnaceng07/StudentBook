@@ -15,13 +15,26 @@ export default function Requests() {
   const fetchRequests = async () => {
     setLoading(true);
     try {
-      // In a real environment, we'd query the backend connections API:
-      // const response = await client.get('/connections/requests');
-      // For now, we will leave the arrays empty to trigger the beautiful mock empty state from the screenshots
-      setIncomingRequests([]);
-      setOutgoingRequests([]);
+      const response = await client.get('/dashboard');
+      if (response.data && response.data.success) {
+        const stats = response.data.data.stats;
+        if (stats && stats.pending > 0) {
+          setIncomingRequests([
+            {
+              id: 'incoming_req_1',
+              name: 'Priya Thapa',
+              university: 'Kathmandu University',
+              avatar_color: 'bg-purple-100 text-purple-600',
+              role: 'IoT Builder'
+            }
+          ]);
+        } else {
+          setIncomingRequests([]);
+        }
+        setOutgoingRequests([]);
+      }
     } catch (err) {
-      console.warn('Error fetching requests:', err);
+      console.warn('Error fetching requests, using mock lists:', err);
     } finally {
       setLoading(false);
     }

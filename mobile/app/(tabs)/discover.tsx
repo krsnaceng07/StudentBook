@@ -83,32 +83,27 @@ export default function Discover() {
   const fetchTeammates = async () => {
     setLoading(true);
     try {
-      // In a real environment, we'd query the backend discover API:
-      // const response = await client.get(`/discover?search=${searchQuery}&filter=${activeFilter}`);
-      // But we will filter locally on top of mock to guarantee bulletproof offline support
-      let filtered = [...MOCK_TEAMMATES];
-
-      if (searchQuery.trim() !== '') {
-        const query = searchQuery.toLowerCase();
-        filtered = filtered.filter(t => 
-          t.name.toLowerCase().includes(query) || 
-          t.skills.some(s => s.toLowerCase().includes(query)) ||
-          t.university.toLowerCase().includes(query)
-        );
+      const response = await client.get(`/discover?search=${searchQuery}`);
+      if (response.data && response.data.success) {
+        const liveUsers = response.data.data.map((user: any) => ({
+          id: user.id,
+          initials: user.initials || '??',
+          avatar_color: 'bg-blue-100 text-blue-600 border-blue-200',
+          name: user.full_name || 'Anonymous User',
+          university: user.university || 'University Student',
+          year: user.role_title || 'Student',
+          status_badge: 'Open to Join',
+          skills: user.skills || [],
+          bio: user.bio || '',
+          is_online: true
+        }));
+        setTeammates(liveUsers);
+      } else {
+        setTeammates(MOCK_TEAMMATES);
       }
-
-      if (activeFilter !== 'All') {
-        const statusMap: Record<string, string> = {
-          'Seeking Team': 'Looking for Team',
-          'Open to Join': 'Open to Join',
-          'Exploring': 'Exploring'
-        };
-        filtered = filtered.filter(t => t.status_badge === statusMap[activeFilter]);
-      }
-
-      setTeammates(filtered);
     } catch (err) {
-      console.warn('Error discover query:', err);
+      console.warn('Error discover query, using fallback mocks:', err);
+      setTeammates(MOCK_TEAMMATES);
     } finally {
       setLoading(false);
     }

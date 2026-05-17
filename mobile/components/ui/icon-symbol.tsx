@@ -27,7 +27,8 @@ const MAPPING = {
   'sparkles': 'auto-awesome',
   'questionmark.circle.fill': 'help-outline',
   'doc.fill': 'article',
-} as IconMapping;
+  'calendar.fill': 'event',
+} as unknown as IconMapping;
 
 /**
  * An icon component that uses native SF Symbols on iOS, and Material Icons on Android and web.
