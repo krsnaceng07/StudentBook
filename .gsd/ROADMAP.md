@@ -72,3 +72,12 @@
 ## Phase 14: Student-Friendly Navigation Shifting ✅
 - [x] Frontend: Keep bottom tabs strictly at 5 buttons (Home, Discover, Events, Requests, Profile).
 - [x] Frontend: Shift Messages and My Team screens to highly intuitive headers (Home screen top-right) and Profile workspace cards.
+
+## Phase 15: Dual-Role College Workspace & Premium Onboarding
+- [ ] Frontend: Build step-by-step Onboarding goal selection flow with progress bars.
+- [ ] Frontend: Build dynamic, premium Event Details view screen with colored banners, grids, prize highlight card, and tags.
+- [ ] Frontend: Build College Tab Portal layout with green theme.
+- [ ] Frontend: Build College Dashboard with total reach and active event stats cards.
+- [ ] Frontend: Build College Events Management panel with post event, edit, and delete actions.
+- [ ] Frontend: Build College Profile screen with About, Website, and Contact info.
+- [ ] Frontend: Configure Auth navigation split to automatically guide students to `/(tabs)` and colleges to `/college`.
