@@ -7,13 +7,24 @@ dotenv.config();
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
+function checkIsServiceRole(key: string): boolean {
+  try {
+    const parts = key.split('.');
+    if (parts.length < 2) return false;
+    const payload = JSON.parse(Buffer.from(parts[1], 'base64').toString('utf8'));
+    return payload.role === 'service_role';
+  } catch {
+    return false;
+  }
+}
+
 if (!supabaseUrl || !supabaseServiceKey) {
   console.error('Missing Supabase environment variables');
 } else {
   console.log('Supabase Config Loaded:', { 
     url: supabaseUrl, 
     keyLength: supabaseServiceKey.length,
-    isServiceRole: supabaseServiceKey.includes('service_role')
+    isServiceRole: checkIsServiceRole(supabaseServiceKey)
   });
 }
 
