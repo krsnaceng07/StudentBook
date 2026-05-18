@@ -48,7 +48,7 @@ export const getMyEvents = async (req: Request, res: Response) => {
 export const getEventById = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    if (!id) return res.status(400).json({ success: false, error: 'Event ID is required' });
+    if (!id || typeof id !== 'string') return res.status(400).json({ success: false, error: 'Event ID is required' });
 
     // Validate UUID format before querying database to prevent Postgres syntax errors
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
