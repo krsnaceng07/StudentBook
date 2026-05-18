@@ -65,3 +65,67 @@ export const getProfileById = async (req: Request, res: Response) => {
     res.status(500).json({ success: false, error: error.message });
   }
 };
+
+export const updateProfile = async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).user?.id;
+    if (!userId) return res.status(401).json({ success: false, error: 'Unauthorized' });
+
+    const {
+      full_name,
+      university,
+      department,
+      university_year,
+      bio,
+      skills,
+      interests,
+      social_links,
+    } = req.body;
+
+    // 1. Calculate initials if full_name is provided
+    let initials = undefined;
+    if (full_name) {
+      initials = full_name
+        .split(' ')
+        .map((n: string) => n[0])
+        .join('')
+        .toUpperCase()
+        .slice(0, 3);
+    }
+
+    // 2. Perform upsert in public.extended_profiles
+    const updateData: any = {
+      id: userId,
+      updated_at: new Date().toISOString(),
+    };
+
+    if (full_name !== undefined) updateData.full_name = full_name;
+    if (initials !== undefined) updateData.initials = initials;
+    if (university !== undefined) updateData.university = university;
+    if (department !== undefined) updateData.department = department;
+    if (university_year !== undefined) updateData.university_year = university_year;
+    if (bio !== undefined) updateData.bio = bio;
+    if (skills !== undefined) updateData.skills = skills;
+    if (interests !== undefined) updateData.interests = interests;
+    if (social_links !== undefined) updateData.social_links = social_links;
+
+    const { data: updatedProfile, error: profileError } = await supabase
+      .from('extended_profiles')
+      .upsert(updateData)
+      .select('*')
+      .single();
+
+    if (profileError) {
+      throw profileError;
+    }
+
+    res.status(200).json({
+      success: true,
+      data: updatedProfile,
+    });
+  } catch (error: any) {
+    console.error('Error updating profile:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
