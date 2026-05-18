@@ -133,3 +133,10 @@
 - [x] Backend: Setup `PUT /api/v1/profile/update` supporting complete profile updates.
 - [x] Mobile: Create premium multi-tab Edit Profile screen UI matching mock specifications.
 
+## Phase 26: High-Fidelity Tab Screens Implementation (Skills, Interests, Settings)
+**Status**: ⏳ Planned
+- [ ] Database: Implement availability column patch in schema.
+- [ ] Backend: Update profile controllers to support availability and goals.
+- [ ] Mobile: Implement high-fidelity pill grid selections and goal selector UI tabs.
+
+
