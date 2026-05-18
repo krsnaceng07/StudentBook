@@ -139,4 +139,11 @@
 - [x] Backend: Update profile controllers to support availability and goals.
 - [x] Mobile: Implement high-fidelity pill grid selections and goal selector UI tabs.
 
+## Phase 27: College Side Settings & Edit College Profile Systems
+**Status**: ⏳ Planned
+- [ ] Database: Add college profile columns (type, established, website, contact_email) to database schema.
+- [ ] Backend: Update profile update controller to read and save college-role specifications.
+- [ ] Mobile: Create high-fidelity college settings page and edit college profile screen.
+
+
 
