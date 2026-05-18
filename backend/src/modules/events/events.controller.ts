@@ -52,6 +52,15 @@ export const createEvent = async (req: Request, res: Response) => {
 
     const { title, description, event_date, location, event_type, tags, member_limit } = req.body;
 
+    // Fetch organizer name dynamically from extended_profiles table
+    const { data: profile } = await supabase
+      .from('extended_profiles')
+      .select('full_name')
+      .eq('id', userId)
+      .single();
+
+    const organizerName = profile?.full_name || 'College';
+
     const { data: event, error } = await supabase
       .from('events')
       .insert([{
@@ -63,7 +72,7 @@ export const createEvent = async (req: Request, res: Response) => {
         event_type,
         tags: tags || [],
         member_limit,
-        organizer: 'College' // Temporary default or fetch from college profile
+        organizer: organizerName
       }])
       .select()
       .single();
