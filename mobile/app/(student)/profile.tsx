@@ -73,10 +73,18 @@ export default function Profile() {
       edges={['top']}
     >
       {/* Top Header */}
-      <View className={`px-6 pt-4 pb-4 ${isDarkMode ? 'bg-[#0F172A]' : 'bg-white border-b border-slate-100 shadow-sm'}`}>
+      <View className={`px-6 pt-4 pb-4 flex-row items-center justify-between ${isDarkMode ? 'bg-[#0F172A]' : 'bg-white border-b border-slate-100 shadow-sm'}`}>
         <Text className={`text-2xl font-bold tracking-tight ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
           Profile
         </Text>
+        <TouchableOpacity 
+          onPress={() => router.push('/(student)/settings')}
+          className={`w-9 h-9 rounded-full items-center justify-center border ${
+            isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-slate-50 border-slate-200'
+          }`}
+        >
+          <Ionicons name="settings-outline" size={18} color={isDarkMode ? 'white' : 'black'} />
+        </TouchableOpacity>
       </View>
 
       <ScrollView 
@@ -220,23 +228,39 @@ export default function Profile() {
             <Ionicons name="chevron-forward" size={16} color={isDarkMode ? '#64748B' : '#94A3B8'} />
           </TouchableOpacity>
 
-          {/* Card 6: Sign Out */}
-          <TouchableOpacity 
-            onPress={async () => {
-              await logout();
-            }}
-            className={`p-5 rounded-3xl border mt-2 flex-row items-center justify-between ${
-              isDarkMode ? 'bg-red-950/25 border-red-900/30' : 'bg-red-50 border-red-100'
-            }`}
-          >
-            <View className="flex-row items-center gap-3">
-              <Ionicons name="log-out-outline" size={20} color="#EF4444" />
-              <Text className="text-xs font-bold text-red-500">
-                Sign Out
-              </Text>
-            </View>
-            <Ionicons name="chevron-forward" size={16} color="#EF4444" />
-          </TouchableOpacity>
+           {/* Card 6: Settings & Privacy */}
+           <TouchableOpacity 
+             onPress={() => router.push('/(student)/settings')}
+             className={`p-5 rounded-3xl border border-slate-100 flex-row items-center justify-between ${
+               isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-white shadow-sm'
+             }`}
+           >
+             <View className="flex-row items-center gap-3">
+               <Ionicons name="settings-outline" size={20} color={isDarkMode ? '#60A5FA' : '#2563EB'} />
+               <Text className={`text-xs font-bold ${isDarkMode ? 'text-white' : 'text-slate-800'}`}>
+                 Settings & Privacy
+               </Text>
+             </View>
+             <Ionicons name="chevron-forward" size={16} color={isDarkMode ? '#64748B' : '#94A3B8'} />
+           </TouchableOpacity>
+
+           {/* Card 7: Sign Out */}
+           <TouchableOpacity 
+             onPress={async () => {
+               await logout();
+             }}
+             className={`p-5 rounded-3xl border mt-2 flex-row items-center justify-between ${
+               isDarkMode ? 'bg-red-950/25 border-red-900/30' : 'bg-red-50 border-red-100'
+             }`}
+           >
+             <View className="flex-row items-center gap-3">
+               <Ionicons name="log-out-outline" size={20} color="#EF4444" />
+               <Text className="text-xs font-bold text-red-500">
+                 Sign Out
+               </Text>
+             </View>
+             <Ionicons name="chevron-forward" size={16} color="#EF4444" />
+           </TouchableOpacity>
 
         </View>
       </ScrollView>
