@@ -37,13 +37,13 @@ export default function Profile() {
           initials: p.initials || '??',
           name: p.full_name || 'Anonymous User',
           university: p.university || 'University Student',
-          year: p.role_title || 'Student',
+          year: `${p.department || p.role_title || 'Student'}${p.university_year ? ` - ${p.university_year}` : ''}`,
           status: 'Looking for Team',
           availability: 'Available',
           bio: p.bio || 'Welcome to my profile.',
           skills: p.skills || [],
-          interests: ['AI', 'FinTech'],
-          github: 'github.com'
+          interests: p.interests || ['AI', 'FinTech'],
+          github: p.social_links?.github || 'github.com'
         });
       }
     } catch (err) {
@@ -58,7 +58,11 @@ export default function Profile() {
   }, []);
 
   const handleGithubPress = () => {
-    Linking.openURL('https://github.com');
+    if (profile.github && profile.github !== 'github.com') {
+      Linking.openURL(profile.github.startsWith('http') ? profile.github : `https://${profile.github}`);
+    } else {
+      Linking.openURL('https://github.com');
+    }
   };
 
   return (
@@ -81,7 +85,10 @@ export default function Profile() {
         <View className="px-6 pt-5">
           <View className="bg-blue-600 rounded-[32px] p-6 relative flex-row items-center">
             {/* Edit Button */}
-            <TouchableOpacity className="absolute top-4 right-4 bg-blue-500/50 px-4 py-2 rounded-2xl flex-row items-center border border-blue-400/20">
+            <TouchableOpacity 
+              onPress={() => router.push('/(student)/edit-profile')}
+              className="absolute top-4 right-4 bg-blue-500/50 px-4 py-2 rounded-2xl flex-row items-center border border-blue-400/20"
+            >
               <Text className="text-white font-bold text-xs mr-1">Edit</Text>
               <Ionicons name="pencil" size={12} color="#F97316" />
             </TouchableOpacity>
@@ -90,10 +97,10 @@ export default function Profile() {
             <View className="w-16 h-16 rounded-full bg-blue-500 border-2 border-white items-center justify-center mr-4">
                <Text className="text-white text-xl font-bold">{profile.initials}</Text>
             </View>
- 
+
              <View className="flex-1 pr-12">
                <Text className="text-white text-lg font-bold mb-0.5">{profile.name}</Text>
-               <Text className="text-blue-100 text-xs font-semibold">{profile.university} - 3rd</Text>
+               <Text className="text-blue-100 text-xs font-semibold">{profile.university} - {profile.year}</Text>
              </View>
            </View>
          </View>
