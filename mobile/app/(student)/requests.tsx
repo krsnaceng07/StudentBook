@@ -125,7 +125,7 @@ export default function Requests() {
               <View className={`w-24 h-24 rounded-full items-center justify-center mb-6 ${
                 isDarkMode ? 'bg-slate-800' : 'bg-blue-50'
               }`}>
-                <Text className="text-[52px] leading-[60px]">📬</Text>
+                <Text className="text-5xl text-center">📬</Text>
               </View>
 
               <Text className={`text-[17px] font-bold text-center mb-2 ${isDarkMode ? 'text-white' : 'text-[#1E293B]'}`}>
@@ -140,7 +140,7 @@ export default function Requests() {
               <View className={`w-24 h-24 rounded-full items-center justify-center mb-6 ${
                 isDarkMode ? 'bg-slate-800' : 'bg-blue-50'
               }`}>
-                <Text className="text-[52px] leading-[60px]">📤</Text>
+                <Text className="text-5xl text-center">📤</Text>
               </View>
 
               <Text className={`text-[17px] font-bold text-center mb-2 ${isDarkMode ? 'text-white' : 'text-[#1E293B]'}`}>
@@ -154,7 +154,10 @@ export default function Requests() {
             // If requests list is not empty, render cards
             <View className="w-full px-6 py-4 gap-4">
               {(activeTab === 'Incoming' ? incomingRequests : outgoingRequests).map((item) => {
-                const userObj = activeTab === 'Incoming' ? item.sender : item.receiver;
+                const userObj = (activeTab === 'Incoming' ? item.sender : item.receiver) || {};
+                const fullName = userObj.full_name || 'Anonymous Student';
+                const initials = userObj.initials || fullName.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase() || '??';
+                const university = userObj.university || 'StudentBook University';
                 return (
                   <View 
                     key={item.id}
@@ -165,16 +168,16 @@ export default function Requests() {
                     <View className="flex-row items-center mb-3">
                       {/* Avatar */}
                       <View className="w-12 h-12 rounded-full bg-blue-600 items-center justify-center mr-3">
-                        <Text className="text-white font-bold text-base">{userObj.initials || '??'}</Text>
+                        <Text className="text-white font-bold text-base">{initials}</Text>
                       </View>
 
                       {/* Info */}
                       <View className="flex-1">
                         <Text className={`text-sm font-bold ${isDarkMode ? 'text-white' : 'text-slate-800'}`}>
-                          {userObj.full_name || 'Anonymous Student'}
+                          {fullName}
                         </Text>
                         <Text className={`text-[11px] ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
-                          {userObj.university || 'Classmate'}
+                          {university}
                         </Text>
                       </View>
                     </View>

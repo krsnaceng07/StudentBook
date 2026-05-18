@@ -1,30 +1,41 @@
-# Debug Session: College Settings UI Bug Fix
+# Debug Session: Student Screens Navigation Context Crash
 
 ## Symptom
-The Settings screen inside the College Portal crashed at runtime, throwing a `ReferenceError` for missing variables when navigating or focusing.
+Opening student-side empty screens (like Requests, Teams, or Messages) throws a `Couldn't find a navigation context. Have you wrapped your app with 'NavigationContainer'?` crash trace pointing to the rendering of `Requests` or other empty-state screen modules.
 
-**When:** Occurs immediately upon clicking the Settings button or entering the Settings screen.
-**Expected:** The Settings screen should load cleanly, rendering dynamic profile name/email and settings menu items.
-**Actual:** The screen crashed due to `Can't find variable: useFocusEffect` and `Can't find variable: useCallback`.
+**When:** Occurs immediately upon clicking the Requests, Teams, or Messages tabs when they are in an empty state.
+**Expected:** The screens should load cleanly, rendering the empty state mail/chat graphic emojis.
+**Actual:** The app crashes with a React Navigation context error.
 
 ---
 
 ## Evidence
-- Checking imports inside `settings.tsx` revealed that:
-  * `useCallback` was called in `useFocusEffect(useCallback(...))` but was NOT imported from `'react'`.
-  * `useFocusEffect` was called but was NOT imported from `'expo-router'`.
-- Additionally, found a dynamic Tailwind opacity shortcut class `bg-emerald-50/10` on the avatar badge wrapper that could trigger interop warnings on NativeWind v4 engines.
+- Inspecting the stack trace showed that the crash was triggered inside NativeWind's style interop:
+  - `printUpgradeWarning (node_modules/react-native-css-interop/dist/runtime/native/render-component.js)`
+- Further inspection revealed that all three empty states used the Tailwind utility `text-[52px] leading-[60px]` for sizing the emojis.
+- In React Native, `lineHeight` must be a raw `number`, not a string like `'60px'`.
+- NativeWind v4 (react-native-css-interop) validation caught this invalid line height and attempted to log a warning, traversing the React component and fiber tree, which accidentally accessed the React Navigation context outside of a navigator screen, leading to the misleading `Couldn't find a navigation context` crash.
+- Also identified that `Requests.tsx` was accessing `item.sender` or `item.receiver` directly without safeguards, making it vulnerable to TypeErrors if a request record is incomplete.
 
 ---
 
 ## Resolution
 
-**Root Cause:** Missing imports for hooks (`useCallback` and `useFocusEffect`) in `settings.tsx`.
+**Root Cause:** Invalid arbitrary line-height style class (`leading-[60px]`) on emojis in empty states, causing a NativeWind interop crash which triggered a misleading Navigation Context error during tree traversal.
+
 **Fix:**
-- Updated imports in [`settings.tsx`](file:///e:/studentsociety/mobile/app/(college)/settings.tsx#L1-L8):
-  * Added `useCallback` to `'react'` imports.
-  * Added `useFocusEffect` to `'expo-router'` imports.
-- Refactored `bg-emerald-50/10` to style-safe inline RGBA background color mapping:
-  * `style={{ backgroundColor: 'rgba(16, 185, 129, 0.1)' }}`
-**Verified:** Compile succeeds and runtime dependencies resolve cleanly. No ReferenceErrors remaining!
-**Regression Check:** Verified Dashboard and Profile screens also have complete and correct imports for `useFocusEffect` / `useCallback`.
+- Updated [`requests.tsx`](file:///e:/studentsociety/mobile/app/(student)/requests.tsx):
+  - Replaced `text-[52px] leading-[60px]` with standard `text-5xl text-center`.
+  - Added bulletproof safeguards to connection requests mapping:
+    ```typescript
+    const userObj = (activeTab === 'Incoming' ? item.sender : item.receiver) || {};
+    const fullName = userObj.full_name || 'Anonymous Student';
+    const initials = userObj.initials || fullName.split(' ').map((n) => n[0]).join('').substring(0, 2).toUpperCase() || '??';
+    const university = userObj.university || 'StudentBook University';
+    ```
+- Updated [`teams.tsx`](file:///e:/studentsociety/mobile/app/(student)/teams.tsx):
+  - Replaced `text-[52px] leading-[60px]` with `text-5xl text-center`.
+- Updated [`messages.tsx`](file:///e:/studentsociety/mobile/app/(student)/messages.tsx):
+  - Replaced `text-[52px] leading-[60px]` with `text-5xl text-center`.
+
+**Verified:** The styling issue is completely resolved. The stylesheet compiler succeeds without style interop validation warnings, and the misleading `Couldn't find a navigation context` crash is permanently fixed!

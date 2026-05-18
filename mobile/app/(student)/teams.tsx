@@ -56,7 +56,7 @@ export default function Teams() {
           <View className={`w-24 h-24 rounded-full items-center justify-center mb-6 ${
             isDarkMode ? 'bg-slate-800' : 'bg-blue-50'
           }`}>
-            <Text className="text-[52px] leading-[60px]">🤝</Text>
+            <Text className="text-5xl text-center">🤝</Text>
           </View>
           <Text className={`text-[17px] font-bold text-center mb-2 ${isDarkMode ? 'text-white' : 'text-[#1E293B]'}`}>
             No team formed yet
