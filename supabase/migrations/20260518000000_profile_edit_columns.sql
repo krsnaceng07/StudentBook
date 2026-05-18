@@ -23,5 +23,10 @@ ALTER TABLE public.extended_profiles
 ALTER TABLE public.extended_profiles
   ADD COLUMN IF NOT EXISTS department TEXT;
 
+-- 4. Add availability column (BOOLEAN to store collaboration status)
+ALTER TABLE public.extended_profiles
+  ADD COLUMN IF NOT EXISTS availability BOOLEAN DEFAULT true;
+
 -- Verify columns:
 -- SELECT column_name, data_type FROM information_schema.columns WHERE table_name = 'extended_profiles';
+
