@@ -65,7 +65,20 @@ export const getEventById = async (req: Request, res: Response) => {
     if (error) throw error;
     if (!event) return res.status(404).json({ success: false, error: 'Event not found' });
 
-    res.status(200).json({ success: true, data: event });
+    // Fetch bookmark status for current user if authenticated
+    const userId = (req as any).user?.id;
+    let isBookmarked = false;
+    if (userId) {
+      const { data: bookmark } = await supabase
+        .from('event_bookmarks')
+        .select('*')
+        .eq('user_id', userId)
+        .eq('event_id', id)
+        .maybeSingle();
+      isBookmarked = !!bookmark;
+    }
+
+    res.status(200).json({ success: true, data: { ...event, isBookmarked } });
   } catch (error: any) {
     console.error('Error fetching event by ID:', error);
     res.status(500).json({ success: false, error: error.message });
@@ -149,6 +162,58 @@ export const deleteEvent = async (req: Request, res: Response) => {
     res.status(200).json({ success: true, data: { id } });
   } catch (error: any) {
     console.error('Error deleting event:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+export const bookmarkEvent = async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).user?.id;
+    const { id } = req.params;
+
+    if (!userId) return res.status(401).json({ success: false, error: 'Unauthorized' });
+    if (!id) return res.status(400).json({ success: false, error: 'Event ID is required' });
+
+    const { data, error } = await supabase
+      .from('event_bookmarks')
+      .insert([{ user_id: userId, event_id: id }])
+      .select()
+      .single();
+
+    if (error) {
+      // If already bookmarked (unique constraint violation), we can return success true as it's already done
+      if (error.code === '23505') {
+        return res.status(200).json({ success: true, message: 'Already bookmarked' });
+      }
+      throw error;
+    }
+
+    res.status(201).json({ success: true, data });
+  } catch (error: any) {
+    console.error('Error bookmarking event:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+export const unbookmarkEvent = async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).user?.id;
+    const { id } = req.params;
+
+    if (!userId) return res.status(401).json({ success: false, error: 'Unauthorized' });
+    if (!id) return res.status(400).json({ success: false, error: 'Event ID is required' });
+
+    const { error } = await supabase
+      .from('event_bookmarks')
+      .delete()
+      .eq('user_id', userId)
+      .eq('event_id', id);
+
+    if (error) throw error;
+
+    res.status(200).json({ success: true, message: 'Event unbookmarked successfully' });
+  } catch (error: any) {
+    console.error('Error unbookmarking event:', error);
     res.status(500).json({ success: false, error: error.message });
   }
 };

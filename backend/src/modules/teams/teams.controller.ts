@@ -67,3 +67,57 @@ export const getMyTeam = async (req: Request, res: Response) => {
     res.status(500).json({ success: false, error: error.message });
   }
 };
+
+export const createTeam = async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).user?.id;
+    if (!userId) return res.status(401).json({ success: false, error: 'Unauthorized' });
+
+    const { name, event_name, max_members } = req.body;
+    if (!name) return res.status(400).json({ success: false, error: 'Team name is required' });
+
+    // Enforce one active team membership/leadership limit to prevent duplicate collabs
+    const { data: existingMembership } = await supabase
+      .from('team_members')
+      .select('team_id')
+      .eq('user_id', userId)
+      .maybeSingle();
+
+    if (existingMembership) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'You are already a member of another team. Please leave your current team before forming a new one.' 
+      });
+    }
+
+    // Create the team
+    const { data: team, error: teamError } = await supabase
+      .from('teams')
+      .insert([{
+        name,
+        event_name,
+        created_by: userId,
+        max_members: max_members || 4
+      }])
+      .select()
+      .single();
+
+    if (teamError) throw teamError;
+
+    // Add the creator as the Leader of the team
+    const { error: memberError } = await supabase
+      .from('team_members')
+      .insert([{
+        team_id: team.id,
+        user_id: userId,
+        role: 'Leader'
+      }]);
+
+    if (memberError) throw memberError;
+
+    res.status(201).json({ success: true, data: team });
+  } catch (error: any) {
+    console.error('Error creating team:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
