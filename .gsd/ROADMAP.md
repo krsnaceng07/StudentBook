@@ -192,6 +192,12 @@
 - [x] Backend: Update profile update controller and schema to support and save settings columns.
 - [x] Mobile: Implement high-fidelity, premium Student Settings page `mobile/app/(student)/settings.tsx` with live data sync and link it from Profile header and workspace list.
 
+## Phase 36: Discover Peer Suggestions & Connection System
+**Status**: ⏳ Planned
+- [ ] Backend Suggestions Engine: Create suggestions controller to fetch student profiles prioritizing shared departments, university, or overlapping skills.
+- [ ] Mobile UI Refactoring: Update discover.tsx to showSuggested Classmates with mindset/matching labels, and skip legacy teammate goal indicators.
+- [ ] Optimistic Connect Toggles: Connect the inline card action directly to the connections request endpoint (toggling Connect/Pending state optimistically) and link a Message button if already connected.
+
 
 
 
