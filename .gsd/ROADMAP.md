@@ -126,3 +126,10 @@
 - [x] Mobile: Separate API client abstractions into Student API and College API contexts.
 - [x] Backend: Refactor routes into `/student/*` and `/college/*` sub-namespaces to eliminate conflicting route definitions or mixed logic.
 - [x] Backend: Audit database schemas and role middlewares to enforce isolated data domains physically and logically.
+
+## Phase 25: Student Side Edit Profile Screen UI & Functional Integration
+**Status**: ⏳ Planned
+- [ ] Database: Implement migration patches for social_links, department, and university_year columns.
+- [ ] Backend: Setup `PUT /api/v1/profile/update` supporting complete profile updates.
+- [ ] Mobile: Create premium multi-tab Edit Profile screen UI matching mock specifications.
+
