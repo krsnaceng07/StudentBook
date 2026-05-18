@@ -35,6 +35,7 @@ const client = axios.create({
   timeout: 60000, // 60 seconds for all requests including uploads
   headers: {
     'Content-Type': 'application/json',
+    'bypass-tunnel-reminder': 'true',
   },
 });
 
