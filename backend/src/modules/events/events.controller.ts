@@ -4,6 +4,7 @@ import { supabaseAdmin as supabase } from '../../config/supabase.js';
 export const getEvents = async (req: Request, res: Response) => {
   try {
     const { type } = req.query;
+    const userId = (req as any).user?.id;
 
     let query = supabase
       .from('events')
@@ -18,7 +19,25 @@ export const getEvents = async (req: Request, res: Response) => {
 
     if (error) throw error;
 
-    res.status(200).json({ success: true, data: events || [] });
+    let bookmarkedEventIds = new Set<string>();
+    
+    if (userId && events && events.length > 0) {
+      const { data: bookmarks } = await supabase
+        .from('event_bookmarks')
+        .select('event_id')
+        .eq('user_id', userId);
+        
+      if (bookmarks) {
+        bookmarks.forEach(b => bookmarkedEventIds.add(b.event_id));
+      }
+    }
+
+    const eventsWithBookmarks = (events || []).map(e => ({
+      ...e,
+      isBookmarked: bookmarkedEventIds.has(e.id)
+    }));
+
+    res.status(200).json({ success: true, data: eventsWithBookmarks });
   } catch (error: any) {
     console.error('Error fetching events:', error);
     res.status(500).json({ success: false, error: error.message });
