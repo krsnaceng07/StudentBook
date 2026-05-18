@@ -83,8 +83,16 @@ export default function CollegeProfile() {
       edges={['top']}
     >
       {/* Top Header */}
-      <View className="px-6 py-4">
+      <View className="px-6 py-4 flex-row items-center justify-between">
         <Text className={`text-xl font-bold ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>Profile</Text>
+        <TouchableOpacity 
+          onPress={() => router.push('/(college)/settings')}
+          className={`w-9 h-9 rounded-full items-center justify-center border ${
+            isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-slate-100 border-slate-200'
+          }`}
+        >
+          <Ionicons name="settings-outline" size={18} color={isDarkMode ? 'white' : 'black'} />
+        </TouchableOpacity>
       </View>
 
       <ScrollView 
@@ -95,7 +103,7 @@ export default function CollegeProfile() {
         <View className="bg-[#10B981] px-6 pt-6 pb-10 rounded-b-[36px] relative mx-6 rounded-t-[36px] mb-6">
           {/* Edit Button */}
           <TouchableOpacity 
-            onPress={() => router.push('/(college)/settings')}
+            onPress={() => router.push('/(college)/edit-profile')}
             className="absolute top-4 right-4 bg-white/20 border border-white/20 px-3.5 py-1.5 rounded-full flex-row items-center gap-1.5 active:bg-white/30"
           >
             <Text className="text-white text-xs font-bold">Edit</Text>
