@@ -198,6 +198,12 @@
 - [x] Mobile UI Refactoring: Update discover.tsx to showSuggested Classmates with mindset/matching labels, and skip legacy teammate goal indicators.
 - [x] Optimistic Connect Toggles: Connect the inline card action directly to the connections request endpoint (toggling Connect/Pending state optimistically) and link a Message button if already connected.
 
+## Phase 37: Double Event Registration & Management Engine
+**Status**: ⏳ Planned
+- [ ] Database Schema Patch: Create migration SQL adding registration_type and external_link columns to events, and establishing the event_registrations table with secure RLS.
+- [ ] Backend Applications Controllers: Upgrade events module to handle student registers/unregisters (POST/DELETE) and compile registrant rosters for college organizers.
+- [ ] Mobile Dual Registration UX: Refactor Event Details on student side to show direct "Apply Externally" linkouts vs "Register Now" / "✓ Registered" optimistic toggles, and empower colleges to toggle and review applicant rosters.
+
 
 
 
