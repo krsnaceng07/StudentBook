@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, Linking, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import { useUIStore } from '../../store/uiStore';
 import { useAuthStore } from '../../store/authStore';
 import api from '../../api/client';
@@ -18,19 +19,24 @@ interface CollegeProfileData {
     bio: string;
     initials: string;
     social_links?: any;
+    established_year?: string;
+    website?: string;
+    contact_email?: string;
+    college_type?: string;
   }[];
 }
 
 export default function CollegeProfile() {
   const { isDarkMode } = useUIStore();
   const { user } = useAuthStore();
+  const router = useRouter();
   const [profile, setProfile] = useState<CollegeProfileData | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        const response = await api.get('/api/v1/profile/me');
+        const response = await api.get('/profile/me');
         if (response.data?.success) {
           setProfile(response.data.data);
         }
@@ -44,11 +50,11 @@ export default function CollegeProfile() {
   }, []);
 
   const extProfile = profile?.extended_profiles?.[0];
-  const universityName = extProfile?.university || user?.full_name || 'University';
+  const universityName = extProfile?.full_name || extProfile?.university || user?.full_name || 'University';
   const location = extProfile?.location || 'Not specified';
   const bio = extProfile?.bio || 'Institution overview not provided.';
-  const website = extProfile?.social_links?.github || 'Not provided';
-  const contactEmail = profile?.email || 'Not provided';
+  const website = extProfile?.website || extProfile?.social_links?.github || 'Not provided';
+  const contactEmail = extProfile?.contact_email || profile?.email || 'Not provided';
   const initials = extProfile?.initials || 'UN';
 
   const handleWebsitePress = () => {
@@ -88,7 +94,10 @@ export default function CollegeProfile() {
         {/* Banner Section */}
         <View className="bg-[#10B981] px-6 pt-6 pb-10 rounded-b-[36px] relative mx-6 rounded-t-[36px] mb-6">
           {/* Edit Button */}
-          <TouchableOpacity className="absolute top-4 right-4 bg-white/20 border border-white/20 px-3.5 py-1.5 rounded-full flex-row items-center gap-1.5 active:bg-white/30">
+          <TouchableOpacity 
+            onPress={() => router.push('/(college)/settings')}
+            className="absolute top-4 right-4 bg-white/20 border border-white/20 px-3.5 py-1.5 rounded-full flex-row items-center gap-1.5 active:bg-white/30"
+          >
             <Text className="text-white text-xs font-bold">Edit</Text>
             <Ionicons name="pencil" size={10} color="white" />
           </TouchableOpacity>
