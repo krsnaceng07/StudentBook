@@ -83,20 +83,26 @@ export default function Discover() {
   const fetchTeammates = async () => {
     setLoading(true);
     try {
-      const response = await client.get(`/student/discover?search=${searchQuery}`);
+      const response = await client.get(`/student/discover?search=${searchQuery}&filter=${activeFilter}`);
       if (response.data && response.data.success) {
-        const liveUsers = response.data.data.map((user: any) => ({
-          id: user.id,
-          initials: user.initials || '??',
-          avatar_color: 'bg-blue-100 text-blue-600 border-blue-200',
-          name: user.full_name || 'Anonymous User',
-          university: user.university || 'University Student',
-          year: user.role_title || 'Student',
-          status_badge: 'Open to Join',
-          skills: user.skills || [],
-          bio: user.bio || '',
-          is_online: true
-        }));
+        const liveUsers = response.data.data.map((user: any) => {
+          let badge: 'Open to Join' | 'Looking for Team' | 'Exploring' = 'Open to Join';
+          if (user.goal === 'Looking for a Team') badge = 'Looking for Team';
+          else if (user.goal === 'Just Exploring') badge = 'Exploring';
+          
+          return {
+            id: user.id,
+            initials: user.initials || '??',
+            avatar_color: 'bg-blue-100 text-blue-600 border-blue-200',
+            name: user.full_name || 'Anonymous User',
+            university: user.university || 'University Student',
+            year: user.role_title || 'Student',
+            status_badge: badge,
+            skills: user.skills || [],
+            bio: user.bio || '',
+            is_online: true
+          };
+        });
         setTeammates(liveUsers);
       } else {
         setTeammates(MOCK_TEAMMATES);

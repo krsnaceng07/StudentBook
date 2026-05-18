@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { useFocusEffect } from 'expo-router';
 import { useUIStore } from '../../store/uiStore';
 import client from '../../api/client';
 
@@ -107,9 +108,11 @@ export default function Events() {
     }
   };
 
-  useEffect(() => {
-    fetchEvents();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      fetchEvents();
+    }, [])
+  );
 
   const toggleBookmark = (id: string) => {
     setEvents(prev => prev.map(e => e.id === id ? { ...e, isBookmarked: !e.isBookmarked } : e));

@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useUIStore } from '../../store/uiStore';
 import { useAuthStore } from '../../store/authStore';
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import client from '../../api/client';
 import { supabase } from '../../config/supabase';
 
@@ -73,10 +73,13 @@ export default function HomeIndex() {
     }
   };
 
-  useEffect(() => {
-    setLoading(true);
-    fetchDashboard().finally(() => setLoading(false));
+  useFocusEffect(
+    useCallback(() => {
+      fetchDashboard();
+    }, [])
+  );
 
+  useEffect(() => {
     // Supabase Postgres Realtime Subscription for instant live changes!
     const channel = supabase
       .channel('home-realtime-sync')

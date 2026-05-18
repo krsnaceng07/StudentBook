@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, ActivityIndicator, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useUIStore } from '../../store/uiStore';
 import { Ionicons } from '@expo/vector-icons';
+import { useFocusEffect } from 'expo-router';
 import client from '../../api/client';
 
 export default function Requests() {
@@ -53,9 +54,11 @@ export default function Requests() {
     }
   };
 
-  useEffect(() => {
-    fetchRequests();
-  }, [activeTab]);
+  useFocusEffect(
+    useCallback(() => {
+      fetchRequests();
+    }, [activeTab])
+  );
 
   return (
     <SafeAreaView 
