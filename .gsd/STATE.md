@@ -10,4 +10,6 @@ Phase 34 executed successfully. Deleted 10 legacy React components from `mobile/
 
 ## Next Steps
 1. The cleanup milestone is completely finished. Run `/new-milestone` to plan what feature to build next!
+2. Mobile backend network connectivity issue has been successfully resolved. Active Wi-Fi adapter IP (192.168.1.67) has been configured in client-side `.env`.
+
 
