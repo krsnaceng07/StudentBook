@@ -13,7 +13,19 @@ export const useAuthStore = create((set) => ({
   initializeAuth: async () => {
     try {
       const { data: { session }, error } = await supabase.auth.getSession();
-      if (error) throw error;
+      if (error) {
+        console.log('[AuthStore] Session recovery failed (likely expired/invalid token). Cleaning session.');
+        try {
+          await supabase.auth.signOut();
+        } catch (_) {}
+        set({ 
+          session: null, 
+          token: null,
+          isAuthenticated: false,
+          isLoading: false
+        });
+        return;
+      }
       
       set({ 
         session, 
@@ -41,8 +53,23 @@ export const useAuthStore = create((set) => ({
         }
       });
     } catch (e) {
-      console.error('Initialize Auth Error:', e);
-      set({ isLoading: false });
+      // Check if it's a Refresh Token error
+      const isRefreshTokenError = e.message?.includes('Refresh Token') || e.status === 400 || (e.name === 'AuthApiError' && e.message?.includes('Refresh'));
+      if (isRefreshTokenError) {
+        console.log('[AuthStore] Catch: Refresh token is invalid/expired. Clearing session.');
+        try {
+          await supabase.auth.signOut();
+        } catch (_) {}
+        set({ 
+          session: null, 
+          token: null, 
+          isAuthenticated: false, 
+          isLoading: false 
+        });
+      } else {
+        console.warn('[AuthStore] Initialize Auth Warning:', e);
+        set({ isLoading: false });
+      }
     }
   },
 
