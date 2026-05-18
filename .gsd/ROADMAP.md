@@ -170,11 +170,11 @@
 - [x] Mobile: Upgrade Event Details screen to load dynamic event details via useFocusEffect.
 
 ## Phase 32: Student-Side Live Event Bookmarking, Team Creation & Real-Time Syncing
-**Status**: ⏳ Planned
-- [ ] Database & Backend: Implement POST/DELETE endpoints for event bookmarking (`/events/:id/bookmark`) and return `isBookmarked` boolean on event details payload.
-- [ ] Backend: Support collaboration team workspace creation endpoint (`POST /student/teams`) to create a team and assign creator as Leader.
-- [ ] Mobile: Connect active bookmark button on Event Details screen to live toggle APIs and implement "Join/Form Team" action button at the bottom of Event Details dynamically linked to live team creation.
-- [ ] Mobile: Add Supabase Realtime synchronization on Event Details page to instantly update UI upon any admin/college edit to the active event.
+**Status**: ✅ Complete
+- [x] Database & Backend: Implement POST/DELETE endpoints for event bookmarking (`/events/:id/bookmark`) and return `isBookmarked` boolean on event details payload.
+- [x] Backend: Support collaboration team workspace creation endpoint (`POST /student/teams`) to create a team and assign creator as Leader.
+- [x] Mobile: Connect active bookmark button on Event Details screen to live toggle APIs and implement "Join/Form Team" action button at the bottom of Event Details dynamically linked to live team creation.
+- [x] Mobile: Add Supabase Realtime synchronization on Event Details page to instantly update UI upon any admin/college edit to the active event.
 
 
 
