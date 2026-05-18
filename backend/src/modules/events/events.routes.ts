@@ -6,7 +6,9 @@ import {
   deleteEvent, 
   getEventById, 
   bookmarkEvent, 
-  unbookmarkEvent 
+  unbookmarkEvent,
+  registerForEvent,
+  unregisterFromEvent
 } from './events.controller.js';
 import { authMiddleware } from '../../middleware/auth.middleware.js';
 import { roleMiddleware } from '../../middleware/role.middleware.js';
@@ -27,5 +29,9 @@ router.delete('/:id', authMiddleware, roleMiddleware(['college']), deleteEvent);
 // Student-specific event bookmarking endpoints
 router.post('/:id/bookmark', authMiddleware, roleMiddleware(['student']), bookmarkEvent);
 router.delete('/:id/bookmark', authMiddleware, roleMiddleware(['student']), unbookmarkEvent);
+
+// Student-specific event registration endpoints
+router.post('/:id/register', authMiddleware, roleMiddleware(['student']), registerForEvent);
+router.delete('/:id/register', authMiddleware, roleMiddleware(['student']), unregisterFromEvent);
 
 export default router;
