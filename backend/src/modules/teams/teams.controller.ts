@@ -96,6 +96,7 @@ export const createTeam = async (req: Request, res: Response) => {
       .insert([{
         name,
         event_name,
+        leader_id: userId,
         created_by: userId,
         max_members: max_members || 4
       }])
