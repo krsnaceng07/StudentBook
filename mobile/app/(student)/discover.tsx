@@ -205,9 +205,17 @@ export default function Discover() {
                 >
                   <View className="flex-row items-center mb-3">
                     {/* Circle initials avatar */}
-                    <View className={`w-14 h-14 rounded-full items-center justify-center mr-4 border ${t.avatar_color.split(' ')[0]} ${t.avatar_color.split(' ')[2]}`}>
-                      <Text className={`text-[17px] font-bold ${t.avatar_color.split(' ')[1]}`}>{t.initials}</Text>
-                    </View>
+                    {(() => {
+                      const avatarColor = t.avatar_color || 'bg-blue-100 text-blue-600 border-blue-200';
+                      const bgClass = avatarColor.split(' ')[0] || 'bg-blue-100';
+                      const textClass = avatarColor.split(' ')[1] || 'text-blue-600';
+                      const borderClass = avatarColor.split(' ')[2] || 'border-blue-200';
+                      return (
+                        <View className={`w-14 h-14 rounded-full items-center justify-center mr-4 border ${bgClass} ${borderClass}`}>
+                          <Text className={`text-[17px] font-bold ${textClass}`}>{t.initials}</Text>
+                        </View>
+                      );
+                    })()}
 
                     {/* Meta info */}
                     <View className="flex-1">

@@ -152,7 +152,7 @@ export default React.memo(function PostCard({ post, onEdit }: PostCardProps) {
       {/* Content Text */}
       {post.content ? (
         <View className="px-4 pb-3">
-          <Text className={`${isDarkMode ? 'text-slate-200' : 'text-slate-800'} text-base leading-[22px]`}>
+          <Text className={`${isDarkMode ? 'text-slate-200' : 'text-slate-800'} text-base leading-6`}>
             {renderRichText(post.content)}
           </Text>
         </View>
