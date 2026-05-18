@@ -24,9 +24,18 @@ export default function PostEvent() {
   const [description, setDescription] = useState('');
   const [loading, setLoading] = useState(false);
 
+  // New Double Registration Toggles
+  const [registrationType, setRegistrationType] = useState<'internal' | 'external'>('internal');
+  const [externalLink, setExternalLink] = useState('');
+
   const handlePublish = async () => {
     if (!title || !date || !venue) {
       Alert.alert('Error', 'Please fill out Title, Date, and Venue!');
+      return;
+    }
+
+    if (registrationType === 'external' && !externalLink.trim()) {
+      Alert.alert('Error', 'Please provide the External Registration URL!');
       return;
     }
 
@@ -60,7 +69,9 @@ export default function PostEvent() {
         is_online: isOnline,
         min_team: minTeam ? parseInt(minTeam) : 2,
         max_team: maxTeam ? parseInt(maxTeam) : 4,
-        prize_pool: prize
+        prize_pool: prize,
+        registration_type: registrationType,
+        external_link: registrationType === 'external' ? externalLink.trim() : null
       });
 
       if (response.data?.success) {
@@ -119,14 +130,14 @@ export default function PostEvent() {
           {/* Event Type Pills */}
           <View>
             <Text className={`text-xs font-bold uppercase mb-2.5 ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>Event Type</Text>
-            <View className="flex-row gap-2">
+            <View className="flex-row gap-2 flex-wrap">
               {EVENT_TYPES.map((type) => {
                 const isSelected = eventType === type;
                 return (
                   <TouchableOpacity
                     key={type}
                     onPress={() => setEventType(type)}
-                    className={`px-5 py-2.5 rounded-2xl border-2 ${
+                    className={`px-4 py-2.5 rounded-2xl border-2 ${
                       isSelected 
                         ? 'bg-[#10B981] border-[#10B981]' 
                         : isDarkMode 
@@ -142,6 +153,62 @@ export default function PostEvent() {
               })}
             </View>
           </View>
+
+          {/* Registration Type Selectors */}
+          <View>
+            <Text className={`text-xs font-bold uppercase mb-2.5 ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>Registration Mode</Text>
+            <View className="flex-row gap-3">
+              <TouchableOpacity
+                onPress={() => setRegistrationType('internal')}
+                className={`flex-1 py-3 rounded-2xl border-2 items-center justify-center ${
+                  registrationType === 'internal' 
+                    ? 'bg-[#10B981] border-[#10B981]' 
+                    : isDarkMode 
+                      ? 'bg-slate-900 border-slate-800' 
+                      : 'bg-white border-slate-100'
+                }`}
+              >
+                <Text className={`text-xs font-bold ${
+                  registrationType === 'internal' ? 'text-white' : isDarkMode ? 'text-slate-300' : 'text-slate-600'
+                }`}>In-App Direct Apply</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={() => setRegistrationType('external')}
+                className={`flex-1 py-3 rounded-2xl border-2 items-center justify-center ${
+                  registrationType === 'external' 
+                    ? 'bg-[#10B981] border-[#10B981]' 
+                    : isDarkMode 
+                      ? 'bg-slate-900 border-slate-800' 
+                      : 'bg-white border-slate-100'
+                }`}
+              >
+                <Text className={`text-xs font-bold ${
+                  registrationType === 'external' ? 'text-white' : isDarkMode ? 'text-slate-300' : 'text-slate-600'
+                }`}>External Link URL</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          {/* Conditional External Link Input */}
+          {registrationType === 'external' && (
+            <View>
+              <Text className={`text-xs font-bold uppercase mb-2 ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>External Registration Link</Text>
+              <TextInput
+                value={externalLink}
+                onChangeText={setExternalLink}
+                placeholder="e.g. https://apply.college.edu/hackathon"
+                placeholderTextColor={isDarkMode ? '#64748B' : '#94A3B8'}
+                autoCapitalize="none"
+                keyboardType="url"
+                className={`p-4.5 rounded-2xl border text-sm font-semibold ${
+                  isDarkMode 
+                    ? 'bg-slate-900 border-slate-800 text-white focus:border-[#10B981]' 
+                    : 'bg-white border-slate-100 text-slate-800 focus:border-[#10B981]'
+                }`}
+              />
+            </View>
+          )}
 
           {/* Date */}
           <View>
