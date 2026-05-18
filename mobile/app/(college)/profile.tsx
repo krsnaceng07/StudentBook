@@ -51,12 +51,12 @@ export default function CollegeProfile() {
     }, [])
   );
 
-  const extProfile = profile?.extended_profiles?.[0];
+  const extProfile = profile?.profile;
   const universityName = extProfile?.full_name || extProfile?.university || user?.full_name || 'University';
   const location = extProfile?.location || 'Not specified';
   const bio = extProfile?.bio || 'Institution overview not provided.';
-  const website = extProfile?.website || extProfile?.social_links?.github || 'Not provided';
-  const contactEmail = extProfile?.contact_email || profile?.email || 'Not provided';
+  const website = extProfile?.website || 'Not provided';
+  const contactEmail = extProfile?.contact_email || user?.email || 'Not provided';
   const initials = extProfile?.initials || 'UN';
 
   const handleWebsitePress = () => {

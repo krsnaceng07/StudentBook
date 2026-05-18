@@ -20,25 +20,27 @@ export default function CollegeSettings() {
   const [emailDigest, setEmailDigest] = useState(false);
   const [darkModeActive, setDarkModeActive] = useState(isDarkMode);
 
-  useEffect(() => {
-    const fetchProfile = async () => {
-      try {
-        const response = await api.get('/profile/me');
-        if (response.data?.success) {
-          setProfile(response.data.data);
+  useFocusEffect(
+    useCallback(() => {
+      const fetchProfile = async () => {
+        try {
+          const response = await api.get('/profile/me');
+          if (response.data?.success) {
+            setProfile(response.data.data);
+          }
+        } catch (error) {
+          console.error('Failed to fetch profile', error);
+        } finally {
+          setLoading(false);
         }
-      } catch (error) {
-        console.error('Failed to fetch profile', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchProfile();
-  }, []);
+      };
+      fetchProfile();
+    }, [])
+  );
 
-  const extProfile = profile?.extended_profiles?.[0];
+  const extProfile = profile?.profile;
   const universityName = extProfile?.full_name || extProfile?.university || user?.full_name || 'Tribhuvan University';
-  const email = profile?.email || user?.email || 'user@email.com';
+  const email = user?.email || 'user@email.com';
   const initials = extProfile?.initials || 'TU';
 
   if (loading) {

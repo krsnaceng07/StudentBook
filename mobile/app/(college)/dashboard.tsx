@@ -26,16 +26,25 @@ export default function CollegeDashboard() {
   const [recentEvents, setRecentEvents] = useState<RecentEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [profileName, setProfileName] = useState('');
 
-  const universityName = user?.full_name || 'College Dashboard';
+  const universityName = profileName || user?.full_name || 'College Dashboard';
   const initials = universityName.substring(0, 2).toUpperCase();
 
   const fetchDashboardData = async () => {
     try {
-      const response = await api.get('/college/dashboard');
-      if (response.data?.success) {
-        setStats(response.data.data.stats);
-        setRecentEvents(response.data.data.recentEvents || []);
+      const [dbResponse, profileResponse] = await Promise.all([
+        api.get('/college/dashboard'),
+        api.get('/profile/me')
+      ]);
+
+      if (dbResponse.data?.success) {
+        setStats(dbResponse.data.data.stats);
+        setRecentEvents(dbResponse.data.data.recentEvents || []);
+      }
+
+      if (profileResponse.data?.success && profileResponse.data.data?.profile) {
+        setProfileName(profileResponse.data.data.profile.full_name || '');
       }
     } catch (error) {
       console.error('Failed to fetch college dashboard', error);

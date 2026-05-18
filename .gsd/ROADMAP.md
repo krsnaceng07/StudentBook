@@ -156,5 +156,11 @@
 - [x] Mobile (College): Mitigate dynamic loop rendering crashes by refactoring color-opacity shorthands in edit-profile.tsx and manage-events.tsx.
 - [x] Mobile (Student): Mitigate dynamic loop rendering crashes by refactoring skill/interest/goal pills styles in edit-profile.tsx and profile.tsx.
 
+## Phase 30: College Portal Live Integration & Data-binding Fixes
+**Status**: ✅ Complete
+- [x] Mobile: Correct Profile screen mapping from empty extended_profiles arrays to true profile objects.
+- [x] Mobile: Refactor Settings screen to fetch details via useFocusEffect for instant updates.
+- [x] Mobile: Implement dynamic name sync on Dashboard by concurrently fetching live profile details.
+
 
 
