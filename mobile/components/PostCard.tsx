@@ -36,7 +36,7 @@ export default React.memo(function PostCard({ post, onEdit }: PostCardProps) {
   const { user } = useAuthStore();
   const { isDarkMode } = useUIStore();
 
-  const isAuthor = (user?._id ?? user?.id) === (post.author?._id ?? post.author?.id);
+  const isAuthor = ((user as any)?._id ?? (user as any)?.id) === (post.author?._id ?? (post.author as any)?.id);
   const timeAgo = post.createdAt ? formatDistanceToNow(new Date(post.createdAt)) : 'recently';
 
   const handleLike = () => {
@@ -206,7 +206,7 @@ export default React.memo(function PostCard({ post, onEdit }: PostCardProps) {
           </TouchableOpacity>
 
           <TouchableOpacity 
-            onPress={() => router.push(`/posts/${post._id}/comments`)}
+            onPress={() => router.push(`/posts/${post._id}/comments` as any)}
             className="flex-row items-center"
           >
             <View className="h-10 w-10 rounded-full items-center justify-center bg-transparent">
