@@ -186,5 +186,12 @@
 - [x] Mobile: Delete legacy unused React components in `mobile/components/`.
 - [x] Mobile: Run `npx tsc --noEmit` to ensure the codebase is 100% clean and free of compile errors.
 
+## Phase 35: Student Side Settings & Privacy System
+**Status**: ⏳ Planned
+- [ ] Database: Add `settings_push`, `settings_email`, and `settings_visibility` columns to `extended_profiles` table.
+- [ ] Backend: Update profile update controller and schema to support and save settings columns.
+- [ ] Mobile: Implement high-fidelity, premium Student Settings page `mobile/app/(student)/settings.tsx` with live data sync and link it from Profile header and workspace list.
+
+
 
 
