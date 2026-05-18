@@ -82,6 +82,10 @@ export const updateProfile = async (req: Request, res: Response) => {
       social_links,
       availability,
       goal,
+      college_type,
+      established_year,
+      website,
+      contact_email,
     } = req.body;
 
     // 1. Calculate initials if full_name is provided
@@ -112,6 +116,10 @@ export const updateProfile = async (req: Request, res: Response) => {
     if (social_links !== undefined) updateData.social_links = social_links;
     if (availability !== undefined) updateData.availability = availability;
     if (goal !== undefined) updateData.goal = goal;
+    if (college_type !== undefined) updateData.college_type = college_type;
+    if (established_year !== undefined) updateData.established_year = established_year;
+    if (website !== undefined) updateData.website = website;
+    if (contact_email !== undefined) updateData.contact_email = contact_email;
 
     const { data: updatedProfile, error: profileError } = await supabase
       .from('extended_profiles')
