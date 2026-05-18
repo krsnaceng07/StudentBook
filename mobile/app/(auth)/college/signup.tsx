@@ -47,7 +47,7 @@ export default function CollegeSignupScreen() {
     }
   };
 
-  const InputField = ({ label, value, onChangeText, placeholder, ...props }) => (
+  const InputField = ({ label, value, onChangeText, placeholder, ...props }: any) => (
     <View className={`rounded-xl border px-4 py-3 mb-4 ${isDarkMode ? 'bg-white/5 border-white/10' : 'bg-slate-50 border-slate-200'}`}>
       <Text className={`text-xs uppercase mb-1 font-semibold ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>{label}</Text>
       <TextInput

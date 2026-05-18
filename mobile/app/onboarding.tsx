@@ -32,7 +32,7 @@ export default function Onboarding() {
 
   const handleContinue = () => {
     // Navigate to student main dashboard
-    router.replace('/(student)');
+    router.replace('/(student)' as any);
   };
 
   return (

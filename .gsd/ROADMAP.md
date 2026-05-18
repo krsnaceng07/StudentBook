@@ -182,9 +182,9 @@
 - [x] Mobile: Delete legacy Zustand stores in `mobile/store/` (e.g. `postStore.js`, `chatStore.js`, `teamStore.js`, etc.), keeping only `uiStore.js`, `authStore.js`, and `aiStore.js`.
 
 ## Phase 34: Legacy Components Purge
-**Status**: ⏳ Planned
-- [ ] Mobile: Delete legacy unused React components in `mobile/components/`.
-- [ ] Mobile: Run `npx tsc --noEmit` to ensure the codebase is 100% clean and free of compile errors.
+**Status**: ✅ Complete
+- [x] Mobile: Delete legacy unused React components in `mobile/components/`.
+- [x] Mobile: Run `npx tsc --noEmit` to ensure the codebase is 100% clean and free of compile errors.
 
 
 

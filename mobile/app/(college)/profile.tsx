@@ -12,7 +12,7 @@ interface CollegeProfileData {
   name: string;
   email: string;
   avatar: string | null;
-  extended_profiles?: {
+  profile?: {
     full_name: string;
     university: string;
     location: string;
@@ -23,7 +23,7 @@ interface CollegeProfileData {
     website?: string;
     contact_email?: string;
     college_type?: string;
-  }[];
+  };
 }
 
 export default function CollegeProfile() {

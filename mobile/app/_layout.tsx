@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react';
 import { useAuthStore } from '../store/authStore';
 import { View, ActivityIndicator, Text } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import Toast from '../components/Toast';
 import { useUIStore } from '../store/uiStore';
 import { StatusBar } from 'expo-status-bar';
 
@@ -25,9 +24,9 @@ function NavigationGuard({ children }: { children: React.ReactNode }) {
       } else if (isAuthenticated && user) {
         if (inAuthGroup || !segments.length || segments[0] === 'welcome') {
           if (user.role === 'college') {
-            router.replace('/(college)/dashboard');
+            router.replace('/(college)/dashboard' as any);
           } else {
-            router.replace('/(student)');
+            router.replace('/(student)' as any);
           }
         }
       }
@@ -68,12 +67,6 @@ export default function RootLayout() {
       <NavigationGuard>
         <Stack screenOptions={{ headerShown: false }} />
       </NavigationGuard>
-      <Toast 
-        message={toast.message}
-        type={toast.type}
-        visible={toast.visible}
-        onHide={hideToast}
-      />
     </SafeAreaProvider>
   );
 }

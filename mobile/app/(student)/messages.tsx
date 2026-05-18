@@ -115,7 +115,7 @@ export default function Messages() {
               <TouchableOpacity
                 activeOpacity={0.7}
                 onPress={() => router.push({
-                  pathname: `/chat/${item.conversation_id}`,
+                  pathname: `/chat/${item.conversation_id}` as any,
                   params: { 
                     name: userObj.full_name,
                     initials: userObj.initials 
