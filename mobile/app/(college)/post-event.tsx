@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, ScrollView, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, TextInput, ScrollView, TouchableOpacity, ActivityIndicator, Alert, Switch } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useUIStore } from '../../store/uiStore';
 import api from '../../api/client';
 
-const EVENT_TYPES = ['Hackathon', 'Workshop', 'Seminar'];
+const EVENT_TYPES = ['Hackathon', 'Workshop', 'Competition', 'Seminar', 'Other'];
 
 export default function PostEvent() {
   const router = useRouter();
@@ -17,7 +17,10 @@ export default function PostEvent() {
   const [date, setDate] = useState('');
   const [venue, setVenue] = useState('');
   const [prize, setPrize] = useState('');
-  const [teamSize, setTeamSize] = useState('');
+  const [regDeadline, setRegDeadline] = useState('');
+  const [isOnline, setIsOnline] = useState(false);
+  const [minTeam, setMinTeam] = useState('2');
+  const [maxTeam, setMaxTeam] = useState('4');
   const [description, setDescription] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -27,16 +30,37 @@ export default function PostEvent() {
       return;
     }
 
+    let formattedDate;
+    try {
+      formattedDate = date ? new Date(date).toISOString() : new Date().toISOString();
+    } catch {
+      formattedDate = new Date().toISOString();
+    }
+
+    let formattedDeadline = null;
+    if (regDeadline) {
+      try {
+        formattedDeadline = new Date(regDeadline).toISOString();
+      } catch {
+        formattedDeadline = null;
+      }
+    }
+
     setLoading(true);
     try {
       const response = await api.post('/college/events', {
         title,
         description,
-        event_date: new Date(date).toISOString(),
+        event_date: formattedDate,
         location: venue,
         event_type: eventType,
-        tags: [eventType.toLowerCase()],
-        member_limit: teamSize ? parseInt(teamSize) : null
+        tags: [eventType.toLowerCase(), 'tech', 'student'],
+        member_limit: maxTeam ? parseInt(maxTeam) : 4,
+        reg_deadline: formattedDeadline,
+        is_online: isOnline,
+        min_team: minTeam ? parseInt(minTeam) : 2,
+        max_team: maxTeam ? parseInt(maxTeam) : 4,
+        prize_pool: prize
       });
 
       if (response.data?.success) {
@@ -167,13 +191,13 @@ export default function PostEvent() {
             />
           </View>
 
-          {/* Team Limit */}
+          {/* Registration Deadline */}
           <View>
-            <Text className={`text-xs font-bold uppercase mb-2 ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>Team Limit</Text>
+            <Text className={`text-xs font-bold uppercase mb-2 ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>Registration Deadline</Text>
             <TextInput
-              value={teamSize}
-              onChangeText={setTeamSize}
-              placeholder="e.g. 2-4 members"
+              value={regDeadline}
+              onChangeText={setRegDeadline}
+              placeholder="e.g. June 01, 2026"
               placeholderTextColor={isDarkMode ? '#64748B' : '#94A3B8'}
               className={`p-4.5 rounded-2xl border text-sm font-semibold ${
                 isDarkMode 
@@ -181,6 +205,56 @@ export default function PostEvent() {
                   : 'bg-white border-slate-100 text-slate-800 focus:border-[#10B981]'
               }`}
             />
+          </View>
+
+          {/* Online Event Switch */}
+          <View className={`flex-row items-center justify-between p-4.5 rounded-2xl border ${
+            isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'
+          }`}>
+            <View>
+              <Text className={`text-sm font-bold ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>Online Event</Text>
+              <Text className={`text-[10px] font-semibold mt-0.5 ${isDarkMode ? 'text-slate-400' : 'text-slate-400'}`}>This event will be hosted virtually</Text>
+            </View>
+            <Switch
+              value={isOnline}
+              onValueChange={setIsOnline}
+              trackColor={{ false: '#94A3B8', true: '#10B981' }}
+              thumbColor={isOnline ? '#FFFFFF' : '#F1F5F9'}
+            />
+          </View>
+
+          {/* Team Size Limits */}
+          <View className="flex-row justify-between gap-3">
+            <View className="flex-1">
+              <Text className={`text-xs font-bold uppercase mb-2 ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>Min Team Size</Text>
+              <TextInput
+                value={minTeam}
+                onChangeText={setMinTeam}
+                keyboardType="numeric"
+                placeholder="2"
+                placeholderTextColor={isDarkMode ? '#64748B' : '#94A3B8'}
+                className={`p-4.5 rounded-2xl border text-sm font-semibold ${
+                  isDarkMode 
+                    ? 'bg-slate-900 border-slate-800 text-white focus:border-[#10B981]' 
+                    : 'bg-white border-slate-100 text-slate-800 focus:border-[#10B981]'
+                }`}
+              />
+            </View>
+            <View className="flex-1">
+              <Text className={`text-xs font-bold uppercase mb-2 ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>Max Team Size</Text>
+              <TextInput
+                value={maxTeam}
+                onChangeText={setMaxTeam}
+                keyboardType="numeric"
+                placeholder="4"
+                placeholderTextColor={isDarkMode ? '#64748B' : '#94A3B8'}
+                className={`p-4.5 rounded-2xl border text-sm font-semibold ${
+                  isDarkMode 
+                    ? 'bg-slate-900 border-slate-800 text-white focus:border-[#10B981]' 
+                    : 'bg-white border-slate-100 text-slate-800 focus:border-[#10B981]'
+                }`}
+              />
+            </View>
           </View>
 
           {/* Description */}

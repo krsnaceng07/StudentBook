@@ -7,7 +7,7 @@ export const getEvents = async (req: Request, res: Response) => {
 
     let query = supabase
       .from('events')
-      .select('id, title, description, event_type, organizer, event_date, location')
+      .select('*')
       .order('event_date', { ascending: true });
 
     if (type && typeof type === 'string') {
@@ -45,12 +45,46 @@ export const getMyEvents = async (req: Request, res: Response) => {
   }
 };
 
+export const getEventById = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    if (!id) return res.status(400).json({ success: false, error: 'Event ID is required' });
+
+    const { data: event, error } = await supabase
+      .from('events')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (error) throw error;
+    if (!event) return res.status(404).json({ success: false, error: 'Event not found' });
+
+    res.status(200).json({ success: true, data: event });
+  } catch (error: any) {
+    console.error('Error fetching event by ID:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
 export const createEvent = async (req: Request, res: Response) => {
   try {
     const userId = (req as any).user?.id;
     if (!userId) return res.status(401).json({ success: false, error: 'Unauthorized' });
 
-    const { title, description, event_date, location, event_type, tags, member_limit } = req.body;
+    const { 
+      title, 
+      description, 
+      event_date, 
+      location, 
+      event_type, 
+      tags, 
+      member_limit,
+      reg_deadline,
+      is_online,
+      min_team,
+      max_team,
+      prize_pool
+    } = req.body;
 
     // Fetch organizer name dynamically from extended_profiles table
     const { data: profile } = await supabase
@@ -72,7 +106,12 @@ export const createEvent = async (req: Request, res: Response) => {
         event_type,
         tags: tags || [],
         member_limit,
-        organizer: organizerName
+        organizer: organizerName,
+        reg_deadline,
+        is_online: !!is_online,
+        min_team: min_team ? parseInt(min_team) : 2,
+        max_team: max_team ? parseInt(max_team) : 4,
+        prize_pool
       }])
       .select()
       .single();

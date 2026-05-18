@@ -162,5 +162,12 @@
 - [x] Mobile: Refactor Settings screen to fetch details via useFocusEffect for instant updates.
 - [x] Mobile: Implement dynamic name sync on Dashboard by concurrently fetching live profile details.
 
+## Phase 31: College Events Management & High-Fidelity Event Details Sync
+**Status**: ✅ Complete
+- [x] Database: Add reg_deadline, is_online, min_team, max_team, and prize_pool columns.
+- [x] Backend APIs: Create GET /events/:id endpoint and support new fields in POST /college/events.
+- [x] Mobile: Upgrade Post Event form UI/UX to match mockup images and save all fields.
+- [x] Mobile: Upgrade Event Details screen to load dynamic event details via useFocusEffect.
+
 
 

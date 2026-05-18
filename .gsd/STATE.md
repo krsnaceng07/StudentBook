@@ -1,13 +1,13 @@
 # Project State: CollabSpace v2.0
 
 ## Current Position
-- **Phase**: 30 (completed)
+- **Phase**: 31 (completed)
 - **Task**: All tasks complete
 - **Status**: Verified
 
 ## Last Session Summary
-Phase 30 executed successfully. Addressed all college portal screen data mapping mismatches by switching from empty `extended_profiles` array parsing to true `profile` object bindings. Implemented dynamic `useFocusEffect` hooks on Profile, Settings, and Dashboard screens to enable dynamic name and details refresh live upon focusing or navigating back.
+Phase 31 executed successfully. Created SQL migration file `20260520000000_event_mockup_fields.sql` adding reg_deadline, is_online, min_team, max_team, and prize_pool columns. Upgraded events REST controller and routing to support single event queries (`GET /events/:id`) and new database column insertions. Completely overhauled mobile Post Event input form and Event Details display screen to dynamically bind, format, and load live server values.
 
 ## Next Steps
-1. The College Portal is now fully interactive, synced in real-time, highly polished, and premium. Enjoy the live update experience.
+1. Run the generated SQL migration in Supabase SQL editor to create the new high-fidelity database columns.
 

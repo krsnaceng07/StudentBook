@@ -42,7 +42,7 @@ export default React.memo(function TeamCard({ team }: TeamCardProps) {
     if (loading) return;
     setLoading(true);
     try {
-      await client.post(`/teams/${team.teamId}/request`, { message: 'Interested in joining!' });
+      await client.post(`/student/teams/${team.teamId}/request`, { message: 'Interested in joining!' });
       setRequestState('pending');
     } catch (err: any) {
       // If already pending (edge case), still show pending state
@@ -56,7 +56,7 @@ export default React.memo(function TeamCard({ team }: TeamCardProps) {
     if (loading) return;
     setLoading(true);
     try {
-      await client.delete(`/teams/${team.teamId}/request`);
+      await client.delete(`/student/teams/${team.teamId}/request`);
       setRequestState('none');
     } catch {
       // silently fail — UI will remain pending to avoid confusion
