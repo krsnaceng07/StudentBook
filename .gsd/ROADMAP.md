@@ -128,8 +128,8 @@
 - [x] Backend: Audit database schemas and role middlewares to enforce isolated data domains physically and logically.
 
 ## Phase 25: Student Side Edit Profile Screen UI & Functional Integration
-**Status**: ⏳ Planned
-- [ ] Database: Implement migration patches for social_links, department, and university_year columns.
-- [ ] Backend: Setup `PUT /api/v1/profile/update` supporting complete profile updates.
-- [ ] Mobile: Create premium multi-tab Edit Profile screen UI matching mock specifications.
+**Status**: ✅ Complete
+- [x] Database: Implement migration patches for social_links, department, and university_year columns.
+- [x] Backend: Setup `PUT /api/v1/profile/update` supporting complete profile updates.
+- [x] Mobile: Create premium multi-tab Edit Profile screen UI matching mock specifications.
 
