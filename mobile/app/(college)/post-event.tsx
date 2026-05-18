@@ -87,7 +87,7 @@ export default function PostEvent() {
         <TouchableOpacity 
           onPress={() => router.back()}
           className={`w-10 h-10 rounded-2xl items-center justify-center border ${
-            isDarkMode ? 'bg-slate-805 border-slate-700' : 'bg-slate-50 border-slate-100'
+            isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-slate-50 border-slate-100'
           }`}
         >
           <Ionicons name="arrow-back" size={20} color={isDarkMode ? 'white' : '#1E293B'} />

@@ -135,7 +135,7 @@ export default function HomeIndex() {
       edges={['top']}
     >
       {/* Top Header */}
-      <View className={`px-6 py-4 flex-row justify-between items-center border-b ${isDarkMode ? 'bg-[#0F172A] border-slate-805' : 'bg-white border-slate-100'}`}>
+      <View className={`px-6 py-4 flex-row justify-between items-center border-b ${isDarkMode ? 'bg-[#0F172A] border-slate-800' : 'bg-white border-slate-100'}`}>
         <Text className={`text-xl font-extrabold tracking-tight ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>CollabSpace</Text>
         
         {/* Quick actions row */}
@@ -144,7 +144,7 @@ export default function HomeIndex() {
           <TouchableOpacity 
             onPress={() => router.push('/teams')}
             className={`w-10 h-10 rounded-full items-center justify-center border ${
-              isDarkMode ? 'bg-slate-805 border-slate-700' : 'bg-slate-50 border-slate-100'
+              isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-slate-50 border-slate-100'
             }`}
           >
             <Ionicons name="people-outline" size={18} color={isDarkMode ? '#94A3B8' : '#475569'} />
@@ -154,7 +154,7 @@ export default function HomeIndex() {
           <TouchableOpacity 
             onPress={() => router.push('/messages')}
             className={`w-10 h-10 rounded-full items-center justify-center border relative ${
-              isDarkMode ? 'bg-slate-805 border-slate-700' : 'bg-slate-50 border-slate-100'
+              isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-slate-50 border-slate-100'
             }`}
           >
             <Ionicons name="chatbubble-ellipses-outline" size={18} color={isDarkMode ? '#94A3B8' : '#475569'} />
@@ -164,7 +164,7 @@ export default function HomeIndex() {
           {/* Notifications */}
           <TouchableOpacity 
             className={`w-10 h-10 rounded-full items-center justify-center border ${
-              isDarkMode ? 'bg-slate-805 border-slate-700' : 'bg-slate-50 border-slate-100'
+              isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-slate-50 border-slate-100'
             }`}
           >
             <Ionicons name="notifications-outline" size={18} color={isDarkMode ? '#94A3B8' : '#475569'} />
