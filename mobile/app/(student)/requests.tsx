@@ -17,12 +17,12 @@ export default function Requests() {
     setLoading(true);
     try {
       if (activeTab === 'Incoming') {
-        const response = await client.get('/connections/incoming');
+        const response = await client.get('/student/connections/incoming');
         if (response.data && response.data.success) {
           setIncomingRequests(response.data.data);
         }
       } else {
-        const response = await client.get('/connections/outgoing');
+        const response = await client.get('/student/connections/outgoing');
         if (response.data && response.data.success) {
           setOutgoingRequests(response.data.data);
         }
@@ -37,7 +37,7 @@ export default function Requests() {
   const handleRespond = async (requestId: string, status: 'accepted' | 'declined') => {
     setActionLoadingId(requestId);
     try {
-      const response = await client.put('/connections/respond', { requestId, status });
+      const response = await client.put('/student/connections/respond', { requestId, status });
       if (response.data && response.data.success) {
         Alert.alert("Success", `Collaboration request successfully ${status}!`);
         fetchRequests();

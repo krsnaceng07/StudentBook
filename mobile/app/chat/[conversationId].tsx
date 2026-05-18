@@ -21,7 +21,7 @@ export default function ChatScreen() {
 
   const fetchChatHistory = async () => {
     try {
-      const response = await client.get(`/messages/${conversationId}`);
+      const response = await client.get(`/student/messages/${conversationId}`);
       if (response.data && response.data.success) {
         setMessages(response.data.data || []);
       }
@@ -47,7 +47,7 @@ export default function ChatScreen() {
     setMessage('');
     
     try {
-      const response = await client.post('/messages/send', {
+      const response = await client.post('/student/messages/send', {
         conversationId,
         content
       });

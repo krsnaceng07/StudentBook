@@ -87,7 +87,8 @@ export default function Profile() {
             {/* Edit Button */}
             <TouchableOpacity 
               onPress={() => router.push('/(student)/edit-profile')}
-              className="absolute top-4 right-4 bg-blue-500/50 px-4 py-2 rounded-2xl flex-row items-center border border-blue-400/20"
+              className="absolute top-4 right-4 px-4 py-2 rounded-2xl flex-row items-center border"
+              style={{ backgroundColor: 'rgba(59, 130, 246, 0.5)', borderColor: 'rgba(96, 165, 250, 0.2)' }}
             >
               <Text className="text-white font-bold text-xs mr-1">Edit</Text>
               <Ionicons name="pencil" size={12} color="#F97316" />

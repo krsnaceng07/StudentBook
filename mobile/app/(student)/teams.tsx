@@ -15,7 +15,7 @@ export default function Teams() {
   const fetchTeamData = async () => {
     setLoading(true);
     try {
-      const response = await client.get('/teams/my');
+      const response = await client.get('/student/teams/my');
       if (response.data && response.data.success) {
         setTeamData(response.data.data);
       }

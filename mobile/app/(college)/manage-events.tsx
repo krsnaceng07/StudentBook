@@ -21,7 +21,7 @@ export default function ManageEvents() {
 
   const fetchEvents = async () => {
     try {
-      const response = await api.get('/api/v1/college/events/my-events');
+      const response = await api.get('/college/events/my-events');
       if (response.data?.success) {
         setEvents(response.data.data);
       }
@@ -55,7 +55,7 @@ export default function ManageEvents() {
           style: 'destructive',
           onPress: async () => {
             try {
-              const response = await api.delete(`/api/v1/college/events/${id}`);
+              const response = await api.delete(`/college/events/${id}`);
               if (response.data?.success) {
                 setEvents(events.filter(e => e.id !== id));
               }
@@ -102,7 +102,7 @@ export default function ManageEvents() {
         {/* + Post New Event Button */}
         <TouchableOpacity 
           onPress={() => router.push('/college/post-event')}
-          className="bg-[#10B981] py-4 rounded-2xl items-center justify-center mb-6 shadow-sm active:bg-emerald-600"
+          className="bg-[#10B981] py-4 rounded-2xl items-center justify-center mb-6 active:bg-emerald-600"
         >
           <Text className="text-white text-sm font-bold tracking-wide">+ Post New Event</Text>
         </TouchableOpacity>
@@ -118,7 +118,7 @@ export default function ManageEvents() {
               const colors = getTypeColor(event.event_type || '');
               return (
                 <View key={event.id} className={`rounded-3xl border p-5 border-l-4 ${colors.border} ${
-                  isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100 shadow-sm'
+                  isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'
                 }`}>
                   <View className="flex-row justify-between items-start mb-1.5">
                     <Text className={`text-sm font-extrabold ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
@@ -138,7 +138,8 @@ export default function ManageEvents() {
                   {/* Action Buttons Row */}
                   <View className="flex-row gap-2">
                     <TouchableOpacity 
-                      className="px-5 py-2 rounded-xl border border-[#EF4444] bg-red-500/5"
+                      className="px-5 py-2 rounded-xl border border-[#EF4444]"
+                      style={{ backgroundColor: 'rgba(239, 68, 68, 0.05)' }}
                       onPress={() => handleDeleteEvent(event.id)}
                     >
                       <Text className="text-[#EF4444] text-xs font-bold">Delete</Text>

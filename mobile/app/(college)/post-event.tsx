@@ -29,7 +29,7 @@ export default function PostEvent() {
 
     setLoading(true);
     try {
-      const response = await api.post('/api/v1/college/events', {
+      const response = await api.post('/college/events', {
         title,
         description,
         event_date: new Date(date).toISOString(),

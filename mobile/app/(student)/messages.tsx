@@ -16,7 +16,7 @@ export default function Messages() {
   const fetchConversations = async () => {
     setLoading(true);
     try {
-      const response = await client.get('/messages');
+      const response = await client.get('/student/messages');
       if (response.data && response.data.success) {
         setConversations(response.data.data || []);
       }

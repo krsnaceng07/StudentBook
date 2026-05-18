@@ -83,7 +83,7 @@ export default function Discover() {
   const fetchTeammates = async () => {
     setLoading(true);
     try {
-      const response = await client.get(`/discover?search=${searchQuery}`);
+      const response = await client.get(`/student/discover?search=${searchQuery}`);
       if (response.data && response.data.success) {
         const liveUsers = response.data.data.map((user: any) => ({
           id: user.id,

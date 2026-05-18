@@ -64,7 +64,7 @@ export default function HomeIndex() {
 
   const fetchDashboard = async () => {
     try {
-      const response = await client.get('/dashboard/home');
+      const response = await client.get('/student/dashboard/home');
       if (response.data?.success) {
         setData(response.data.data);
       }

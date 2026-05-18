@@ -156,7 +156,7 @@ export default function ProfileDetailsScreen() {
     if (!data || requestSent || isOwnProfile) return;
     
     try {
-      const response = await client.post('/connections/request', { receiverId: id });
+      const response = await client.post('/student/connections/request', { receiverId: id });
       if (response.data && response.data.success) {
         setRequestSent(true);
         Alert.alert(

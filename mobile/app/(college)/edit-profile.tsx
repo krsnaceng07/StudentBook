@@ -97,7 +97,7 @@ export default function EditCollegeProfile() {
     >
       {/* Top Header */}
       <View className={`px-6 py-4 flex-row items-center justify-between border-b ${
-        isDarkMode ? 'bg-[#0F172A] border-slate-800' : 'bg-white border-slate-100 shadow-sm'
+        isDarkMode ? 'bg-[#0F172A] border-slate-800' : 'bg-white border-slate-100'
       }`}>
         <View className="flex-row items-center gap-4">
           <TouchableOpacity 
@@ -144,7 +144,7 @@ export default function EditCollegeProfile() {
               className={`rounded-2xl border px-4 py-3.5 text-xs font-medium ${
                 isDarkMode 
                   ? 'bg-slate-900 border-slate-800 text-white' 
-                  : 'bg-white border-slate-200 text-slate-900 shadow-sm'
+                  : 'bg-white border-slate-200 text-slate-900'
               }`}
             />
           </View>
@@ -161,11 +161,12 @@ export default function EditCollegeProfile() {
                     onPress={() => setCollegeType(t)}
                     className={`px-5 py-3 rounded-2xl border ${
                       isSelected
-                        ? 'border-emerald-600 bg-emerald-500/5'
+                        ? 'border-emerald-600'
                         : isDarkMode 
                           ? 'bg-slate-900 border-slate-800' 
-                          : 'bg-white border-slate-200 shadow-sm'
+                          : 'bg-white border-slate-200'
                     }`}
+                    style={isSelected ? { backgroundColor: 'rgba(16, 185, 129, 0.05)' } : undefined}
                   >
                     <Text className={`text-xs font-bold ${
                       isSelected 

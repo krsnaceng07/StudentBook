@@ -362,11 +362,12 @@ export default function EditProfile() {
                     onPress={() => toggleSkill(skill)}
                     className={`px-5 py-3.5 rounded-2xl border ${
                       isSelected
-                        ? 'border-blue-600 bg-blue-500/5'
+                        ? 'border-blue-600'
                         : isDarkMode
                           ? 'border-slate-800 bg-slate-900'
                           : 'border-slate-200 bg-white'
                     }`}
+                    style={isSelected ? { backgroundColor: 'rgba(59, 130, 246, 0.05)' } : undefined}
                   >
                     <Text className={`text-xs font-bold ${
                       isSelected
@@ -398,11 +399,12 @@ export default function EditProfile() {
                     onPress={() => toggleInterest(interest)}
                     className={`px-5 py-3.5 rounded-2xl border ${
                       isSelected
-                        ? 'border-blue-600 bg-blue-500/5'
+                        ? 'border-blue-600'
                         : isDarkMode
                           ? 'border-slate-800 bg-slate-900'
                           : 'border-slate-200 bg-white'
                     }`}
+                    style={isSelected ? { backgroundColor: 'rgba(59, 130, 246, 0.05)' } : undefined}
                   >
                     <Text className={`text-xs font-bold ${
                       isSelected
@@ -471,11 +473,12 @@ export default function EditProfile() {
                       onPress={() => setGoal(g.id)}
                       className={`flex-row items-center justify-between p-5 rounded-[20px] border ${
                         isSelected
-                          ? 'border-blue-600 bg-blue-500/5'
+                          ? 'border-blue-600'
                           : isDarkMode
                             ? 'border-slate-800 bg-slate-900'
                             : 'border-slate-200 bg-white'
                       }`}
+                      style={isSelected ? { backgroundColor: 'rgba(59, 130, 246, 0.05)' } : undefined}
                     >
                       <View className="flex-row items-center gap-3.5">
                         <Text className="text-base">{g.icon}</Text>
