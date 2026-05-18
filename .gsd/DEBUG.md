@@ -1,44 +1,30 @@
-# Debug Session: Expo Tunnel Connection Error
+# Debug Session: College Settings UI Bug Fix
 
 ## Symptom
-When starting the mobile application with the `--tunnel` option, Expo CLI throws a fatal `TypeError: Cannot read properties of undefined (reading 'body')` and terminates.
+The Settings screen inside the College Portal crashed at runtime, throwing a `ReferenceError` for missing variables when navigating or focusing.
 
-**When:** During the Metro Bundler initial launch sequence when generating the tunneling url.
-**Expected:** The bundler should launch successfully and output a QR code or tunnel url (e.g. `exp+studentsociety://...`).
-**Actual:**
-```
-CommandError: TypeError: Cannot read properties of undefined (reading 'body')
-Check the Ngrok status page for outages: https://status.ngrok.com/
-```
+**When:** Occurs immediately upon clicking the Settings button or entering the Settings screen.
+**Expected:** The Settings screen should load cleanly, rendering dynamic profile name/email and settings menu items.
+**Actual:** The screen crashed due to `Can't find variable: useFocusEffect` and `Can't find variable: useCallback`.
 
 ---
 
-## Hypotheses
-
-| # | Hypothesis | Likelihood | Status |
-|---|------------|------------|--------|
-| 1 | Expo Tunnel server API or Ngrok API is experiencing a temporary outage or rate-limiting block, returning empty/unparsable response payloads. | 90% | UNTESTED |
-| 2 | Port `8081` is already bound by an orphan node process, causing port collision during tunnel startup. | 10% | UNTESTED |
-
----
-
-## Attempts
-
-### Attempt 1
-**Testing:** H1 — Expo Tunnel Server / Ngrok Outage
-**Action:** Recommend starting Metro server locally without `--tunnel` since the local IP endpoint (`192.168.1.73`) is fully functional.
-**Result:** Pending user feedback.
-**Conclusion:** UNTESTED
+## Evidence
+- Checking imports inside `settings.tsx` revealed that:
+  * `useCallback` was called in `useFocusEffect(useCallback(...))` but was NOT imported from `'react'`.
+  * `useFocusEffect` was called but was NOT imported from `'expo-router'`.
+- Additionally, found a dynamic Tailwind opacity shortcut class `bg-emerald-50/10` on the avatar badge wrapper that could trigger interop warnings on NativeWind v4 engines.
 
 ---
 
-## Resolution Options
+## Resolution
 
-1. **Option A (Highly Recommended):** Start the bundler directly on the local network (no tunnel overhead):
-   ```powershell
-   npx expo start --clear
-   ```
-2. **Option B (If Tunnel is Required):** Run native ngrok to map the Metro port manually:
-   ```powershell
-   ngrok http 8081
-   ```
+**Root Cause:** Missing imports for hooks (`useCallback` and `useFocusEffect`) in `settings.tsx`.
+**Fix:**
+- Updated imports in [`settings.tsx`](file:///e:/studentsociety/mobile/app/(college)/settings.tsx#L1-L8):
+  * Added `useCallback` to `'react'` imports.
+  * Added `useFocusEffect` to `'expo-router'` imports.
+- Refactored `bg-emerald-50/10` to style-safe inline RGBA background color mapping:
+  * `style={{ backgroundColor: 'rgba(16, 185, 129, 0.1)' }}`
+**Verified:** Compile succeeds and runtime dependencies resolve cleanly. No ReferenceErrors remaining!
+**Regression Check:** Verified Dashboard and Profile screens also have complete and correct imports for `useFocusEffect` / `useCallback`.

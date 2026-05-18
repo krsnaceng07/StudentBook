@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { useUIStore } from '../../store/uiStore';
 import { useAuthStore } from '../../store/authStore';
 import api from '../../api/client';
@@ -83,7 +83,10 @@ export default function CollegeSettings() {
           isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100 shadow-sm'
         }`}>
           {/* Avatar with dynamic initials */}
-          <View className="w-14 h-14 rounded-full border border-emerald-500 items-center justify-center bg-emerald-50/10">
+          <View 
+            className="w-14 h-14 rounded-full border border-emerald-500 items-center justify-center"
+            style={{ backgroundColor: 'rgba(16, 185, 129, 0.1)' }}
+          >
             <Text className="text-emerald-600 text-lg font-extrabold">{initials}</Text>
           </View>
 
