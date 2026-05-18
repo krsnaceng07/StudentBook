@@ -1,19 +1,27 @@
-import React, { useState, useCallback } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
+import React, { useState, useEffect, useCallback } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, TextInput, Modal, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useUIStore } from '../../store/uiStore';
 import api from '../../api/client';
+import { supabase } from '../../config/supabase';
 
 export default function EventDetailsPage() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { isDarkMode } = useUIStore();
+  
   const [bookmarked, setBookmarked] = useState(false);
   const [event, setEvent] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState('');
+  
+  // Dynamic Team Workspace States
+  const [teamData, setTeamData] = useState<any>(null);
+  const [showCreateTeamModal, setShowCreateTeamModal] = useState(false);
+  const [newTeamName, setNewTeamName] = useState('');
+  const [formingTeam, setFormingTeam] = useState(false);
 
   const fetchEventDetails = async () => {
     if (!id) return;
@@ -23,6 +31,7 @@ export default function EventDetailsPage() {
       const response = await api.get(`/events/${id}`);
       if (response.data?.success && response.data?.data) {
         setEvent(response.data.data);
+        setBookmarked(!!response.data.data.isBookmarked);
       } else {
         setErrorMsg('Failed to load event details.');
       }
@@ -34,11 +43,96 @@ export default function EventDetailsPage() {
     }
   };
 
+  const fetchTeamData = async () => {
+    try {
+      const response = await api.get('/student/teams/my');
+      if (response.data?.success) {
+        setTeamData(response.data.data);
+      }
+    } catch (err) {
+      console.warn('Failed to fetch student team membership:', err);
+    }
+  };
+
   useFocusEffect(
     useCallback(() => {
       fetchEventDetails();
+      fetchTeamData();
     }, [id])
   );
+
+  // Supabase Postgres Realtime Subscription for live updates!
+  useEffect(() => {
+    if (!id) return;
+
+    const channel = supabase
+      .channel(`event-detail-realtime-${id}`)
+      .on(
+        'postgres_changes',
+        { 
+          event: '*', 
+          schema: 'public', 
+          table: 'events',
+          filter: `id=eq.${id}`
+        },
+        (payload) => {
+          console.log('[Realtime] Active event detail updated:', payload);
+          // Directly fetch fresh data without loading spinners to maintain perfect UI state
+          api.get(`/events/${id}`).then((res) => {
+            if (res.data?.success && res.data?.data) {
+              setEvent(res.data.data);
+              setBookmarked(!!res.data.data.isBookmarked);
+            }
+          }).catch(err => console.warn('Realtime event sync fetch failed:', err));
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [id]);
+
+  const handleToggleBookmark = async () => {
+    if (!id || !event) return;
+    const nextBookmarked = !bookmarked;
+    setBookmarked(nextBookmarked); // Optimistic UI update
+
+    try {
+      if (nextBookmarked) {
+        await api.post(`/events/${id}/bookmark`);
+      } else {
+        await api.delete(`/events/${id}/bookmark`);
+      }
+    } catch (err) {
+      console.warn('Failed to toggle bookmark status on server:', err);
+      setBookmarked(!nextBookmarked); // Revert state on failure
+      Alert.alert('Error', 'Could not save bookmark. Please try again.');
+    }
+  };
+
+  const handleCreateTeam = async () => {
+    if (!newTeamName.trim() || !event) return;
+    setFormingTeam(true);
+    try {
+      const response = await api.post('/student/teams', {
+        name: newTeamName.trim(),
+        event_name: event.title,
+        max_members: event.max_team || 4
+      });
+      if (response.data?.success) {
+        setShowCreateTeamModal(false);
+        setNewTeamName('');
+        await fetchTeamData();
+        router.push('/teams');
+      }
+    } catch (err: any) {
+      console.warn('Failed to form collaboration team:', err);
+      Alert.alert('Error', err.response?.data?.error || 'Failed to form collaboration team.');
+    } finally {
+      setFormingTeam(false);
+    }
+  };
 
   const formatDate = (dateStr: string) => {
     if (!dateStr) return 'TBD';
@@ -110,7 +204,7 @@ export default function EventDetailsPage() {
           </TouchableOpacity>
 
           <TouchableOpacity 
-            onPress={() => setBookmarked(!bookmarked)}
+            onPress={handleToggleBookmark}
             className={`w-10 h-10 rounded-2xl items-center justify-center ${
               bookmarked ? 'bg-[#F59E0B]' : 'bg-white/20'
             } border border-white/10`}
@@ -134,7 +228,7 @@ export default function EventDetailsPage() {
             isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100/80 shadow-sm'
           }`}>
             <Text className="text-xl mb-2">📅</Text>
-            <Text className={`text-[10px] font-bold ${isDarkMode ? 'text-slate-400' : 'text-slate-400'} uppercase mb-0.5`}>Date</Text>
+            <Text className={`text-[10px] font-bold ${isDarkMode ? 'text-slate-400' : 'text-slate-405'} uppercase mb-0.5`}>Date</Text>
             <Text className={`text-xs font-bold leading-tight ${isDarkMode ? 'text-white' : 'text-slate-800'}`}>{formatDate(event.event_date)}</Text>
           </View>
 
@@ -143,7 +237,7 @@ export default function EventDetailsPage() {
             isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100/80 shadow-sm'
           }`}>
             <Text className="text-xl mb-2">⏰</Text>
-            <Text className={`text-[10px] font-bold ${isDarkMode ? 'text-slate-400' : 'text-slate-400'} uppercase mb-0.5`}>Deadline</Text>
+            <Text className={`text-[10px] font-bold ${isDarkMode ? 'text-slate-400' : 'text-slate-405'} uppercase mb-0.5`}>Deadline</Text>
             <Text className={`text-xs font-bold leading-tight ${isDarkMode ? 'text-white' : 'text-slate-800'}`}>{formatDeadline(event.reg_deadline)}</Text>
           </View>
 
@@ -152,7 +246,7 @@ export default function EventDetailsPage() {
             isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100/80 shadow-sm'
           }`}>
             <Text className="text-xl mb-2">📍</Text>
-            <Text className={`text-[10px] font-bold ${isDarkMode ? 'text-slate-400' : 'text-slate-400'} uppercase mb-0.5`}>Venue</Text>
+            <Text className={`text-[10px] font-bold ${isDarkMode ? 'text-slate-400' : 'text-slate-405'} uppercase mb-0.5`}>Venue</Text>
             <Text className={`text-xs font-bold leading-tight ${isDarkMode ? 'text-white' : 'text-slate-800'}`}>{event.location || (event.is_online ? 'Online Event' : 'TBD')}</Text>
           </View>
 
@@ -161,7 +255,7 @@ export default function EventDetailsPage() {
             isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100/80 shadow-sm'
           }`}>
             <Text className="text-xl mb-2">👥</Text>
-            <Text className={`text-[10px] font-bold ${isDarkMode ? 'text-slate-400' : 'text-slate-400'} uppercase mb-0.5`}>Team Size</Text>
+            <Text className={`text-[10px] font-bold ${isDarkMode ? 'text-slate-400' : 'text-slate-405'} uppercase mb-0.5`}>Team Size</Text>
             <Text className={`text-xs font-bold leading-tight ${isDarkMode ? 'text-white' : 'text-slate-800'}`}>{teamSizeText}</Text>
           </View>
         </View>
@@ -210,6 +304,175 @@ export default function EventDetailsPage() {
           </View>
         </View>
       </ScrollView>
+
+      {/* Sticky Bottom Bar */}
+      <View style={{
+        paddingHorizontal: 24,
+        paddingVertical: 16,
+        borderTopWidth: 1,
+        borderTopColor: isDarkMode ? '#1E293B' : '#E2E8F0',
+        backgroundColor: isDarkMode ? '#0F172A' : '#FFFFFF',
+        flexDirection: 'row',
+        alignItems: 'center'
+      }}>
+        {teamData?.team ? (
+          <TouchableOpacity 
+            onPress={() => router.push('/teams')}
+            activeOpacity={0.85}
+            style={{
+              flex: 1,
+              backgroundColor: '#10B981',
+              paddingVertical: 14,
+              borderRadius: 16,
+              alignItems: 'center',
+              justifyContent: 'center',
+              shadowColor: '#10B981',
+              shadowOffset: { width: 0, height: 4 },
+              shadowOpacity: 0.2,
+              shadowRadius: 6,
+              elevation: 4
+            }}
+          >
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <Ionicons name="people" size={20} color="white" />
+              <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 15 }}>View My Team Workspace</Text>
+            </View>
+          </TouchableOpacity>
+        ) : (
+          <TouchableOpacity 
+            onPress={() => setShowCreateTeamModal(true)}
+            activeOpacity={0.85}
+            style={{
+              flex: 1,
+              backgroundColor: '#2563EB',
+              paddingVertical: 14,
+              borderRadius: 16,
+              alignItems: 'center',
+              justifyContent: 'center',
+              shadowColor: '#2563EB',
+              shadowOffset: { width: 0, height: 4 },
+              shadowOpacity: 0.2,
+              shadowRadius: 6,
+              elevation: 4
+            }}
+          >
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <Ionicons name="add-circle" size={20} color="white" />
+              <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 15 }}>Form Collaboration Team</Text>
+            </View>
+          </TouchableOpacity>
+        )}
+      </View>
+
+      {/* Create Team Premium Modal */}
+      <Modal
+        visible={showCreateTeamModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => {
+          setShowCreateTeamModal(false);
+          setNewTeamName('');
+        }}
+      >
+        <View style={{
+          flex: 1,
+          justifyContent: 'center',
+          alignItems: 'center',
+          backgroundColor: 'rgba(15, 23, 42, 0.65)'
+        }}>
+          <View style={{
+            width: '85%',
+            borderRadius: 28,
+            borderWidth: 1,
+            borderColor: isDarkMode ? '#334155' : '#E2E8F0',
+            backgroundColor: isDarkMode ? '#1E293B' : '#FFFFFF',
+            padding: 28,
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 10 },
+            shadowOpacity: 0.25,
+            shadowRadius: 15,
+            elevation: 10
+          }}>
+            <Text style={{
+              fontSize: 20,
+              fontWeight: 'extrabold',
+              marginBottom: 8,
+              color: isDarkMode ? '#FFFFFF' : '#0F172A'
+            }}>Form Team Workspace</Text>
+            
+            <Text style={{
+              fontSize: 12,
+              marginBottom: 20,
+              lineHeight: 18,
+              color: isDarkMode ? '#94A3B8' : '#64748B'
+            }}>
+              Create a dedicated workspace for {event.title}. Connect with teammates and tackle the project together!
+            </Text>
+
+            <TextInput
+              placeholder="Enter team name (e.g. Code Wizards)"
+              placeholderTextColor={isDarkMode ? '#64748B' : '#94A3B8'}
+              value={newTeamName}
+              onChangeText={setNewTeamName}
+              style={{
+                width: '100%',
+                paddingHorizontal: 16,
+                paddingVertical: 12,
+                borderRadius: 14,
+                borderWidth: 1,
+                borderColor: isDarkMode ? '#475569' : '#CBD5E1',
+                backgroundColor: isDarkMode ? '#0F172A' : '#F8FAFC',
+                color: isDarkMode ? '#FFFFFF' : '#0F172A',
+                fontSize: 14,
+                marginBottom: 24
+              }}
+            />
+
+            <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 12 }}>
+              <TouchableOpacity
+                onPress={() => {
+                  setShowCreateTeamModal(false);
+                  setNewTeamName('');
+                }}
+                style={{
+                  paddingHorizontal: 18,
+                  paddingVertical: 10,
+                  borderRadius: 12,
+                  backgroundColor: isDarkMode ? '#334155' : '#E2E8F0'
+                }}
+              >
+                <Text style={{
+                  fontSize: 13,
+                  fontWeight: 'bold',
+                  color: isDarkMode ? '#FFFFFF' : '#475569'
+                }}>Cancel</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={handleCreateTeam}
+                disabled={formingTeam || !newTeamName.trim()}
+                style={{
+                  paddingHorizontal: 18,
+                  paddingVertical: 10,
+                  borderRadius: 12,
+                  backgroundColor: '#2563EB',
+                  opacity: (!newTeamName.trim() || formingTeam) ? 0.6 : 1,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: 6
+                }}
+              >
+                {formingTeam && <ActivityIndicator size="small" color="white" />}
+                <Text style={{
+                  fontSize: 13,
+                  fontWeight: 'bold',
+                  color: '#FFFFFF'
+                }}>Create Workspace</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
