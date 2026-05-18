@@ -120,33 +120,69 @@ export default function Requests() {
           className="flex-1"
         >
           {activeTab === 'Incoming' && incomingRequests.length === 0 ? (
-            <View className="items-center px-12 pb-16 pt-20">
+            <View style={{ alignItems: 'center', paddingHorizontal: 48, paddingBottom: 64, paddingTop: 80 }}>
               {/* Mailbox Emoji/Graphics */}
-              <View className={`w-24 h-24 rounded-full items-center justify-center mb-6 ${
-                isDarkMode ? 'bg-slate-800' : 'bg-blue-50'
-              }`}>
-                <Text className="text-5xl text-center">📬</Text>
+              <View style={{
+                width: 96,
+                height: 96,
+                borderRadius: 48,
+                alignItems: 'center',
+                justifyContent: 'center',
+                marginBottom: 24,
+                backgroundColor: isDarkMode ? '#1E293B' : '#EFF6FF'
+              }}>
+                <Text style={{ fontSize: 48, textAlign: 'center' }}>📬</Text>
               </View>
 
-              <Text className={`text-[17px] font-bold text-center mb-2 ${isDarkMode ? 'text-white' : 'text-[#1E293B]'}`}>
+              <Text style={{
+                fontSize: 17,
+                fontWeight: 'bold',
+                textAlign: 'center',
+                marginBottom: 8,
+                color: isDarkMode ? '#FFFFFF' : '#1E293B'
+              }}>
                 No incoming requests
               </Text>
-              <Text className={`text-xs text-center leading-5 px-4 ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+              <Text style={{
+                fontSize: 12,
+                textAlign: 'center',
+                lineHeight: 20,
+                paddingHorizontal: 16,
+                color: isDarkMode ? '#94A3B8' : '#64748B'
+              }}>
                 When someone sends you a request, it appears here
               </Text>
             </View>
           ) : activeTab === 'Outgoing' && outgoingRequests.length === 0 ? (
-            <View className="items-center px-12 pb-16 pt-20">
-              <View className={`w-24 h-24 rounded-full items-center justify-center mb-6 ${
-                isDarkMode ? 'bg-slate-800' : 'bg-blue-50'
-              }`}>
-                <Text className="text-5xl text-center">📤</Text>
+            <View style={{ alignItems: 'center', paddingHorizontal: 48, paddingBottom: 64, paddingTop: 80 }}>
+              <View style={{
+                width: 96,
+                height: 96,
+                borderRadius: 48,
+                alignItems: 'center',
+                justifyContent: 'center',
+                marginBottom: 24,
+                backgroundColor: isDarkMode ? '#1E293B' : '#EFF6FF'
+              }}>
+                <Text style={{ fontSize: 48, textAlign: 'center' }}>📤</Text>
               </View>
 
-              <Text className={`text-[17px] font-bold text-center mb-2 ${isDarkMode ? 'text-white' : 'text-[#1E293B]'}`}>
+              <Text style={{
+                fontSize: 17,
+                fontWeight: 'bold',
+                textAlign: 'center',
+                marginBottom: 8,
+                color: isDarkMode ? '#FFFFFF' : '#1E293B'
+              }}>
                 No outgoing requests
               </Text>
-              <Text className={`text-xs text-center leading-5 px-4 ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+              <Text style={{
+                fontSize: 12,
+                textAlign: 'center',
+                lineHeight: 20,
+                paddingHorizontal: 16,
+                color: isDarkMode ? '#94A3B8' : '#64748B'
+              }}>
                 Your pending sent invitations will be listed here
               </Text>
             </View>

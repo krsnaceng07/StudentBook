@@ -52,23 +52,51 @@ export default function Teams() {
         </View>
       ) : !teamData ? (
         // Empty State - No Team Joined
-        <View className="flex-1 justify-center items-center px-12 pb-16">
-          <View className={`w-24 h-24 rounded-full items-center justify-center mb-6 ${
-            isDarkMode ? 'bg-slate-800' : 'bg-blue-50'
-          }`}>
-            <Text className="text-5xl text-center">🤝</Text>
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 48, paddingBottom: 64 }}>
+          <View style={{
+            width: 96,
+            height: 96,
+            borderRadius: 48,
+            alignItems: 'center',
+            justifyContent: 'center',
+            marginBottom: 24,
+            backgroundColor: isDarkMode ? '#1E293B' : '#EFF6FF'
+          }}>
+            <Text style={{ fontSize: 48, textAlign: 'center' }}>🤝</Text>
           </View>
-          <Text className={`text-[17px] font-bold text-center mb-2 ${isDarkMode ? 'text-white' : 'text-[#1E293B]'}`}>
+          <Text style={{
+            fontSize: 17,
+            fontWeight: 'bold',
+            textAlign: 'center',
+            marginBottom: 8,
+            color: isDarkMode ? '#FFFFFF' : '#1E293B'
+          }}>
             No team formed yet
           </Text>
-          <Text className={`text-xs text-center leading-5 px-6 mb-8 ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+          <Text style={{
+            fontSize: 12,
+            textAlign: 'center',
+            lineHeight: 20,
+            paddingHorizontal: 24,
+            marginBottom: 32,
+            color: isDarkMode ? '#94A3B8' : '#64748B'
+          }}>
             You are not part of any collaboration team yet. Connect with other students or build your own dream team!
           </Text>
           <TouchableOpacity 
             onPress={() => router.push('/discover')}
-            className="bg-blue-600 px-6 py-3 rounded-2xl shadow-sm"
+            style={{
+              backgroundColor: '#2563EB',
+              paddingHorizontal: 24,
+              paddingVertical: 12,
+              borderRadius: 16,
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 1 },
+              shadowOpacity: 0.1,
+              shadowRadius: 1
+            }}
           >
-            <Text className="text-white font-bold text-sm">Find Teammates</Text>
+            <Text style={{ color: '#FFFFFF', fontWeight: 'bold', fontSize: 14 }}>Find Teammates</Text>
           </TouchableOpacity>
         </View>
       ) : (
