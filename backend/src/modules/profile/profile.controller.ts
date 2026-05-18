@@ -80,6 +80,8 @@ export const updateProfile = async (req: Request, res: Response) => {
       skills,
       interests,
       social_links,
+      availability,
+      goal,
     } = req.body;
 
     // 1. Calculate initials if full_name is provided
@@ -108,6 +110,8 @@ export const updateProfile = async (req: Request, res: Response) => {
     if (skills !== undefined) updateData.skills = skills;
     if (interests !== undefined) updateData.interests = interests;
     if (social_links !== undefined) updateData.social_links = social_links;
+    if (availability !== undefined) updateData.availability = availability;
+    if (goal !== undefined) updateData.goal = goal;
 
     const { data: updatedProfile, error: profileError } = await supabase
       .from('extended_profiles')
@@ -121,7 +125,9 @@ export const updateProfile = async (req: Request, res: Response) => {
 
     res.status(200).json({
       success: true,
-      data: updatedProfile,
+      data: {
+        profile: updatedProfile
+      },
     });
   } catch (error: any) {
     console.error('Error updating profile:', error);
