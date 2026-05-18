@@ -1,8 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { View, Text, ScrollView, RefreshControl, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useUIStore } from '../../store/uiStore';
 import { useAuthStore } from '../../store/authStore';
+import { useFocusEffect } from 'expo-router';
 import api from '../../api/client';
 
 interface DashboardStats {
@@ -31,7 +32,7 @@ export default function CollegeDashboard() {
 
   const fetchDashboardData = async () => {
     try {
-      const response = await api.get('/api/v1/college/dashboard');
+      const response = await api.get('/college/dashboard');
       if (response.data?.success) {
         setStats(response.data.data.stats);
         setRecentEvents(response.data.data.recentEvents || []);
@@ -44,9 +45,11 @@ export default function CollegeDashboard() {
     }
   };
 
-  useEffect(() => {
-    fetchDashboardData();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      fetchDashboardData();
+    }, [])
+  );
 
   const onRefresh = () => {
     setRefreshing(true);
