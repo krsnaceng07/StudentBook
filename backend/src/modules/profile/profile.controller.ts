@@ -86,6 +86,9 @@ export const updateProfile = async (req: Request, res: Response) => {
       established_year,
       website,
       contact_email,
+      settings_push,
+      settings_email,
+      settings_visibility,
     } = req.body;
 
     // 1. Calculate initials if full_name is provided
@@ -120,6 +123,9 @@ export const updateProfile = async (req: Request, res: Response) => {
     if (established_year !== undefined) updateData.established_year = established_year;
     if (website !== undefined) updateData.website = website;
     if (contact_email !== undefined) updateData.contact_email = contact_email;
+    if (settings_push !== undefined) updateData.settings_push = settings_push;
+    if (settings_email !== undefined) updateData.settings_email = settings_email;
+    if (settings_visibility !== undefined) updateData.settings_visibility = settings_visibility;
 
     const { data: updatedProfile, error: profileError } = await supabase
       .from('extended_profiles')
