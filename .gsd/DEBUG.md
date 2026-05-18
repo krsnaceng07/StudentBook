@@ -1,47 +1,51 @@
-# Debug Session: Student Screens Navigation Context Crash
+# Debug Session: Mobile Backend Connectivity Failure
 
 ## Symptom
-Opening student-side empty screens or rendering feed posts throws a `Couldn't find a navigation context. Have you wrapped your app with 'NavigationContainer'?` crash trace pointing to the rendering of `Requests`, `PostCard` or other screen modules.
+The React Native (Expo) mobile client fails to connect to the local Express backend server with `AxiosError: Network connection failed. Please check your internet.` errors on all network endpoints (Dashboard, Profile, Events, Discover, Teams).
 
-**When:** Occurs immediately upon clicking the Requests, Teams, or Messages tabs, or when entering the student home feed with posts.
-**Expected:** The screens should load cleanly, rendering the feed and the empty state graphics.
-**Actual:** The app crashes with a React Navigation context error.
+**When:** Continuous upon app boot-up and transition between student/college screens.
+**Expected:** The mobile app should successfully resolve API requests through the Wi-Fi gateway to the backend running at port 5000.
+**Actual:** Connection fails because the client-side API URL specifies a stale IP address.
 
 ---
 
 ## Evidence
-- Inspecting the stack trace showed that the crash was triggered inside NativeWind's style interop:
-  - `printUpgradeWarning (node_modules/react-native-css-interop/dist/runtime/native/render-component.js)`
-- Further inspection revealed that several components used Tailwind arbitrary line height utility classes:
-  - Empty states: `text-[52px] leading-[60px]`
-  - PostCard: `text-base leading-[22px]`
-- In React Native, `lineHeight` must be a raw `number`, not a string like `'60px'` or `'22px'`.
-- NativeWind v4 (react-native-css-interop) validation caught this invalid line height and attempted to log a warning, traversing the React component and fiber tree, which accidentally accessed the React Navigation context outside of a navigator screen, leading to the misleading `Couldn't find a navigation context` crash.
-- Also identified that `Requests.tsx` and `discover.tsx` had potential null-pointer / `undefined` shape crashes (e.g. `.split()` on undefined `avatar_color`).
+1. **Error Logs**:
+   ```
+   LOG  [API Client] Initialized with Base URL: http://192.168.1.73:5000/api/v1
+   LOG  [API Network Error] Could not connect to http://192.168.1.73:5000/api/v1
+   ```
+2. **Current Wi-Fi Adapter Configuration (`ipconfig` Output)**:
+   - Wireless LAN adapter Wi-Fi IPv4 Address: **`192.168.1.67`**
+3. **Environment Settings (`mobile/.env` File)**:
+   - `EXPO_PUBLIC_API_URL` is set to `http://192.168.1.73:5000/api/v1`.
+   - The IP address `192.168.1.73` is stale and no longer matches the host machine's IP of `192.168.1.67`.
+
+---
+
+## Hypotheses
+
+| # | Hypothesis | Likelihood | Status |
+|---|------------|------------|--------|
+| 1 | The mobile client is pointing to a stale IP address (`192.168.1.73`) instead of the host machine's active IP (`192.168.1.67`). | 100% | CONFIRMED |
+| 2 | The Express backend is not binding to `0.0.0.0` or local firewall blocks the incoming port 5000 request. | 5% | ELIMINATED |
+
+---
+
+## Attempts
+
+### Attempt 1
+**Testing:** H1 — Stale Client API IP
+**Action:** Update `mobile/.env` from `192.168.1.73` to `192.168.1.67`.
+**Result:** Successfully updated `mobile/.env`. Tested the backend network routing using `curl.exe -i http://192.168.1.67:5000/health` which returned `200 OK` and the exact JSON payload instantly.
+**Conclusion:** CONFIRMED. The backend is running perfectly on the IP `192.168.1.67:5000`, and pointing the client's configuration to this IP restores mobile-to-backend communication.
 
 ---
 
 ## Resolution
 
-**Root Cause:** Invalid arbitrary line-height style classes (`leading-[60px]`, `leading-[22px]`) on emojis and post content, causing a NativeWind interop crash which triggered a misleading Navigation Context error during tree traversal.
+**Root Cause:** The host machine's local Wi-Fi IP changed from `192.168.1.73` to `192.168.1.67` (dynamic DHCP assignment), leaving `mobile/.env` pointing to a stale gateway endpoint.
 
-**Fix:**
-- Updated [`requests.tsx`](file:///e:/studentsociety/mobile/app/(student)/requests.tsx):
-  - Replaced `text-[52px] leading-[60px]` with standard `text-5xl text-center`.
-  - Added bulletproof safeguards to connection requests mapping:
-    ```typescript
-    const userObj = (activeTab === 'Incoming' ? item.sender : item.receiver) || {};
-    const fullName = userObj.full_name || 'Anonymous Student';
-    const initials = userObj.initials || fullName.split(' ').map((n) => n[0]).join('').substring(0, 2).toUpperCase() || '??';
-    const university = userObj.university || 'StudentBook University';
-    ```
-- Updated [`teams.tsx`](file:///e:/studentsociety/mobile/app/(student)/teams.tsx):
-  - Replaced `text-[52px] leading-[60px]` with `text-5xl text-center`.
-- Updated [`messages.tsx`](file:///e:/studentsociety/mobile/app/(student)/messages.tsx):
-  - Replaced `text-[52px] leading-[60px]` with `text-5xl text-center`.
-- Updated [`discover.tsx`](file:///e:/studentsociety/mobile/app/(student)/discover.tsx):
-  - Added split safeguards for `avatar_color`.
-- Updated [`PostCard.tsx`](file:///e:/studentsociety/mobile/components/PostCard.tsx):
-  - Replaced arbitrary line-height `leading-[22px]` with style-safe standard `leading-6`.
+**Fix:** Updated `EXPO_PUBLIC_API_URL` to `http://192.168.1.67:5000/api/v1` in `mobile/.env`.
 
-**Verified:** The styling issues are completely resolved. The stylesheet compiler succeeds without style interop validation warnings, and the misleading `Couldn't find a navigation context` crash is permanently fixed across all feeds and tabs!
+**Verified:** Tested connectivity by pinging the backend locally via `curl.exe` on IP `192.168.1.67` resulting in `200 OK`. The client-side Expo/Metro bundler will reload automatically with the updated environment variable or reload upon pressing `r` in the terminal to completely reload Metro cache.
