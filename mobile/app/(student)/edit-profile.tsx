@@ -8,6 +8,20 @@ import client from '../../api/client';
 
 type TabType = 'Basic' | 'Skills' | 'Interests' | 'Settings';
 
+const PRESET_SKILLS = [
+  'React Native', 'React', 'Node.js',
+  'Python', 'Machine Learning', 'UI/UX',
+  'Figma', 'Flutter', 'Java', 'C++',
+  'PostgreSQL', 'MongoDB', 'Docker', 'IoT',
+  'Arduino', 'Blockchain', 'TypeScript', 'Swift'
+];
+
+const PRESET_INTERESTS = [
+  'AI', 'FinTech', 'Web3', 'Social Impact',
+  'E-Commerce', 'EdTech', 'Gaming', 'IoT',
+  'Design Systems', 'Research', 'Startup', 'Open Source'
+];
+
 export default function EditProfile() {
   const { isDarkMode } = useUIStore();
   const router = useRouter();
@@ -27,13 +41,11 @@ export default function EditProfile() {
 
   // Skills & Interests Lists
   const [skills, setSkills] = useState<string[]>([]);
-  const [newSkill, setNewSkill] = useState('');
   const [interests, setInterests] = useState<string[]>([]);
-  const [newInterest, setNewInterest] = useState('');
 
   // Settings
-  const [notifyMatches, setNotifyMatches] = useState(true);
-  const [profileVisible, setProfileVisible] = useState(true);
+  const [availability, setAvailability] = useState(true);
+  const [goal, setGoal] = useState<'Looking for a Team' | 'Open to Join' | 'Just Exploring'>('Looking for a Team');
 
   // Fetch initial profile
   useEffect(() => {
@@ -51,6 +63,8 @@ export default function EditProfile() {
           setPortfolioUrl(p.social_links?.portfolio || '');
           setSkills(p.skills || []);
           setInterests(p.interests || []);
+          setAvailability(p.availability !== false); // default to true
+          setGoal(p.goal || 'Looking for a Team');
         }
       } catch (error) {
         console.warn('Failed to load profile details for editing:', error);
@@ -70,7 +84,7 @@ export default function EditProfile() {
 
     setSaving(true);
     try {
-      const response = await client.put('/student/profile/update', {
+      const response = await client.put('/profile/update', {
         full_name: fullName.trim(),
         university: college.trim(),
         department: department.trim(),
@@ -78,6 +92,8 @@ export default function EditProfile() {
         bio: bio.trim(),
         skills,
         interests,
+        availability,
+        goal,
         social_links: {
           github: githubUrl.trim(),
           portfolio: portfolioUrl.trim(),
@@ -99,28 +115,22 @@ export default function EditProfile() {
     }
   };
 
-  // Skill Helpers
-  const addSkill = () => {
-    if (newSkill.trim() && !skills.includes(newSkill.trim())) {
-      setSkills([...skills, newSkill.trim()]);
-      setNewSkill('');
+  // Skill Toggle
+  const toggleSkill = (skill: string) => {
+    if (skills.includes(skill)) {
+      setSkills(skills.filter(s => s !== skill));
+    } else {
+      setSkills([...skills, skill]);
     }
   };
 
-  const removeSkill = (index: number) => {
-    setSkills(skills.filter((_, i) => i !== index));
-  };
-
-  // Interest Helpers
-  const addInterest = () => {
-    if (newInterest.trim() && !interests.includes(newInterest.trim())) {
-      setInterests([...interests, newInterest.trim()]);
-      setNewInterest('');
+  // Interest Toggle
+  const toggleInterest = (interest: string) => {
+    if (interests.includes(interest)) {
+      setInterests(interests.filter(i => i !== interest));
+    } else {
+      setInterests([...interests, interest]);
     }
-  };
-
-  const removeInterest = (index: number) => {
-    setInterests(interests.filter((_, i) => i !== index));
   };
 
   if (loading) {
@@ -157,7 +167,7 @@ export default function EditProfile() {
         <TouchableOpacity 
           onPress={handleSave}
           disabled={saving}
-          className="bg-blue-600 rounded-full px-5 py-2 active:bg-blue-700 flex-row items-center gap-2"
+          className="bg-blue-600 rounded-full px-5 py-2 active:bg-blue-700 flex-row items-center justify-center"
         >
           {saving ? (
             <ActivityIndicator size="small" color="white" />
@@ -337,147 +347,153 @@ export default function EditProfile() {
         )}
 
         {activeTab === 'Skills' && (
-          <View className="gap-5">
-            <Text className={`text-sm font-bold ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
-              Highlight your Tech Stack & Skills
+          <View>
+            <Text className={`text-xs font-semibold mb-4 ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+              Selected: {skills.length}
             </Text>
             
-            <View className="flex-row gap-2">
-              <TextInput
-                value={newSkill}
-                onChangeText={setNewSkill}
-                placeholder="React Native, Node.js..."
-                placeholderTextColor={isDarkMode ? '#64748B' : '#94A3B8'}
-                className={`flex-1 rounded-2xl border px-4 py-3.5 text-xs font-medium ${
-                  isDarkMode 
-                    ? 'bg-slate-900 border-slate-800 text-white' 
-                    : 'bg-white border-slate-200 text-slate-900 shadow-sm'
-                }`}
-              />
-              <TouchableOpacity
-                onPress={addSkill}
-                className="bg-blue-600 px-5 rounded-2xl items-center justify-center active:bg-blue-700"
-              >
-                <Ionicons name="add" size={20} color="white" />
-              </TouchableOpacity>
-            </View>
-
-            {/* Skills Badges Grid */}
-            <View className="flex-row flex-wrap gap-2.5 mt-2">
-              {skills.map((skill, index) => (
-                <View 
-                  key={`${skill}-${index}`}
-                  className={`flex-row items-center gap-1.5 px-4 py-2 rounded-full border ${
-                    isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-slate-50 border-slate-200'
-                  }`}
-                >
-                  <Text className={`text-xs font-semibold ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>
-                    {skill}
-                  </Text>
-                  <TouchableOpacity onPress={() => removeSkill(index)}>
-                    <Ionicons name="close-circle" size={14} color="#EF4444" />
+            {/* High-Fidelity Preset Skills Grid Selector */}
+            <View className="flex-row flex-wrap gap-2.5">
+              {PRESET_SKILLS.map((skill) => {
+                const isSelected = skills.includes(skill);
+                return (
+                  <TouchableOpacity
+                    key={skill}
+                    onPress={() => toggleSkill(skill)}
+                    className={`px-5 py-3.5 rounded-2xl border ${
+                      isSelected
+                        ? 'border-blue-600 bg-blue-500/5'
+                        : isDarkMode
+                          ? 'border-slate-800 bg-slate-900'
+                          : 'border-slate-200 bg-white'
+                    }`}
+                  >
+                    <Text className={`text-xs font-bold ${
+                      isSelected
+                        ? 'text-blue-600'
+                        : isDarkMode ? 'text-slate-300' : 'text-slate-700'
+                    }`}>
+                      {skill}
+                    </Text>
                   </TouchableOpacity>
-                </View>
-              ))}
+                );
+              })}
             </View>
           </View>
         )}
 
         {activeTab === 'Interests' && (
-          <View className="gap-5">
-            <Text className={`text-sm font-bold ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
-              What domains interest you?
+          <View>
+            <Text className={`text-xs font-semibold mb-4 ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+              Selected: {interests.length}
             </Text>
             
-            <View className="flex-row gap-2">
-              <TextInput
-                value={newInterest}
-                onChangeText={setNewInterest}
-                placeholder="AI, Web3, FinTech..."
-                placeholderTextColor={isDarkMode ? '#64748B' : '#94A3B8'}
-                className={`flex-1 rounded-2xl border px-4 py-3.5 text-xs font-medium ${
-                  isDarkMode 
-                    ? 'bg-slate-900 border-slate-800 text-white' 
-                    : 'bg-white border-slate-200 text-slate-900 shadow-sm'
-                }`}
-              />
-              <TouchableOpacity
-                onPress={addInterest}
-                className="bg-blue-600 px-5 rounded-2xl items-center justify-center active:bg-blue-700"
-              >
-                <Ionicons name="add" size={20} color="white" />
-              </TouchableOpacity>
-            </View>
-
-            {/* Interests Badges Grid */}
-            <View className="flex-row flex-wrap gap-2.5 mt-2">
-              {interests.map((interest, index) => (
-                <View 
-                  key={`${interest}-${index}`}
-                  className={`flex-row items-center gap-1.5 px-4 py-2 rounded-full border ${
-                    isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-slate-50 border-slate-200'
-                  }`}
-                >
-                  <Text className={`text-xs font-semibold ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>
-                    {interest}
-                  </Text>
-                  <TouchableOpacity onPress={() => removeInterest(index)}>
-                    <Ionicons name="close-circle" size={14} color="#EF4444" />
+            {/* High-Fidelity Preset Interests Grid Selector */}
+            <View className="flex-row flex-wrap gap-2.5">
+              {PRESET_INTERESTS.map((interest) => {
+                const isSelected = interests.includes(interest);
+                return (
+                  <TouchableOpacity
+                    key={interest}
+                    onPress={() => toggleInterest(interest)}
+                    className={`px-5 py-3.5 rounded-2xl border ${
+                      isSelected
+                        ? 'border-blue-600 bg-blue-500/5'
+                        : isDarkMode
+                          ? 'border-slate-800 bg-slate-900'
+                          : 'border-slate-200 bg-white'
+                    }`}
+                  >
+                    <Text className={`text-xs font-bold ${
+                      isSelected
+                        ? 'text-blue-600'
+                        : isDarkMode ? 'text-slate-300' : 'text-slate-700'
+                    }`}>
+                      {interest}
+                    </Text>
                   </TouchableOpacity>
-                </View>
-              ))}
+                );
+              })}
             </View>
           </View>
         )}
 
         {activeTab === 'Settings' && (
-          <View className="gap-5">
-            <Text className={`text-sm font-bold mb-2 ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
-              Account Preferences
-            </Text>
-
-            {/* Notification settings item */}
-            <View className={`flex-row items-center justify-between p-4 rounded-3xl border ${
-              isDarkMode ? 'bg-slate-900/50 border-slate-800' : 'bg-white border-slate-100 shadow-sm'
-            }`}>
-              <View className="flex-1 pr-4">
-                <Text className={`text-xs font-bold mb-0.5 ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
-                  Team Match Notifications
-                </Text>
-                <Text className={`text-[10px] font-semibold ${isDarkMode ? 'text-slate-500' : 'text-slate-400'}`}>
-                  Get notified when colleges view your profile or request teams
-                </Text>
-              </View>
+          <View className="gap-6">
+            {/* Availability Switch Toggle */}
+            <View>
+              <Text className={`text-sm font-extrabold mb-1 ${isDarkMode ? 'text-white' : 'text-slate-950'}`}>
+                Availability
+              </Text>
+              <Text className={`text-xs mb-4 ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                Let teammates know you're open to collaborate
+              </Text>
+              
               <TouchableOpacity 
-                onPress={() => setNotifyMatches(!notifyMatches)}
-                className={`w-12 h-7 rounded-full p-1 transition-colors ${
-                  notifyMatches ? 'bg-emerald-500 items-end' : 'bg-slate-300 items-start'
-                }`}
+                onPress={() => setAvailability(!availability)}
+                className="flex-row items-center gap-3.5"
               >
-                <View className="w-5 h-5 rounded-full bg-white shadow-sm" />
+                {/* Switch Background Container */}
+                <View className={`w-12 h-7 rounded-full p-1 ${
+                  availability ? 'bg-emerald-500 items-end' : 'bg-slate-300 items-start'
+                }`}>
+                  {/* Slider Knob */}
+                  <View className="w-5 h-5 rounded-full bg-white shadow-sm" />
+                </View>
+
+                {/* Status text label next to switch toggle */}
+                <Text className={`text-xs font-bold ${
+                  availability 
+                    ? 'text-emerald-500' 
+                    : isDarkMode ? 'text-slate-400' : 'text-slate-500'
+                }`}>
+                  Available to collaborate
+                </Text>
               </TouchableOpacity>
             </View>
 
-            {/* Visibility Settings Item */}
-            <View className={`flex-row items-center justify-between p-4 rounded-3xl border ${
-              isDarkMode ? 'bg-slate-900/50 border-slate-800' : 'bg-white border-slate-100 shadow-sm'
-            }`}>
-              <View className="flex-1 pr-4">
-                <Text className={`text-xs font-bold mb-0.5 ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
-                  Public Discover Visibility
-                </Text>
-                <Text className={`text-[10px] font-semibold ${isDarkMode ? 'text-slate-500' : 'text-slate-400'}`}>
-                  Show my profile card inside student find-teammate discover boards
-                </Text>
+            {/* Goal Card Select Group */}
+            <View className="mt-2">
+              <Text className={`text-sm font-extrabold mb-4 ${isDarkMode ? 'text-white' : 'text-slate-950'}`}>
+                Your Goal
+              </Text>
+
+              <View className="gap-3">
+                {([
+                  { id: 'Looking for a Team', icon: '🚀', text: 'Looking for a Team' },
+                  { id: 'Open to Join', icon: '🤝', text: 'Open to Join' },
+                  { id: 'Just Exploring', icon: '👀', text: 'Just Exploring' }
+                ] as const).map((g) => {
+                  const isSelected = goal === g.id;
+                  return (
+                    <TouchableOpacity
+                      key={g.id}
+                      onPress={() => setGoal(g.id)}
+                      className={`flex-row items-center justify-between p-5 rounded-[20px] border ${
+                        isSelected
+                          ? 'border-blue-600 bg-blue-500/5'
+                          : isDarkMode
+                            ? 'border-slate-800 bg-slate-900'
+                            : 'border-slate-200 bg-white'
+                      }`}
+                    >
+                      <View className="flex-row items-center gap-3.5">
+                        <Text className="text-base">{g.icon}</Text>
+                        <Text className={`text-xs font-bold ${
+                          isSelected
+                            ? 'text-blue-600'
+                            : isDarkMode ? 'text-white' : 'text-slate-950'
+                        }`}>
+                          {g.text}
+                        </Text>
+                      </View>
+                      {isSelected && (
+                        <Ionicons name="checkmark-circle" size={20} color="#2563EB" />
+                      )}
+                    </TouchableOpacity>
+                  );
+                })}
               </View>
-              <TouchableOpacity 
-                onPress={() => setProfileVisible(!profileVisible)}
-                className={`w-12 h-7 rounded-full p-1 transition-colors ${
-                  profileVisible ? 'bg-emerald-500 items-end' : 'bg-slate-300 items-start'
-                }`}
-              >
-                <View className="w-5 h-5 rounded-full bg-white shadow-sm" />
-              </TouchableOpacity>
             </View>
           </View>
         )}

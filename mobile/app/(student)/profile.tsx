@@ -38,8 +38,8 @@ export default function Profile() {
           name: p.full_name || 'Anonymous User',
           university: p.university || 'University Student',
           year: `${p.department || p.role_title || 'Student'}${p.university_year ? ` - ${p.university_year}` : ''}`,
-          status: 'Looking for Team',
-          availability: 'Available',
+          status: p.goal || 'Looking for a Team',
+          availability: p.availability !== false ? 'Available' : 'Unavailable',
           bio: p.bio || 'Welcome to my profile.',
           skills: p.skills || [],
           interests: p.interests || ['AI', 'FinTech'],
@@ -104,7 +104,7 @@ export default function Profile() {
              </View>
            </View>
          </View>
- 
+
          {/* Info Cards List on Light Gray Background */}
          <View className="px-6 mt-5 gap-4">
            
@@ -122,9 +122,11 @@ export default function Profile() {
                    {profile.status}
                  </Text>
                </View>
- 
+
                <View className="flex-row items-center gap-1.5">
-                 <View className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
+                 <View className={`w-2.5 h-2.5 rounded-full ${
+                   profile.availability === 'Available' ? 'bg-emerald-500' : 'bg-slate-400'
+                 }`} />
                  <Text className={`text-[10px] font-semibold ${
                    isDarkMode ? 'text-slate-400' : 'text-slate-500'
                  }`}>
