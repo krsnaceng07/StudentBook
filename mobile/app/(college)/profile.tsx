@@ -1,8 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, Linking, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { useUIStore } from '../../store/uiStore';
 import { useAuthStore } from '../../store/authStore';
 import api from '../../api/client';
@@ -33,21 +33,23 @@ export default function CollegeProfile() {
   const [profile, setProfile] = useState<CollegeProfileData | null>(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const fetchProfile = async () => {
-      try {
-        const response = await api.get('/profile/me');
-        if (response.data?.success) {
-          setProfile(response.data.data);
+  useFocusEffect(
+    useCallback(() => {
+      const fetchProfile = async () => {
+        try {
+          const response = await api.get('/profile/me');
+          if (response.data?.success) {
+            setProfile(response.data.data);
+          }
+        } catch (error) {
+          console.error('Failed to fetch profile', error);
+        } finally {
+          setLoading(false);
         }
-      } catch (error) {
-        console.error('Failed to fetch profile', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchProfile();
-  }, []);
+      };
+      fetchProfile();
+    }, [])
+  );
 
   const extProfile = profile?.extended_profiles?.[0];
   const universityName = extProfile?.full_name || extProfile?.university || user?.full_name || 'University';
