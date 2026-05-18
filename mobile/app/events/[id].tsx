@@ -395,7 +395,7 @@ export default function EventDetailsPage() {
           }}>
             <Text style={{
               fontSize: 20,
-              fontWeight: 'extrabold',
+              fontWeight: '900',
               marginBottom: 8,
               color: isDarkMode ? '#FFFFFF' : '#0F172A'
             }}>Form Team Workspace</Text>

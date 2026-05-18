@@ -176,5 +176,15 @@
 - [x] Mobile: Connect active bookmark button on Event Details screen to live toggle APIs and implement "Join/Form Team" action button at the bottom of Event Details dynamically linked to live team creation.
 - [x] Mobile: Add Supabase Realtime synchronization on Event Details page to instantly update UI upon any admin/college edit to the active event.
 
+## Phase 33: Legacy State & Backup Purge
+**Status**: ✅ Complete
+- [x] Mobile: Delete all backup files in `mobile/backups/`.
+- [x] Mobile: Delete legacy Zustand stores in `mobile/store/` (e.g. `postStore.js`, `chatStore.js`, `teamStore.js`, etc.), keeping only `uiStore.js`, `authStore.js`, and `aiStore.js`.
+
+## Phase 34: Legacy Components Purge
+**Status**: ⏳ Planned
+- [ ] Mobile: Delete legacy unused React components in `mobile/components/`.
+- [ ] Mobile: Run `npx tsc --noEmit` to ensure the codebase is 100% clean and free of compile errors.
+
 
 
