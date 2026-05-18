@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, TextInput, Modal, Alert } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, TextInput, Modal, Alert, Linking } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -13,6 +13,8 @@ export default function EventDetailsPage() {
   const { isDarkMode } = useUIStore();
   
   const [bookmarked, setBookmarked] = useState(false);
+  const [registered, setRegistered] = useState(false);
+  const [regCount, setRegCount] = useState(0);
   const [event, setEvent] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState('');
@@ -30,8 +32,11 @@ export default function EventDetailsPage() {
     try {
       const response = await api.get(`/events/${id}`);
       if (response.data?.success && response.data?.data) {
-        setEvent(response.data.data);
-        setBookmarked(!!response.data.data.isBookmarked);
+        const ev = response.data.data;
+        setEvent(ev);
+        setBookmarked(!!ev.isBookmarked);
+        setRegistered(!!ev.isRegistered);
+        setRegCount(ev.registrationCount || 0);
       } else {
         setErrorMsg('Failed to load event details.');
       }
@@ -80,8 +85,11 @@ export default function EventDetailsPage() {
           // Directly fetch fresh data without loading spinners to maintain perfect UI state
           api.get(`/events/${id}`).then((res) => {
             if (res.data?.success && res.data?.data) {
-              setEvent(res.data.data);
-              setBookmarked(!!res.data.data.isBookmarked);
+              const ev = res.data.data;
+              setEvent(ev);
+              setBookmarked(!!ev.isBookmarked);
+              setRegistered(!!ev.isRegistered);
+              setRegCount(ev.registrationCount || 0);
             }
           }).catch(err => console.warn('Realtime event sync fetch failed:', err));
         }
@@ -108,6 +116,40 @@ export default function EventDetailsPage() {
       console.warn('Failed to toggle bookmark status on server:', err);
       setBookmarked(!nextBookmarked); // Revert state on failure
       Alert.alert('Error', 'Could not save bookmark. Please try again.');
+    }
+  };
+
+  const handleToggleRegister = async () => {
+    if (!id || !event) return;
+    const nextRegState = !registered;
+    
+    // Optimistic UI updates
+    setRegistered(nextRegState);
+    setRegCount(prev => nextRegState ? prev + 1 : Math.max(0, prev - 1));
+
+    try {
+      if (nextRegState) {
+        await api.post(`/events/${id}/register`);
+      } else {
+        await api.delete(`/events/${id}/register`);
+      }
+    } catch (err: any) {
+      console.warn('Failed to toggle event registration on server:', err);
+      // Revert state on failure
+      setRegistered(!nextRegState);
+      setRegCount(prev => !nextRegState ? prev + 1 : Math.max(0, prev - 1));
+      Alert.alert('Error', err.response?.data?.error || 'Could not complete registration. Please try again.');
+    }
+  };
+
+  const handleExternalApply = () => {
+    if (event?.external_link) {
+      Linking.openURL(event.external_link).catch(err => {
+        console.warn('Failed to open external URL:', err);
+        Alert.alert('Error', 'Could not open external link. Please check the URL.');
+      });
+    } else {
+      Alert.alert('Error', 'External registration link is not provided by college organizer.');
     }
   };
 
@@ -214,7 +256,9 @@ export default function EventDetailsPage() {
         </View>
 
         <Text className="text-white text-3xl font-extrabold mb-1">{event.title}</Text>
-        <Text className="text-blue-100 text-sm font-semibold">{event.organizer || 'Tribhuvan University'}</Text>
+        <Text className="text-blue-100 text-sm font-semibold">
+          {event.organizer || 'Tribhuvan University'} · {regCount} Registered
+        </Text>
       </View>
 
       <ScrollView 
@@ -313,55 +357,132 @@ export default function EventDetailsPage() {
         borderTopColor: isDarkMode ? '#1E293B' : '#E2E8F0',
         backgroundColor: isDarkMode ? '#0F172A' : '#FFFFFF',
         flexDirection: 'row',
-        alignItems: 'center'
+        alignItems: 'center',
+        gap: 12
       }}>
-        {teamData?.team ? (
-          <TouchableOpacity 
-            onPress={() => router.push('/teams')}
-            activeOpacity={0.85}
-            style={{
-              flex: 1,
-              backgroundColor: '#10B981',
-              paddingVertical: 14,
-              borderRadius: 16,
-              alignItems: 'center',
-              justifyContent: 'center',
-              shadowColor: '#10B981',
-              shadowOffset: { width: 0, height: 4 },
-              shadowOpacity: 0.2,
-              shadowRadius: 6,
-              elevation: 4
-            }}
-          >
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-              <Ionicons name="people" size={20} color="white" />
-              <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 15 }}>View My Team Workspace</Text>
+        {(() => {
+          const isExternal = event.registration_type === 'external';
+
+          if (isExternal) {
+            return (
+              <TouchableOpacity 
+                onPress={handleExternalApply}
+                activeOpacity={0.85}
+                style={{
+                  flex: 1,
+                  backgroundColor: '#4F46E5', // Indigo-600 for external link redirects
+                  paddingVertical: 14,
+                  borderRadius: 16,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  shadowColor: '#4F46E5',
+                  shadowOffset: { width: 0, height: 4 },
+                  shadowOpacity: 0.2,
+                  shadowRadius: 6,
+                  elevation: 4
+                }}
+              >
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                  <Ionicons name="open-outline" size={20} color="white" />
+                  <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 15 }}>Apply on External Site</Text>
+                </View>
+              </TouchableOpacity>
+            );
+          }
+
+          // Internal direct registration handling
+          if (!registered) {
+            return (
+              <TouchableOpacity 
+                onPress={handleToggleRegister}
+                activeOpacity={0.85}
+                style={{
+                  flex: 1,
+                  backgroundColor: '#2563EB', // Blue-600
+                  paddingVertical: 14,
+                  borderRadius: 16,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  shadowColor: '#2563EB',
+                  shadowOffset: { width: 0, height: 4 },
+                  shadowOpacity: 0.2,
+                  shadowRadius: 6,
+                  elevation: 4
+                }}
+              >
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                  <Ionicons name="checkmark-done-circle" size={20} color="white" />
+                  <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 15 }}>Register for Event</Text>
+                </View>
+              </TouchableOpacity>
+            );
+          }
+
+          // Registered internally: split grid showing registered check on left and team building workspace on right!
+          return (
+            <View style={{ flex: 1, flexDirection: 'row', gap: 10 }}>
+              {/* Left Button: Cancel / Registered */}
+              <TouchableOpacity 
+                onPress={handleToggleRegister}
+                activeOpacity={0.85}
+                style={{
+                  flex: 0.45,
+                  backgroundColor: '#10B981', // Green-500
+                  paddingVertical: 14,
+                  borderRadius: 16,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  borderWidth: 1,
+                  borderColor: isDarkMode ? '#065F46' : '#A7F3D0'
+                }}
+              >
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                  <Ionicons name="checkmark-circle" size={16} color="white" />
+                  <Text style={{ color: 'white', fontWeight: 'extrabold', fontSize: 13 }}>Registered</Text>
+                </View>
+              </TouchableOpacity>
+
+              {/* Right Button: Team Workspace */}
+              {teamData?.team ? (
+                <TouchableOpacity 
+                  onPress={() => router.push('/teams')}
+                  activeOpacity={0.85}
+                  style={{
+                    flex: 0.55,
+                    backgroundColor: '#1F2937', // Slate-800
+                    paddingVertical: 14,
+                    borderRadius: 16,
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}
+                >
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                    <Ionicons name="people" size={16} color="white" />
+                    <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 13 }} numberOfLines={1}>Team Workspace</Text>
+                  </View>
+                </TouchableOpacity>
+              ) : (
+                <TouchableOpacity 
+                  onPress={() => setShowCreateTeamModal(true)}
+                  activeOpacity={0.85}
+                  style={{
+                    flex: 0.55,
+                    backgroundColor: '#2563EB', // Blue-600
+                    paddingVertical: 14,
+                    borderRadius: 16,
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}
+                >
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                    <Ionicons name="add-circle" size={16} color="white" />
+                    <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 13 }} numberOfLines={1}>Form Team</Text>
+                  </View>
+                </TouchableOpacity>
+              )}
             </View>
-          </TouchableOpacity>
-        ) : (
-          <TouchableOpacity 
-            onPress={() => setShowCreateTeamModal(true)}
-            activeOpacity={0.85}
-            style={{
-              flex: 1,
-              backgroundColor: '#2563EB',
-              paddingVertical: 14,
-              borderRadius: 16,
-              alignItems: 'center',
-              justifyContent: 'center',
-              shadowColor: '#2563EB',
-              shadowOffset: { width: 0, height: 4 },
-              shadowOpacity: 0.2,
-              shadowRadius: 6,
-              elevation: 4
-            }}
-          >
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-              <Ionicons name="add-circle" size={20} color="white" />
-              <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 15 }}>Form Collaboration Team</Text>
-            </View>
-          </TouchableOpacity>
-        )}
+          );
+        })()}
       </View>
 
       {/* Create Team Premium Modal */}
