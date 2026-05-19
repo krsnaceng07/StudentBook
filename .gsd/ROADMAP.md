@@ -214,3 +214,10 @@
 
 
 
+
+## Phase 40: Advanced Profile and Settings UI
+**Status**: ? Complete
+- [x] Database: Implement advanced settings columns.
+- [x] Backend: Update endpoints for live stats and settings.
+- [x] Mobile: Modularize Settings into sub-pages.
+- [x] Mobile: Implement Tabbed Profile screen with real-time sync.
