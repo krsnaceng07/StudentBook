@@ -153,10 +153,10 @@ Expo Router guarantees a absolute isolation of routes to prevent bleed:
 When you need to add or update features in StudentSociety, follow this exact step-by-step procedure to ensure **zero bugs, zero typescript issues, and robust security**.
 
 ### Step 1: Write a Database Migration SQL
-Never alter tables manually. Always write a local migration SQL script inside `backend/supabase/migrations/` using incremental naming conventions.
+Never alter tables manually. Always write a local migration SQL script inside `supabase/migrations/` using incremental naming conventions.
 
 ```sql
--- e.g., backend/supabase/migrations/20260523000000_my_new_feature.sql
+-- e.g., supabase/migrations/20260523000000_my_new_feature.sql
 
 -- 1. Alter or create tables
 ALTER TABLE public.extended_profiles
@@ -318,7 +318,7 @@ If it compiles without errors, your code is 100% clean and ready!
 
 ## 💡 Summary Checklist for Zero-Issue Workflow
 
-1. **Keep Schemas Updated**: Always use SQL migrations inside `backend/supabase/migrations/` for database edits.
+1. **Keep Schemas Updated**: Always use SQL migrations inside `supabase/migrations/` for database edits.
 2. **Derive Identity Safely**: Never rely on IDs sent by the frontend in request bodies for write actions; always use `req.user.id` from the decoded JWT.
 3. **Use the Right Namespace**: Student routes go to `student.routes.ts` (blue-themed, `/api/v1/student`); college routes go to `college.routes.ts` (green-themed, `/api/v1/college`).
 4. **Style Statically**: Avoid dynamic string templates in Tailwind classes to prevent Metro bundler loop crashes.

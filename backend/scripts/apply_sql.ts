@@ -13,7 +13,19 @@ const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const supabase = createClient(supabaseUrl!, supabaseServiceKey!);
 
 async function applySql() {
-  const migrationsDir = path.join(process.cwd(), 'supabase/migrations');
+  let migrationsDir = path.join(process.cwd(), 'supabase/migrations');
+  if (!fs.existsSync(migrationsDir)) {
+    const parentDir = path.join(process.cwd(), '../supabase/migrations');
+    if (fs.existsSync(parentDir)) {
+      migrationsDir = parentDir;
+    }
+  }
+
+  if (!fs.existsSync(migrationsDir)) {
+    console.error(`Error: Migrations directory not found. Checked standard paths.`);
+    process.exit(1);
+  }
+
   const files = fs.readdirSync(migrationsDir)
     .filter(f => f.endsWith('.sql'))
     .sort();

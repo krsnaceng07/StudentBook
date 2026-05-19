@@ -1,53 +1,46 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, Linking, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { useUIStore } from '../../store/uiStore';
 import { useAuthStore } from '../../store/authStore';
-import client from '../../api/client';
-
-const PROFILE_DATA_DEFAULT = {
-  initials: 'AS',
-  name: 'Aarav Sharma',
-  university: 'Tribhuvan University',
-  year: '3rd Year',
-  status: 'Looking for Team',
-  availability: 'Available',
-  bio: 'Passionate about AI and open source. Looking to build impactful products.',
-  skills: ['React Native', 'Python', 'Machine Learning'],
-  interests: ['AI', 'FinTech'],
-  github: 'github.com/aarav'
-};
+import { supabase } from '../../config/supabase';
+import api from '../../api/client';
 
 export default function Profile() {
   const { isDarkMode } = useUIStore();
-  const { logout } = useAuthStore();
+  const { logout, user } = useAuthStore();
   const router = useRouter();
-  const [loading, setLoading] = useState(false);
-  const [profile, setProfile] = useState<any>(PROFILE_DATA_DEFAULT);
+  
+  const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState('overview');
+  const [profile, setProfile] = useState<any>(null);
+  const [stats, setStats] = useState({ connections: 0, events_joined: 0, requests_sent: 0 });
+  const [activities, setActivities] = useState<any[]>([]);
+
+  const C = {
+    bg: isDarkMode ? '#0F172A' : '#F8FAFC',
+    card: isDarkMode ? '#1E293B' : '#FFFFFF',
+    border: isDarkMode ? '#334155' : '#E2E8F0',
+    text: isDarkMode ? '#F8FAFC' : '#0F172A',
+    muted: isDarkMode ? '#94A3B8' : '#64748B',
+    primary: profile?.appearance_accent || '#2563EB',
+    success: '#10B981',
+    warning: '#F59E0B'
+  };
 
   const fetchProfile = async () => {
-    setLoading(true);
     try {
-      const response = await client.get('/profile/me');
-      if (response.data && response.data.success && response.data.data.profile) {
-        const p = response.data.data.profile;
-        setProfile({
-          initials: p.initials || '??',
-          name: p.full_name || 'Anonymous User',
-          university: p.university || 'University Student',
-          year: `${p.department || p.role_title || 'Student'}${p.university_year ? ` - ${p.university_year}` : ''}`,
-          status: p.goal || 'Looking for a Team',
-          availability: p.availability !== false ? 'Available' : 'Unavailable',
-          bio: p.bio || 'Welcome to my profile.',
-          skills: p.skills || [],
-          interests: p.interests || ['AI', 'FinTech'],
-          github: p.social_links?.github || 'github.com'
-        });
+      const response = await api.get('/profile/me');
+      if (response.data?.success && response.data.data?.profile) {
+        setProfile(response.data.data.profile);
+        if (response.data.data.stats) {
+          setStats(response.data.data.stats);
+        }
       }
     } catch (err) {
-      console.warn('Error fetching profile, using fallback mocks:', err);
+      console.warn('Error fetching profile:', err);
     } finally {
       setLoading(false);
     }
@@ -56,213 +49,272 @@ export default function Profile() {
   useFocusEffect(
     useCallback(() => {
       fetchProfile();
+      // Fetch mock activities for now (could connect to an API endpoint later)
+      setActivities([
+        { icon: "🎓", text: "Joined CollabSpace", time: "Recently", color: "#7C3AED" }
+      ]);
     }, [])
   );
 
-  const handleGithubPress = () => {
-    if (profile.github && profile.github !== 'github.com') {
-      Linking.openURL(profile.github.startsWith('http') ? profile.github : `https://${profile.github}`);
-    } else {
-      Linking.openURL('https://github.com');
-    }
-  };
+  // Real-time synchronization
+  useEffect(() => {
+    if (!user?.id) return;
+    const channel = supabase
+      .channel('public:extended_profiles')
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'extended_profiles', filter: `id=eq.${user.id}` },
+        (payload) => {
+          setProfile(payload.new);
+        }
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user?.id]);
+
+  const joined = new Date(profile?.created_at || Date.now());
+  const monthsOn = Math.max(1, Math.round((Date.now() - joined.getTime()) / (1000 * 60 * 60 * 24 * 30)));
+
+  const checks = [
+    { label: "Name & College", done: !!(profile?.full_name && profile?.university) },
+    { label: "Department & Year", done: !!(profile?.department && profile?.university_year) },
+    { label: "Bio added", done: !!profile?.bio },
+    { label: "Skills selected", done: !!(profile?.skills?.length > 0) },
+    { label: "Interests selected", done: !!(profile?.interests?.length > 0) },
+    { label: "Goal set", done: !!profile?.goal },
+  ];
+  const completion = Math.round((checks.filter(c => c.done).length / checks.length) * 100);
+  const completionColor = completion < 40 ? '#EF4444' : completion < 70 ? '#F59E0B' : '#10B981';
+
+  if (loading) return <View style={{ flex: 1, backgroundColor: C.bg, justifyContent: 'center' }}><ActivityIndicator color={C.primary} /></View>;
 
   return (
-    <SafeAreaView 
-      className={`flex-1 ${isDarkMode ? 'bg-[#0F172A]' : 'bg-[#F8FAFC]'}`}
-      edges={['top']}
-    >
-      {/* Top Header */}
-      <View className={`px-6 pt-4 pb-4 flex-row items-center justify-between ${isDarkMode ? 'bg-[#0F172A]' : 'bg-white border-b border-slate-100 shadow-sm'}`}>
-        <Text className={`text-2xl font-bold tracking-tight ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
-          Profile
-        </Text>
-        <TouchableOpacity 
-          onPress={() => router.push('/(student)/settings')}
-          className={`w-9 h-9 rounded-full items-center justify-center border ${
-            isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-slate-50 border-slate-200'
-          }`}
-        >
-          <Ionicons name="settings-outline" size={18} color={isDarkMode ? 'white' : 'black'} />
-        </TouchableOpacity>
+    <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }} edges={['top']}>
+      {/* Header Banner */}
+      <View style={{ backgroundColor: `${C.primary}EA`, paddingTop: 20, paddingHorizontal: 20, paddingBottom: 0 }}>
+        {/* Top Actions */}
+        <View className="flex-row justify-between mb-4">
+          <TouchableOpacity 
+            onPress={() => router.push('/(student)/settings')}
+            className="w-10 h-10 rounded-xl items-center justify-center"
+            style={{ backgroundColor: 'rgba(255,255,255,0.2)' }}
+          >
+            <Ionicons name="settings-outline" size={20} color="white" />
+          </TouchableOpacity>
+          <TouchableOpacity 
+            onPress={() => router.push('/(student)/edit-profile')}
+            className="h-10 px-4 rounded-xl flex-row items-center gap-2"
+            style={{ backgroundColor: 'rgba(255,255,255,0.2)' }}
+          >
+            <Ionicons name="pencil" size={14} color="white" />
+            <Text className="text-white font-bold text-xs">Edit Profile</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Avatar + Info */}
+        <View className="flex-row gap-4 items-end mb-4">
+          <View className="relative">
+            <View className="w-20 h-20 rounded-full items-center justify-center border-4 border-white shadow-lg" style={{ backgroundColor: 'rgba(255,255,255,0.25)' }}>
+              <Text className="text-3xl font-black text-white">{profile?.initials || '??'}</Text>
+            </View>
+            <View className="absolute bottom-0.5 right-0.5 w-5 h-5 rounded-full border-2 border-white" style={{ backgroundColor: profile?.availability ? C.success : C.muted }} />
+          </View>
+          <View className="flex-1 pb-1">
+            <Text className="text-2xl font-black text-white mb-0.5">{profile?.full_name || 'Anonymous'}</Text>
+            <Text className="text-white/90 text-xs font-semibold mb-0.5">{profile?.department || 'Department'} · {profile?.university_year || 'Year'}</Text>
+            <Text className="text-white/70 text-[11px] font-bold">{profile?.university || 'University'}</Text>
+          </View>
+        </View>
+
+        {/* Stats Row */}
+        <View className="flex-row border-t border-white/20">
+          {[
+            ["Connections", stats.connections],
+            ["Requests", stats.requests_sent],
+            ["Events", stats.events_joined]
+          ].map(([label, val], i) => (
+            <TouchableOpacity key={label as string} className="flex-1 py-3 items-center" style={{ borderRightWidth: i < 2 ? 1 : 0, borderColor: 'rgba(255,255,255,0.2)' }}>
+              <Text className="text-xl font-black text-white">{val}</Text>
+              <Text className="text-[10px] text-white/70 font-bold uppercase mt-0.5">{label as string}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
       </View>
 
-      <ScrollView 
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 40 }}
-      >
-        {/* Blue Banner Header */}
-        <View className="px-6 pt-5">
-          <View className="bg-blue-600 rounded-[32px] p-6 relative flex-row items-center">
-            {/* Edit Button */}
-            <TouchableOpacity 
-              onPress={() => router.push('/(student)/edit-profile')}
-              className="absolute top-4 right-4 px-4 py-2 rounded-2xl flex-row items-center border"
-              style={{ backgroundColor: 'rgba(59, 130, 246, 0.5)', borderColor: 'rgba(96, 165, 250, 0.2)' }}
-            >
-              <Text className="text-white font-bold text-xs mr-1">Edit</Text>
-              <Ionicons name="pencil" size={12} color="#F97316" />
-            </TouchableOpacity>
-
-            {/* Avatar & Meta info */}
-            <View className="w-16 h-16 rounded-full bg-blue-500 border-2 border-white items-center justify-center mr-4">
-               <Text className="text-white text-xl font-bold">{profile.initials}</Text>
-            </View>
-
-             <View className="flex-1 pr-12">
-               <Text className="text-white text-lg font-bold mb-0.5">{profile.name}</Text>
-               <Text className="text-blue-100 text-xs font-semibold">{profile.university} - {profile.year}</Text>
-             </View>
-           </View>
-         </View>
-
-         {/* Info Cards List on Light Gray Background */}
-         <View className="px-6 mt-5 gap-4">
-           
-           {/* Card 1: Status & Bio */}
-           <View className={`p-5 rounded-3xl border border-slate-100 ${
-             isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-white shadow-sm'
-           }`}>
-             <View className="flex-row items-center justify-between mb-4">
-               <View className={`px-3 py-1 rounded-full ${
-                 isDarkMode ? 'bg-slate-900' : 'bg-blue-50'
-               }`}>
-                 <Text className={`text-[10px] font-semibold ${
-                   isDarkMode ? 'text-blue-400' : 'text-blue-600'
-                 }`}>
-                   {profile.status}
-                 </Text>
-               </View>
-
-               <View className="flex-row items-center gap-1.5">
-                 <View className={`w-2.5 h-2.5 rounded-full ${
-                   profile.availability === 'Available' ? 'bg-emerald-500' : 'bg-slate-400'
-                 }`} />
-                 <Text className={`text-[10px] font-semibold ${
-                   isDarkMode ? 'text-slate-400' : 'text-slate-500'
-                 }`}>
-                   {profile.availability}
-                 </Text>
-               </View>
-             </View>
- 
-             <Text className={`text-xs leading-5 ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>
-               {profile.bio}
-             </Text>
-           </View>
- 
-           {/* Card 2: Skills */}
-           <View className={`p-5 rounded-3xl border border-slate-100 ${
-             isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-white shadow-sm'
-           }`}>
-             <Text className={`text-sm font-bold mb-3.5 ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
-               Skills
-             </Text>
- 
-             <View className="flex-row flex-wrap gap-2">
-               {profile.skills.map((skill: string) => (
-                 <View 
-                   key={skill} 
-                   className={`px-4 py-2 rounded-2xl border ${
-                     isDarkMode ? 'bg-slate-900 border-slate-700' : 'bg-slate-50 border-slate-100'
-                   }`}
-                 >
-                   <Text className={`text-xs font-semibold ${isDarkMode ? 'text-slate-300' : 'text-slate-600'}`}>
-                     {skill}
-                   </Text>
-                 </View>
-               ))}
-             </View>
-           </View>
- 
-           {/* Card 3: Interests */}
-           <View className={`p-5 rounded-3xl border border-slate-100 ${
-             isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-white shadow-sm'
-           }`}>
-             <Text className={`text-sm font-bold mb-3.5 ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
-               Interests
-             </Text>
- 
-             <View className="flex-row flex-wrap gap-2">
-               {profile.interests.map((interest: string) => (
-                 <View 
-                   key={interest} 
-                   className={`px-4 py-2 rounded-2xl border ${
-                     isDarkMode ? 'bg-slate-900 border-slate-700' : 'bg-slate-50 border-slate-100'
-                   }`}
-                 >
-                   <Text className={`text-xs font-semibold ${isDarkMode ? 'text-slate-300' : 'text-slate-600'}`}>
-                     {interest}
-                   </Text>
-                 </View>
-               ))}
-             </View>
-           </View>
- 
-           {/* Card 4: Social Link */}
-           <TouchableOpacity 
-             onPress={handleGithubPress}
-             className={`p-5 rounded-3xl border border-slate-100 flex-row items-center gap-3 ${
-               isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-white shadow-sm'
-             }`}
-           >
-             <Ionicons name="logo-github" size={18} color={isDarkMode ? '#F8FAFC' : '#1E293B'} />
-             <Text className={`text-xs font-semibold ${isDarkMode ? 'text-slate-300' : 'text-slate-600'}`}>
-               {profile.github}
-             </Text>
-           </TouchableOpacity>
-
-          {/* Card 5: My Team Workspace */}
+      {/* Tab Bar */}
+      <View className="flex-row bg-white border-b" style={{ borderColor: C.border, backgroundColor: C.bg }}>
+        {["overview", "skills", "activity"].map(t => (
           <TouchableOpacity 
-            onPress={() => router.push('/teams')}
-            className={`p-5 rounded-3xl border border-slate-100 flex-row items-center justify-between ${
-              isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-white shadow-sm'
-            }`}
+            key={t}
+            onPress={() => setActiveTab(t)}
+            className="flex-1 py-4 items-center"
+            style={{ borderBottomWidth: 3, borderColor: activeTab === t ? C.primary : 'transparent' }}
           >
-            <View className="flex-row items-center gap-3">
-              <Ionicons name="people-circle-outline" size={20} color={isDarkMode ? '#60A5FA' : '#2563EB'} />
-              <Text className={`text-xs font-bold ${isDarkMode ? 'text-white' : 'text-slate-800'}`}>
-                My Team Workspace
-              </Text>
-            </View>
-            <Ionicons name="chevron-forward" size={16} color={isDarkMode ? '#64748B' : '#94A3B8'} />
+            <Text className="text-xs capitalize" style={{ color: activeTab === t ? C.primary : C.muted, fontWeight: activeTab === t ? '800' : '600' }}>{t}</Text>
           </TouchableOpacity>
+        ))}
+      </View>
 
-           {/* Card 6: Settings & Privacy */}
-           <TouchableOpacity 
-             onPress={() => router.push('/(student)/settings')}
-             className={`p-5 rounded-3xl border border-slate-100 flex-row items-center justify-between ${
-               isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-white shadow-sm'
-             }`}
-           >
-             <View className="flex-row items-center gap-3">
-               <Ionicons name="settings-outline" size={20} color={isDarkMode ? '#60A5FA' : '#2563EB'} />
-               <Text className={`text-xs font-bold ${isDarkMode ? 'text-white' : 'text-slate-800'}`}>
-                 Settings & Privacy
-               </Text>
-             </View>
-             <Ionicons name="chevron-forward" size={16} color={isDarkMode ? '#64748B' : '#94A3B8'} />
-           </TouchableOpacity>
+      {/* Tab Content */}
+      <ScrollView contentContainerStyle={{ padding: 20 }}>
+        {/* OVERVIEW TAB */}
+        {activeTab === "overview" && (
+          <View>
+            {/* Goal & Bio */}
+            <View className="p-4 rounded-[24px] mb-4 border" style={{ backgroundColor: C.card, borderColor: C.border }}>
+              <View className="flex-row justify-between items-center mb-3">
+                <View className="px-3 py-1.5 rounded-xl" style={{ backgroundColor: `${C.primary}15` }}>
+                  <Text className="text-xs font-bold" style={{ color: C.primary }}>
+                    {profile?.goal === 'looking_for_team' ? '🚀 Looking for Team' : profile?.goal === 'open_to_join' ? '🤝 Open to Join' : '👀 Exploring'}
+                  </Text>
+                </View>
+                <View className="flex-row items-center gap-1.5">
+                  <View className="w-2 h-2 rounded-full" style={{ backgroundColor: profile?.availability ? C.success : C.muted }} />
+                  <Text className="text-[10px] font-bold" style={{ color: profile?.availability ? C.success : C.muted }}>
+                    {profile?.availability ? 'Available now' : 'Busy'}
+                  </Text>
+                </View>
+              </View>
+              {profile?.bio && (
+                <View className="pt-3 border-t" style={{ borderColor: C.border }}>
+                  <Text className="text-xs leading-5" style={{ color: C.muted }}>{profile.bio}</Text>
+                </View>
+              )}
+            </View>
 
-           {/* Card 7: Sign Out */}
-           <TouchableOpacity 
-             onPress={async () => {
-               await logout();
-             }}
-             className={`p-5 rounded-3xl border mt-2 flex-row items-center justify-between ${
-               isDarkMode ? 'bg-red-950/25 border-red-900/30' : 'bg-red-50 border-red-100'
-             }`}
-           >
-             <View className="flex-row items-center gap-3">
-               <Ionicons name="log-out-outline" size={20} color="#EF4444" />
-               <Text className="text-xs font-bold text-red-500">
-                 Sign Out
-               </Text>
-             </View>
-             <Ionicons name="chevron-forward" size={16} color="#EF4444" />
-           </TouchableOpacity>
+            {/* Profile Strength */}
+            <View className="p-4 rounded-[24px] mb-4 border" style={{ backgroundColor: completion === 100 ? `${C.success}08` : C.card, borderColor: completion === 100 ? C.success : C.border }}>
+              <View className="flex-row justify-between items-center mb-2">
+                <Text className="text-xs font-bold" style={{ color: C.text }}>Profile Strength</Text>
+                <Text className="text-sm font-black" style={{ color: completionColor }}>{completion}%</Text>
+              </View>
+              <View className="h-2 rounded-full w-full overflow-hidden mb-3" style={{ backgroundColor: C.border }}>
+                <View className="h-full rounded-full" style={{ width: `${completion}%`, backgroundColor: completionColor }} />
+              </View>
+              <View className="gap-2">
+                {checks.map(c => (
+                  <View key={c.label} className="flex-row items-center gap-2">
+                    <View className="w-4 h-4 rounded-full border-2 items-center justify-center" style={{ borderColor: c.done ? C.success : C.border, backgroundColor: c.done ? `${C.success}22` : C.border }}>
+                      {c.done && <Ionicons name="checkmark" size={10} color={C.success} />}
+                    </View>
+                    <Text className="text-xs flex-1" style={{ color: c.done ? C.text : C.muted, fontWeight: c.done ? '600' : '400' }}>{c.label}</Text>
+                    {!c.done && (
+                      <TouchableOpacity onPress={() => router.push('/(student)/edit-profile')}>
+                        <Text className="text-[10px] font-bold" style={{ color: C.primary }}>Add →</Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                ))}
+              </View>
+            </View>
 
-        </View>
+            {/* Links */}
+            {(profile?.social_links?.github || profile?.social_links?.portfolio || profile?.social_links?.linkedin) && (
+              <View className="p-4 rounded-[24px] mb-4 border" style={{ backgroundColor: C.card, borderColor: C.border }}>
+                <Text className="text-xs font-bold mb-3" style={{ color: C.text }}>Links</Text>
+                <View className="gap-2">
+                  {profile.social_links.github && (
+                    <TouchableOpacity onPress={() => Linking.openURL(`https://${profile.social_links.github}`)} className="flex-row items-center gap-3">
+                      <View className="w-8 h-8 rounded-xl items-center justify-center" style={{ backgroundColor: '#24292e' }}><Ionicons name="logo-github" size={16} color="white" /></View>
+                      <View><Text className="text-[10px] font-bold" style={{ color: C.muted }}>GitHub</Text><Text className="text-xs font-bold" style={{ color: C.primary }}>{profile.social_links.github}</Text></View>
+                    </TouchableOpacity>
+                  )}
+                </View>
+              </View>
+            )}
+
+            <View className="items-center py-2">
+              <Text className="text-xs" style={{ color: C.muted }}>🎓 Member since {joined.toLocaleDateString()} · {monthsOn} months on CollabSpace</Text>
+            </View>
+          </View>
+        )}
+
+        {/* SKILLS TAB */}
+        {activeTab === "skills" && (
+          <View>
+            <Text className="text-xs leading-5 mb-4" style={{ color: C.muted }}>Your skills are shown on your profile card and used to match you with relevant teammates and events.</Text>
+            
+            {profile?.skills?.length > 0 ? (
+              <View>
+                <View className="flex-row flex-wrap gap-2 mb-6">
+                  {profile.skills.map((s: string) => (
+                    <View key={s} className="px-4 py-2 rounded-xl border" style={{ backgroundColor: `${C.primary}12`, borderColor: `${C.primary}33` }}>
+                      <Text className="text-xs font-bold" style={{ color: C.primary }}>{s}</Text>
+                    </View>
+                  ))}
+                </View>
+                <TouchableOpacity onPress={() => router.push('/(student)/edit-profile')} className="py-3.5 rounded-2xl border items-center mb-4" style={{ borderColor: C.primary }}>
+                  <Text className="text-xs font-bold" style={{ color: C.primary }}>✏️ Manage Skills</Text>
+                </TouchableOpacity>
+
+                <View className="p-4 rounded-[24px] border" style={{ backgroundColor: C.card, borderColor: C.border }}>
+                  <Text className="text-xs font-bold mb-4" style={{ color: C.text }}>Skill Overview</Text>
+                  {profile.skills.map((s: string, i: number) => {
+                    const lvls = [85, 72, 68, 90, 55, 78];
+                    const lvl = lvls[i % lvls.length];
+                    return (
+                      <View key={s} className="mb-3">
+                        <View className="flex-row justify-between mb-1.5">
+                          <Text className="text-xs font-bold" style={{ color: C.text }}>{s}</Text>
+                          <Text className="text-[10px] font-bold" style={{ color: C.muted }}>{lvl}%</Text>
+                        </View>
+                        <View className="h-1.5 rounded-full w-full overflow-hidden" style={{ backgroundColor: C.border }}>
+                          <View className="h-full rounded-full" style={{ width: `${lvl}%`, backgroundColor: C.primary, opacity: 0.8 }} />
+                        </View>
+                      </View>
+                    );
+                  })}
+                </View>
+              </View>
+            ) : (
+              <View className="items-center py-8">
+                <Text style={{ fontSize: 36, marginBottom: 10 }}>⚡</Text>
+                <Text className="text-sm font-bold mb-2" style={{ color: C.text }}>No skills added yet</Text>
+                <Text className="text-xs text-center mb-6 px-4" style={{ color: C.muted }}>Add your skills so teammates can find you for the right projects</Text>
+                <TouchableOpacity onPress={() => router.push('/(student)/edit-profile')} className="py-3.5 px-6 rounded-2xl" style={{ backgroundColor: C.primary }}>
+                  <Text className="text-xs font-bold text-white">+ Add Skills</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+          </View>
+        )}
+
+        {/* ACTIVITY TAB */}
+        {activeTab === "activity" && (
+          <View>
+            <View className="flex-row flex-wrap gap-3 mb-5">
+              {[
+                { icon: "🤝", val: stats.connections, label: "Collaborations", sub: "Active connections" },
+                { icon: "📅", val: stats.events_joined, label: "Events Joined", sub: "Hackathons, etc." },
+                { icon: "📤", val: stats.requests_sent, label: "Requests Sent", sub: "To potential teams" }
+              ].map(stat => (
+                <View key={stat.label} className="p-4 rounded-[24px] border flex-1 min-w-[45%]" style={{ backgroundColor: C.card, borderColor: C.border }}>
+                  <Text className="text-2xl mb-1.5">{stat.icon}</Text>
+                  <Text className="text-xl font-black" style={{ color: C.text }}>{stat.val}</Text>
+                  <Text className="text-[11px] font-bold mt-1" style={{ color: C.text }}>{stat.label}</Text>
+                  <Text className="text-[9px] mt-0.5" style={{ color: C.muted }}>{stat.sub}</Text>
+                </View>
+              ))}
+            </View>
+
+            <Text className="text-sm font-bold mb-3" style={{ color: C.text }}>Recent Activity</Text>
+            {activities.length > 0 ? activities.map((a, i) => (
+              <View key={i} className="flex-row gap-3 mb-4">
+                <View className="w-10 h-10 rounded-xl items-center justify-center border" style={{ backgroundColor: `${a.color}15`, borderColor: `${a.color}33` }}>
+                  <Text className="text-lg">{a.icon}</Text>
+                </View>
+                <View className="flex-1 justify-center">
+                  <Text className="text-xs font-bold" style={{ color: C.text }}>{a.text}</Text>
+                  <Text className="text-[10px] mt-1" style={{ color: C.muted }}>{a.time}</Text>
+                </View>
+              </View>
+            )) : (
+               <Text className="text-xs italic" style={{ color: C.muted }}>No recent activity to show.</Text>
+            )}
+          </View>
+        )}
       </ScrollView>
     </SafeAreaView>
   );

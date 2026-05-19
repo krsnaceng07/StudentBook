@@ -138,6 +138,7 @@ export const getEventById = async (req: Request, res: Response) => {
     const userId = (req as any).user?.id;
     let isBookmarked = false;
     let isRegistered = false;
+    let registrationDetails = null;
 
     if (userId) {
       const { data: bookmark } = await supabase
@@ -155,6 +156,7 @@ export const getEventById = async (req: Request, res: Response) => {
         .eq('event_id', id)
         .maybeSingle();
       isRegistered = !!registration;
+      registrationDetails = registration ? registration.registration_details : null;
     }
 
     const { count: regCount } = await supabase
@@ -168,6 +170,7 @@ export const getEventById = async (req: Request, res: Response) => {
         ...event, 
         isBookmarked, 
         isRegistered,
+        registrationDetails,
         registrationCount: regCount || 0
       } 
     });
@@ -196,7 +199,8 @@ export const createEvent = async (req: Request, res: Response) => {
       max_team,
       prize_pool,
       registration_type,
-      external_link
+      external_link,
+      custom_form_config
     } = req.body;
 
     const { data: profile } = await supabase
@@ -225,7 +229,8 @@ export const createEvent = async (req: Request, res: Response) => {
         max_team: max_team ? parseInt(max_team) : 4,
         prize_pool,
         registration_type: registration_type || 'internal',
-        external_link: registration_type === 'external' ? external_link : null
+        external_link: registration_type === 'external' ? external_link : null,
+        custom_form_config: custom_form_config || null
       }])
       .select()
       .single();
@@ -544,7 +549,7 @@ export const getEventRegistrantsDownload = async (req: Request, res: Response) =
     // Validate Event exists and the requesting user is the organizer
     const { data: event, error: eventErr } = await supabase
       .from('events')
-      .select('author_id, title')
+      .select('author_id, title, custom_form_config')
       .eq('id', eventId)
       .single();
 
@@ -582,24 +587,77 @@ export const getEventRegistrantsDownload = async (req: Request, res: Response) =
       registrantsProfiles = profiles || [];
     }
 
-    // Generate CSV Content
-    let csvContent = '"Student Name","Email","Department","Year","Motivation/Remarks","Registered At"\n';
+    // Parse customizable form config schema
+    const formConfig = event.custom_form_config || {};
+    const enabledFields = formConfig.fields || [
+      { id: 'full_name', label: 'Full Name', enabled: true },
+      { id: 'email', label: 'Email Address', enabled: true },
+      { id: 'department', label: 'Department', enabled: true },
+      { id: 'year', label: 'Year / Semester', enabled: true },
+      { id: 'remarks', label: 'Remarks / Motivation', enabled: true },
+      { id: 'portfolio_link', label: 'GitHub / Portfolio Link', enabled: false }
+    ];
+    const customQuestions = formConfig.custom_questions || [];
 
+    // Construct Dynamic CSV Headers
+    const headers: { id: string; label: string; isCustom?: boolean }[] = [];
+    enabledFields.forEach((f: any) => {
+      if (f.enabled) {
+        headers.push({ id: f.id, label: f.label });
+      }
+    });
+
+    customQuestions.forEach((q: any) => {
+      headers.push({ id: q.id, label: q.label, isCustom: true });
+    });
+
+    headers.push({ id: 'registered_at', label: 'Registered At' });
+
+    // Escape quotes for CSV values
+    const escapeCSV = (val: string) => `"${(val || '').toString().replace(/"/g, '""')}"`;
+
+    // Write headers row
+    let csvContent = headers.map(h => escapeCSV(h.label)).join(',') + '\n';
+
+    // Write applicant rows
     (regs || []).forEach(r => {
       const p = registrantsProfiles.find(prof => prof.id === r.user_id);
       const details = r.registration_details || {};
-      
-      const name = details.full_name || p?.full_name || 'Anonymous Student';
-      const email = details.email || 'N/A';
-      const dept = details.department || p?.department || 'N/A';
-      const year = details.year || p?.university_year || 'N/A';
-      const remarks = details.remarks || 'No remarks provided';
-      const registeredAt = new Date(r.created_at).toLocaleString();
 
-      // Escape quotes in CSV fields
-      const escapeCSV = (val: string) => `"${val.replace(/"/g, '""')}"`;
+      const rowValues = headers.map(h => {
+        if (h.id === 'registered_at') {
+          return new Date(r.created_at).toLocaleString();
+        }
 
-      csvContent += `${escapeCSV(name)},${escapeCSV(email)},${escapeCSV(dept)},${escapeCSV(year)},${escapeCSV(remarks)},${escapeCSV(registeredAt)}\n`;
+        if (h.isCustom) {
+          const customAnswers = details.custom_answers || {};
+          return customAnswers[h.id] || details[h.id] || 'N/A';
+        }
+
+        // Standard fields mapping
+        if (h.id === 'full_name') {
+          return details.full_name || p?.full_name || 'Anonymous Student';
+        }
+        if (h.id === 'email') {
+          return details.email || 'N/A';
+        }
+        if (h.id === 'department') {
+          return details.department || p?.department || 'N/A';
+        }
+        if (h.id === 'year') {
+          return details.year || p?.university_year || 'N/A';
+        }
+        if (h.id === 'remarks') {
+          return details.remarks || 'No remarks provided';
+        }
+        if (h.id === 'portfolio_link') {
+          return details.portfolio_link || 'N/A';
+        }
+
+        return details[h.id] || 'N/A';
+      });
+
+      csvContent += rowValues.map(v => escapeCSV(v)).join(',') + '\n';
     });
 
     const safeTitle = event.title.replace(/[^a-z0-9]/gi, '_').toLowerCase();

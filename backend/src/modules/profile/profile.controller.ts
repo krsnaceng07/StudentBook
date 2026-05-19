@@ -16,11 +16,27 @@ export const getMe = async (req: Request, res: Response) => {
       throw error;
     }
 
-    // Mock stats for now
+    // Fetch live stats for connections and events
+    const { count: connectionsCount } = await supabase
+      .from('connections')
+      .select('*', { count: 'exact', head: true })
+      .or(`sender_id.eq.${userId},receiver_id.eq.${userId}`)
+      .eq('status', 'accepted');
+
+    const { count: eventsJoinedCount } = await supabase
+      .from('event_registrations')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', userId);
+
+    const { count: requestsSentCount } = await supabase
+      .from('connections')
+      .select('*', { count: 'exact', head: true })
+      .eq('sender_id', userId);
+
     const stats = {
-      connections: 12,
-      events_joined: 3,
-      teams: 2,
+      connections: connectionsCount || 0,
+      events_joined: eventsJoinedCount || 0,
+      requests_sent: requestsSentCount || 0,
     };
 
     res.status(200).json({ 
@@ -89,6 +105,25 @@ export const updateProfile = async (req: Request, res: Response) => {
       settings_push,
       settings_email,
       settings_visibility,
+      notif_collab_requests,
+      notif_request_accepted,
+      notif_new_messages,
+      notif_event_reminders,
+      notif_new_events,
+      notif_weekly_digest,
+      notif_email_collab,
+      notif_email_messages,
+      notif_email_events,
+      notif_email_digest,
+      privacy_show_online,
+      privacy_show_github,
+      privacy_allow_requests,
+      privacy_show_college,
+      privacy_show_availability,
+      privacy_show_in_search,
+      appearance_theme,
+      appearance_accent,
+      appearance_font_size
     } = req.body;
 
     // 1. Calculate initials if full_name is provided
@@ -126,6 +161,29 @@ export const updateProfile = async (req: Request, res: Response) => {
     if (settings_push !== undefined) updateData.settings_push = settings_push;
     if (settings_email !== undefined) updateData.settings_email = settings_email;
     if (settings_visibility !== undefined) updateData.settings_visibility = settings_visibility;
+    
+    // New Settings
+    if (notif_collab_requests !== undefined) updateData.notif_collab_requests = notif_collab_requests;
+    if (notif_request_accepted !== undefined) updateData.notif_request_accepted = notif_request_accepted;
+    if (notif_new_messages !== undefined) updateData.notif_new_messages = notif_new_messages;
+    if (notif_event_reminders !== undefined) updateData.notif_event_reminders = notif_event_reminders;
+    if (notif_new_events !== undefined) updateData.notif_new_events = notif_new_events;
+    if (notif_weekly_digest !== undefined) updateData.notif_weekly_digest = notif_weekly_digest;
+    if (notif_email_collab !== undefined) updateData.notif_email_collab = notif_email_collab;
+    if (notif_email_messages !== undefined) updateData.notif_email_messages = notif_email_messages;
+    if (notif_email_events !== undefined) updateData.notif_email_events = notif_email_events;
+    if (notif_email_digest !== undefined) updateData.notif_email_digest = notif_email_digest;
+    
+    if (privacy_show_online !== undefined) updateData.privacy_show_online = privacy_show_online;
+    if (privacy_show_github !== undefined) updateData.privacy_show_github = privacy_show_github;
+    if (privacy_allow_requests !== undefined) updateData.privacy_allow_requests = privacy_allow_requests;
+    if (privacy_show_college !== undefined) updateData.privacy_show_college = privacy_show_college;
+    if (privacy_show_availability !== undefined) updateData.privacy_show_availability = privacy_show_availability;
+    if (privacy_show_in_search !== undefined) updateData.privacy_show_in_search = privacy_show_in_search;
+    
+    if (appearance_theme !== undefined) updateData.appearance_theme = appearance_theme;
+    if (appearance_accent !== undefined) updateData.appearance_accent = appearance_accent;
+    if (appearance_font_size !== undefined) updateData.appearance_font_size = appearance_font_size;
 
     const { data: updatedProfile, error: profileError } = await supabase
       .from('extended_profiles')

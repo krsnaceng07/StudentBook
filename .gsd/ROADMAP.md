@@ -205,5 +205,12 @@
 - [x] Frontend Student: Build a sleek, premium bottom sheet or modal form for internal event registration, capturing basic details (full_name, email, department, year, motivation/remarks).
 - [x] Frontend College: Upgrade Roster view to display detailed student information, allow peer profile click-throughs, and download a complete applicant list CSV at once.
 
+## Phase 39: UI/UX Refining & Layout Hardening of Key Screens
+**Status**: ✅ Complete
+- [x] Mobile: Redesign and polish the Peer Profile Screen (`mobile/app/profile/[id].tsx`) with elegant text hierarchy, proper status indicators, and clean margins/spacings.
+- [x] Mobile: Redesign and polish the User Profile Screen (`mobile/app/(student)/profile.tsx`), including safe placeholders for empty skills/interests cards and cohesive headings.
+- [x] Mobile: Redesign and polish the Settings Screen (`mobile/app/(student)/settings.tsx`) by hiding the bottom tab bar and optimizing row item/privacy grid layout paddings.
+
+
 
 

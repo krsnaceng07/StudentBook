@@ -32,7 +32,39 @@ export default function EventDetailsPage() {
   const [formDept, setFormDept] = useState('');
   const [formYear, setFormYear] = useState('');
   const [formRemarks, setFormRemarks] = useState('');
+  const [formPortfolio, setFormPortfolio] = useState('');
+  const [customAnswers, setCustomAnswers] = useState<Record<string, string>>({});
   const [submittingReg, setSubmittingReg] = useState(false);
+
+  const isFieldEnabled = (fieldId: string) => {
+    if (!event) return false;
+    const formConfig = event.custom_form_config || {};
+    const fields = formConfig.fields || [
+      { id: 'full_name', label: 'Full Name', enabled: true },
+      { id: 'email', label: 'Email Address', enabled: true },
+      { id: 'department', label: 'Department', enabled: true },
+      { id: 'year', label: 'Year / Semester', enabled: true },
+      { id: 'remarks', label: 'Remarks / Motivation', enabled: true },
+      { id: 'portfolio_link', label: 'GitHub / Portfolio Link', enabled: false }
+    ];
+    const f = fields.find((x: any) => x.id === fieldId);
+    return f ? f.enabled : false;
+  };
+
+  const isFieldRequired = (fieldId: string) => {
+    if (!event) return false;
+    const formConfig = event.custom_form_config || {};
+    const fields = formConfig.fields || [
+      { id: 'full_name', label: 'Full Name', required: true },
+      { id: 'email', label: 'Email Address', required: true },
+      { id: 'department', label: 'Department', required: false },
+      { id: 'year', label: 'Year / Semester', required: false },
+      { id: 'remarks', label: 'Remarks / Motivation', required: false },
+      { id: 'portfolio_link', label: 'GitHub / Portfolio Link', required: false }
+    ];
+    const f = fields.find((x: any) => x.id === fieldId);
+    return f ? f.required : false;
+  };
 
   const fetchStudentProfileForForm = async () => {
     try {
@@ -70,6 +102,18 @@ export default function EventDetailsPage() {
         setBookmarked(!!ev.isBookmarked);
         setRegistered(!!ev.isRegistered);
         setRegCount(ev.registrationCount || 0);
+        
+        // Auto pre-fill form fields with previously saved details if registered
+        if (ev.isRegistered && ev.registrationDetails) {
+          const d = ev.registrationDetails;
+          setFormName(d.full_name || '');
+          setFormEmail(d.email || '');
+          setFormDept(d.department || '');
+          setFormYear(d.year || '');
+          setFormRemarks(d.remarks || '');
+          setFormPortfolio(d.portfolio_link || '');
+          setCustomAnswers(d.custom_answers || {});
+        }
       } else {
         setErrorMsg('Failed to load event details.');
       }
@@ -155,15 +199,43 @@ export default function EventDetailsPage() {
   const handleToggleRegister = async () => {
     if (!id || !event) return;
     
+    // Check registration deadline first
+    const isDeadlinePassed = event.reg_deadline ? new Date() > new Date(event.reg_deadline) : false;
+
     if (registered) {
-      // Prompt student before unregistering
+      if (isDeadlinePassed) {
+        Alert.alert(
+          'Registration Locked',
+          "This event's registration deadline has passed. Your registration details are locked and cannot be updated or cancelled."
+        );
+        return;
+      }
+
+      // Propose management choices: Edit details OR Cancel registration
       Alert.alert(
-        'Cancel Registration',
-        'Are you sure you want to cancel your registration for this event?',
+        'Manage Registration',
+        'You are currently registered. Would you like to edit your details or cancel your registration?',
         [
-          { text: 'No', style: 'cancel' },
+          { text: 'Back', style: 'cancel' },
           {
-            text: 'Yes, Cancel',
+            text: 'Edit Submitted Info',
+            onPress: () => {
+              // Pre-fill fields from existing registration details
+              if (event.registrationDetails) {
+                const d = event.registrationDetails;
+                setFormName(d.full_name || '');
+                setFormEmail(d.email || '');
+                setFormDept(d.department || '');
+                setFormYear(d.year || '');
+                setFormRemarks(d.remarks || '');
+                setFormPortfolio(d.portfolio_link || '');
+                setCustomAnswers(d.custom_answers || {});
+              }
+              setShowRegFormModal(true);
+            }
+          },
+          {
+            text: 'Cancel Registration',
             style: 'destructive',
             onPress: async () => {
               setRegistered(false);
@@ -181,14 +253,33 @@ export default function EventDetailsPage() {
         ]
       );
     } else {
-      // Fetch details and open registration form modal
+      if (isDeadlinePassed) {
+        Alert.alert('Registration Closed', 'The deadline to register for this event has passed.');
+        return;
+      }
+
+      // For new registrations: fetch student profile defaults if available
       await fetchStudentProfileForForm();
       setFormRemarks('');
+      setFormPortfolio('');
+      setCustomAnswers({});
       setShowRegFormModal(true);
     }
   };
 
   const handleConfirmRegistration = async () => {
+    const formConfig = event?.custom_form_config || {};
+    const enabledFields = formConfig.fields || [
+      { id: 'full_name', label: 'Full Name', required: true, enabled: true },
+      { id: 'email', label: 'Email Address', required: true, enabled: true },
+      { id: 'department', label: 'Department', required: false, enabled: true },
+      { id: 'year', label: 'Year / Semester', required: false, enabled: true },
+      { id: 'remarks', label: 'Remarks / Motivation', required: false, enabled: true },
+      { id: 'portfolio_link', label: 'GitHub / Portfolio Link', required: false, enabled: false }
+    ];
+    const customQuestions = formConfig.custom_questions || [];
+
+    // System fields always mandatory
     if (!formName.trim()) {
       Alert.alert('Error', 'Full Name is required.');
       return;
@@ -197,7 +288,40 @@ export default function EventDetailsPage() {
       Alert.alert('Error', 'Email is required.');
       return;
     }
-    
+
+    // Dynamic standard fields validation
+    for (const f of enabledFields) {
+      if (f.enabled && f.required) {
+        if (f.id === 'department' && !formDept.trim()) {
+          Alert.alert('Error', 'Department is required.');
+          return;
+        }
+        if (f.id === 'year' && !formYear.trim()) {
+          Alert.alert('Error', 'Year / Semester is required.');
+          return;
+        }
+        if (f.id === 'remarks' && !formRemarks.trim()) {
+          Alert.alert('Error', 'Remarks / Motivation is required.');
+          return;
+        }
+        if (f.id === 'portfolio_link' && !formPortfolio.trim()) {
+          Alert.alert('Error', 'GitHub / Portfolio Link is required.');
+          return;
+        }
+      }
+    }
+
+    // Dynamic custom questions validation
+    for (const q of customQuestions) {
+      if (q.required) {
+        const ans = customAnswers[q.id] || '';
+        if (!ans.trim()) {
+          Alert.alert('Error', `"${q.label}" is a required question.`);
+          return;
+        }
+      }
+    }
+
     setSubmittingReg(true);
     try {
       const response = await api.post(`/events/${id}/register`, {
@@ -206,15 +330,18 @@ export default function EventDetailsPage() {
           email: formEmail.trim(),
           department: formDept.trim(),
           year: formYear.trim(),
-          remarks: formRemarks.trim()
+          remarks: formRemarks.trim(),
+          portfolio_link: formPortfolio.trim(),
+          custom_answers: customAnswers
         }
       });
       
       if (response.data?.success) {
         setRegistered(true);
-        setRegCount(prev => prev + 1);
+        // Refresh event details to sync registrationDetails payload locally
+        await fetchEventDetails();
         setShowRegFormModal(false);
-        Alert.alert('Success', 'Successfully registered for this event!');
+        Alert.alert('Success', 'Successfully registered and saved event details!');
       } else {
         Alert.alert('Error', 'Failed to register. Please try again.');
       }
@@ -474,6 +601,29 @@ export default function EventDetailsPage() {
             );
           }
 
+          // Check deadline
+          const isDeadlinePassed = event.reg_deadline ? new Date() > new Date(event.reg_deadline) : false;
+
+          if (!registered && isDeadlinePassed) {
+            return (
+              <View 
+                style={{
+                  flex: 1,
+                  backgroundColor: isDarkMode ? '#334155' : '#E2E8F0', // Slate disabled look
+                  paddingVertical: 14,
+                  borderRadius: 16,
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
+              >
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                  <Ionicons name="lock-closed" size={20} color={isDarkMode ? '#94A3B8' : '#64748B'} />
+                  <Text style={{ color: isDarkMode ? '#94A3B8' : '#64748B', fontWeight: 'bold', fontSize: 15 }}>Registration Closed</Text>
+                </View>
+              </View>
+            );
+          }
+
           // Internal direct registration handling
           if (!registered) {
             return (
@@ -615,38 +765,48 @@ export default function EventDetailsPage() {
               contentContainerStyle={{ paddingVertical: 20, paddingBottom: 60 }}
             >
               {/* Full Name */}
-              <View className="mb-4">
-                <Text className={`text-[10px] font-extrabold uppercase mb-2 ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>Full Name *</Text>
-                <TextInput
-                  placeholder="e.g. Krsna Dev"
-                  placeholderTextColor={isDarkMode ? '#64748B' : '#94A3B8'}
-                  value={formName}
-                  onChangeText={setFormName}
-                  className={`w-full px-4 py-3 rounded-2xl border ${
-                    isDarkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-[#F8FAFC] border-slate-100 text-slate-900'
-                  } font-semibold text-xs`}
-                />
-              </View>
+              {isFieldEnabled('full_name') && (
+                <View className="mb-4">
+                  <Text className={`text-[10px] font-extrabold uppercase mb-2 ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                    Full Name {isFieldRequired('full_name') && '*'}
+                  </Text>
+                  <TextInput
+                    placeholder="e.g. Krsna Dev"
+                    placeholderTextColor={isDarkMode ? '#64748B' : '#94A3B8'}
+                    value={formName}
+                    onChangeText={setFormName}
+                    className={`w-full px-4 py-3 rounded-2xl border ${
+                      isDarkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-[#F8FAFC] border-slate-100 text-slate-900'
+                    } font-semibold text-xs`}
+                  />
+                </View>
+              )}
 
               {/* Email */}
-              <View className="mb-4">
-                <Text className={`text-[10px] font-extrabold uppercase mb-2 ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>Email Address *</Text>
-                <TextInput
-                  placeholder="e.g. student@tu.edu.np"
-                  placeholderTextColor={isDarkMode ? '#64748B' : '#94A3B8'}
-                  value={formEmail}
-                  onChangeText={setFormEmail}
-                  keyboardType="email-address"
-                  className={`w-full px-4 py-3 rounded-2xl border ${
-                    isDarkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-[#F8FAFC] border-slate-100 text-slate-900'
-                  } font-semibold text-xs`}
-                />
-              </View>
+              {isFieldEnabled('email') && (
+                <View className="mb-4">
+                  <Text className={`text-[10px] font-extrabold uppercase mb-2 ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                    Email Address {isFieldRequired('email') && '*'}
+                  </Text>
+                  <TextInput
+                    placeholder="e.g. student@tu.edu.np"
+                    placeholderTextColor={isDarkMode ? '#64748B' : '#94A3B8'}
+                    value={formEmail}
+                    onChangeText={setFormEmail}
+                    keyboardType="email-address"
+                    className={`w-full px-4 py-3 rounded-2xl border ${
+                      isDarkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-[#F8FAFC] border-slate-100 text-slate-900'
+                    } font-semibold text-xs`}
+                  />
+                </View>
+              )}
 
-              {/* Grid: Department & Year */}
-              <View className="flex-row justify-between mb-4">
-                <View className="w-[48%]">
-                  <Text className={`text-[10px] font-extrabold uppercase mb-2 ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>Department</Text>
+              {/* Department */}
+              {isFieldEnabled('department') && (
+                <View className="mb-4">
+                  <Text className={`text-[10px] font-extrabold uppercase mb-2 ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                    Department {isFieldRequired('department') && '*'}
+                  </Text>
                   <TextInput
                     placeholder="e.g. CSIT / BCT"
                     placeholderTextColor={isDarkMode ? '#64748B' : '#94A3B8'}
@@ -657,9 +817,14 @@ export default function EventDetailsPage() {
                     } font-semibold text-xs`}
                   />
                 </View>
+              )}
 
-                <View className="w-[48%]">
-                  <Text className={`text-[10px] font-extrabold uppercase mb-2 ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>Year</Text>
+              {/* Year */}
+              {isFieldEnabled('year') && (
+                <View className="mb-4">
+                  <Text className={`text-[10px] font-extrabold uppercase mb-2 ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                    Year / Semester {isFieldRequired('year') && '*'}
+                  </Text>
                   <TextInput
                     placeholder="e.g. 3rd Year"
                     placeholderTextColor={isDarkMode ? '#64748B' : '#94A3B8'}
@@ -670,24 +835,81 @@ export default function EventDetailsPage() {
                     } font-semibold text-xs`}
                   />
                 </View>
-              </View>
+              )}
 
               {/* Remarks/Motivation */}
-              <View className="mb-6">
-                <Text className={`text-[10px] font-extrabold uppercase mb-2 ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>Motivation / Remarks</Text>
-                <TextInput
-                  placeholder="Tell the organizer why you want to participate, any relevant skills, or special remarks..."
-                  placeholderTextColor={isDarkMode ? '#64748B' : '#94A3B8'}
-                  value={formRemarks}
-                  onChangeText={setFormRemarks}
-                  multiline={true}
-                  numberOfLines={4}
-                  style={{ textAlignVertical: 'top', height: 100 }}
-                  className={`w-full px-4 py-3 rounded-2xl border ${
-                    isDarkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-[#F8FAFC] border-slate-100 text-slate-900'
-                  } font-semibold text-xs`}
-                />
-              </View>
+              {isFieldEnabled('remarks') && (
+                <View className="mb-4">
+                  <Text className={`text-[10px] font-extrabold uppercase mb-2 ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                    Motivation / Remarks {isFieldRequired('remarks') && '*'}
+                  </Text>
+                  <TextInput
+                    placeholder="Tell the organizer why you want to participate, any relevant skills, or special remarks..."
+                    placeholderTextColor={isDarkMode ? '#64748B' : '#94A3B8'}
+                    value={formRemarks}
+                    onChangeText={setFormRemarks}
+                    multiline={true}
+                    numberOfLines={4}
+                    style={{ textAlignVertical: 'top', height: 100 }}
+                    className={`w-full px-4 py-3 rounded-2xl border ${
+                      isDarkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-[#F8FAFC] border-slate-100 text-slate-900'
+                    } font-semibold text-xs`}
+                  />
+                </View>
+              )}
+
+              {/* GitHub / Portfolio Link */}
+              {isFieldEnabled('portfolio_link') && (
+                <View className="mb-4">
+                  <Text className={`text-[10px] font-extrabold uppercase mb-2 ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                    GitHub / Portfolio Link {isFieldRequired('portfolio_link') && '*'}
+                  </Text>
+                  <TextInput
+                    placeholder="e.g. https://github.com/myusername"
+                    placeholderTextColor={isDarkMode ? '#64748B' : '#94A3B8'}
+                    value={formPortfolio}
+                    onChangeText={setFormPortfolio}
+                    autoCapitalize="none"
+                    keyboardType="url"
+                    className={`w-full px-4 py-3 rounded-2xl border ${
+                      isDarkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-[#F8FAFC] border-slate-100 text-slate-900'
+                    } font-semibold text-xs`}
+                  />
+                </View>
+              )}
+
+              {/* College Custom Questions */}
+              {(() => {
+                const formConfig = event?.custom_form_config || {};
+                const customQuestions = formConfig.custom_questions || [];
+                if (customQuestions.length === 0) return null;
+
+                return (
+                  <View className="mb-6 pt-3 border-t border-dashed border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white">
+                    <Text className={`text-[10px] font-extrabold uppercase mb-3 ${isDarkMode ? 'text-slate-300' : 'text-slate-600'}`}>
+                      College Organizer Additional Questions
+                    </Text>
+                    {customQuestions.map((q: any) => (
+                      <View key={q.id} className="mb-4">
+                        <Text className={`text-[10px] font-extrabold uppercase mb-2 ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                          {q.label} {q.required && '*'}
+                        </Text>
+                        <TextInput
+                          placeholder="Type your answer here..."
+                          placeholderTextColor={isDarkMode ? '#64748B' : '#94A3B8'}
+                          value={customAnswers[q.id] || ''}
+                          onChangeText={(text) => {
+                            setCustomAnswers(prev => ({ ...prev, [q.id]: text }));
+                          }}
+                          className={`w-full px-4 py-3 rounded-2xl border ${
+                            isDarkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-[#F8FAFC] border-slate-100 text-slate-900'
+                          } font-semibold text-xs`}
+                        />
+                      </View>
+                    ))}
+                  </View>
+                );
+              })()}
 
               {/* Action Buttons */}
               <View className="flex-row gap-3">

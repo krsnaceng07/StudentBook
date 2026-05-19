@@ -193,25 +193,26 @@ export default function ProfileDetailsScreen() {
       >
         {/* Dynamic Colorful Header */}
         <View className="px-6 pt-5">
-          <View className={`${data.headerColor} rounded-[32px] p-6 relative`}>
+          <View className={`${data.headerColor} rounded-[28px] p-5 relative shadow-lg`}>
             
             {/* Back Button */}
             <TouchableOpacity 
               onPress={() => router.back()}
-              className="w-10 h-10 rounded-2xl bg-white/20 items-center justify-center mb-6"
+              className="w-9 h-9 rounded-full bg-white/20 items-center justify-center mb-5"
             >
-              <Ionicons name="arrow-back" size={20} color="white" />
+              <Ionicons name="arrow-back" size={18} color="white" />
             </TouchableOpacity>
 
             {/* Avatar block */}
             <View className="flex-row items-center">
-              <View className={`w-16 h-16 rounded-full ${data.avatarBg} border-2 border-white items-center justify-center mr-4 shadow-sm`}>
-                <Text className={`text-xl font-bold text-white`}>{data.initials}</Text>
+              <View className={`w-16 h-16 rounded-full ${data.avatarBg} border-2 border-white items-center justify-center mr-4 shadow-md`}>
+                <Text className="text-2xl font-extrabold text-white">{data.initials}</Text>
               </View>
 
-              <View className="flex-1 pr-4">
-                <Text className="text-white text-lg font-bold mb-0.5">{data.name}</Text>
-                <Text className="text-white/80 text-xs font-semibold">{data.department} - {data.year}</Text>
+              <View className="flex-1 pr-2">
+                <Text className="text-white text-2xl font-extrabold tracking-tight mb-1">{data.name}</Text>
+                <Text className="text-white/95 text-xs font-bold leading-normal mb-0.5">{data.university}</Text>
+                <Text className="text-white/80 text-[10px] font-semibold">{data.department} • {data.year}</Text>
               </View>
             </View>
           </View>
@@ -222,13 +223,13 @@ export default function ProfileDetailsScreen() {
           
           {/* Card 1: Status & Availability */}
           <View className={`p-5 rounded-3xl border border-slate-100 ${
-            isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-white shadow-sm'
+            isDarkMode ? 'bg-slate-900 border-slate-850' : 'bg-white shadow-sm'
           }`}>
             <View className="flex-row items-center justify-between">
-              <View className={`px-3 py-1 rounded-full ${
-                isDarkMode ? 'bg-slate-900' : 'bg-emerald-50'
+              <View className={`px-3.5 py-1.5 rounded-full ${
+                isDarkMode ? 'bg-slate-800' : 'bg-emerald-50/70'
               }`}>
-                <Text className={`text-[10px] font-semibold ${
+                <Text className={`text-[10px] font-bold tracking-wide uppercase ${
                   isDarkMode ? 'text-emerald-400' : 'text-emerald-600'
                 }`}>
                   {data.status}
@@ -237,7 +238,7 @@ export default function ProfileDetailsScreen() {
 
               <View className="flex-row items-center gap-1.5">
                 <View className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
-                <Text className={`text-[10px] font-semibold ${
+                <Text className={`text-[10px] font-bold ${
                   isDarkMode ? 'text-slate-400' : 'text-slate-500'
                 }`}>
                   {data.availability}
@@ -248,73 +249,85 @@ export default function ProfileDetailsScreen() {
 
           {/* Card 2: About / Bio */}
           <View className={`p-5 rounded-3xl border border-slate-100 ${
-            isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-white shadow-sm'
+            isDarkMode ? 'bg-slate-900 border-slate-850' : 'bg-white shadow-sm'
           }`}>
-            <Text className={`text-sm font-bold mb-3 ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
+            <Text className={`text-xs font-extrabold uppercase tracking-wider mb-2.5 ${isDarkMode ? 'text-slate-400' : 'text-slate-400'}`}>
               About
             </Text>
-            <Text className={`text-xs leading-5 ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>
-              {data.bio}
+            <Text className={`text-xs leading-5 font-semibold ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>
+              {data.bio || "No bio description provided."}
             </Text>
           </View>
 
           {/* Card 3: Skills */}
           <View className={`p-5 rounded-3xl border border-slate-100 ${
-            isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-white shadow-sm'
+            isDarkMode ? 'bg-slate-900 border-slate-850' : 'bg-white shadow-sm'
           }`}>
-            <Text className={`text-sm font-bold mb-3.5 ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
+            <Text className={`text-xs font-extrabold uppercase tracking-wider mb-3.5 ${isDarkMode ? 'text-slate-400' : 'text-slate-400'}`}>
               Skills
             </Text>
 
-            <View className="flex-row flex-wrap gap-2">
-              {data.skills.map((skill) => (
-                <View 
-                  key={skill} 
-                  className={`px-4 py-2 rounded-2xl border ${
-                    isDarkMode ? 'bg-slate-900 border-slate-700' : 'bg-slate-50 border-slate-100'
-                  }`}
-                >
-                  <Text className={`text-xs font-semibold ${isDarkMode ? 'text-slate-300' : 'text-slate-600'}`}>
-                    {skill}
-                  </Text>
-                </View>
-              ))}
-            </View>
+            {data.skills && data.skills.length > 0 ? (
+              <View className="flex-row flex-wrap gap-2">
+                {data.skills.map((skill) => (
+                  <View 
+                    key={skill} 
+                    className={`px-3 py-1.5 rounded-xl border ${
+                      isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-slate-50 border-slate-100'
+                    }`}
+                  >
+                    <Text className={`text-[11px] font-bold ${isDarkMode ? 'text-slate-300' : 'text-slate-600'}`}>
+                      {skill}
+                    </Text>
+                  </View>
+                ))}
+              </View>
+            ) : (
+              <Text className={`text-xs italic font-medium ${isDarkMode ? 'text-slate-500' : 'text-slate-400'}`}>
+                No skills listed yet.
+              </Text>
+            )}
           </View>
 
           {/* Card 4: Interests */}
           <View className={`p-5 rounded-3xl border border-slate-100 ${
-            isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-white shadow-sm'
+            isDarkMode ? 'bg-slate-900 border-slate-850' : 'bg-white shadow-sm'
           }`}>
-            <Text className={`text-sm font-bold mb-3.5 ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
+            <Text className={`text-xs font-extrabold uppercase tracking-wider mb-3.5 ${isDarkMode ? 'text-slate-400' : 'text-slate-400'}`}>
               Interests
             </Text>
 
-            <View className="flex-row flex-wrap gap-2">
-              {data.interests.map((interest) => (
-                <View 
-                  key={interest} 
-                  className={`px-4 py-2 rounded-2xl border ${
-                    isDarkMode ? 'bg-slate-900 border-slate-700' : 'bg-slate-50 border-slate-100'
-                  }`}
-                >
-                  <Text className={`text-xs font-semibold ${isDarkMode ? 'text-slate-300' : 'text-slate-600'}`}>
-                    {interest}
-                  </Text>
-                </View>
-              ))}
-            </View>
+            {data.interests && data.interests.length > 0 ? (
+              <View className="flex-row flex-wrap gap-2">
+                {data.interests.map((interest) => (
+                  <View 
+                    key={interest} 
+                    className={`px-3 py-1.5 rounded-xl border ${
+                      isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-slate-50 border-slate-100'
+                    }`}
+                  >
+                    <Text className={`text-[11px] font-bold ${isDarkMode ? 'text-slate-300' : 'text-slate-600'}`}>
+                      {interest}
+                    </Text>
+                  </View>
+                ))}
+              </View>
+            ) : (
+              <Text className={`text-xs italic font-medium ${isDarkMode ? 'text-slate-500' : 'text-slate-400'}`}>
+                No interests listed yet.
+              </Text>
+            )}
           </View>
 
           {/* Card 5: Social Link */}
           <TouchableOpacity 
             onPress={handleGithubPress}
             className={`p-5 rounded-3xl border border-slate-100 flex-row items-center gap-3 ${
-              isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-white shadow-sm'
+              isDarkMode ? 'bg-slate-900 border-slate-850' : 'bg-white shadow-sm'
             }`}
           >
             <Ionicons name="logo-github" size={18} color={isDarkMode ? '#F8FAFC' : '#1E293B'} />
-            <Text className={`text-xs font-semibold ${isDarkMode ? 'text-slate-300' : 'text-slate-600'}`}>
+            <Text className={`text-xs font-bold ${isDarkMode ? 'text-slate-300' : 'text-slate-600'}`}>
               {data.github}
             </Text>
           </TouchableOpacity>

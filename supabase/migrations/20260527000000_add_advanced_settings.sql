@@ -1,0 +1,21 @@
+-- Migration: Add advanced notification, privacy, and appearance settings
+ALTER TABLE public.extended_profiles
+ADD COLUMN IF NOT EXISTS notif_collab_requests BOOLEAN DEFAULT true,
+ADD COLUMN IF NOT EXISTS notif_request_accepted BOOLEAN DEFAULT true,
+ADD COLUMN IF NOT EXISTS notif_new_messages BOOLEAN DEFAULT true,
+ADD COLUMN IF NOT EXISTS notif_event_reminders BOOLEAN DEFAULT true,
+ADD COLUMN IF NOT EXISTS notif_new_events BOOLEAN DEFAULT false,
+ADD COLUMN IF NOT EXISTS notif_weekly_digest BOOLEAN DEFAULT false,
+ADD COLUMN IF NOT EXISTS notif_email_collab BOOLEAN DEFAULT false,
+ADD COLUMN IF NOT EXISTS notif_email_messages BOOLEAN DEFAULT false,
+ADD COLUMN IF NOT EXISTS notif_email_events BOOLEAN DEFAULT true,
+ADD COLUMN IF NOT EXISTS notif_email_digest BOOLEAN DEFAULT true,
+ADD COLUMN IF NOT EXISTS privacy_show_online BOOLEAN DEFAULT true,
+ADD COLUMN IF NOT EXISTS privacy_show_github BOOLEAN DEFAULT true,
+ADD COLUMN IF NOT EXISTS privacy_allow_requests BOOLEAN DEFAULT true,
+ADD COLUMN IF NOT EXISTS privacy_show_college BOOLEAN DEFAULT true,
+ADD COLUMN IF NOT EXISTS privacy_show_availability BOOLEAN DEFAULT true,
+ADD COLUMN IF NOT EXISTS privacy_show_in_search BOOLEAN DEFAULT true,
+ADD COLUMN IF NOT EXISTS appearance_theme TEXT DEFAULT 'light',
+ADD COLUMN IF NOT EXISTS appearance_accent TEXT DEFAULT '#2563EB',
+ADD COLUMN IF NOT EXISTS appearance_font_size TEXT DEFAULT 'medium';
