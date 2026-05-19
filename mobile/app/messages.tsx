@@ -3,8 +3,8 @@ import { View, Text, TextInput, FlatList, TouchableOpacity, ActivityIndicator } 
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useFocusEffect } from 'expo-router';
-import { useUIStore } from '../../store/uiStore';
-import client from '../../api/client';
+import { useUIStore } from '../store/uiStore';
+import client from '../api/client';
 
 export default function Messages() {
   const router = useRouter();

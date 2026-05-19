@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, ScrollView, TextInput, ActivityIndicator 
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { useUIStore } from '../../../store/uiStore';
+import { useUIStore } from '../../store/uiStore';
 
 export default function SendFeedback() {
   const router = useRouter();

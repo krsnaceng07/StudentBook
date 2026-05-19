@@ -3,22 +3,26 @@ import { View, Text, TouchableOpacity, ScrollView, ActivityIndicator } from 'rea
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useFocusEffect } from 'expo-router';
-import { useUIStore } from '../../../store/uiStore';
-import api from '../../../api/client';
+import { useUIStore } from '../../store/uiStore';
+import api from '../../api/client';
 
-export default function PrivacySettings() {
+export default function NotificationSettings() {
   const router = useRouter();
   const { isDarkMode } = useUIStore();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   
   const [prefs, setPrefs] = useState({
-    privacy_show_online: true,
-    privacy_show_availability: true,
-    privacy_show_github: true,
-    privacy_allow_requests: true,
-    privacy_show_in_search: true,
-    privacy_show_college: true,
+    notif_collab_requests: true,
+    notif_request_accepted: true,
+    notif_new_messages: true,
+    notif_event_reminders: true,
+    notif_new_events: false,
+    notif_weekly_digest: false,
+    notif_email_collab: false,
+    notif_email_messages: false,
+    notif_email_events: true,
+    notif_email_digest: true,
   });
 
   const C = {
@@ -38,12 +42,16 @@ export default function PrivacySettings() {
           if (res.data?.success && res.data.data?.profile) {
             const p = res.data.data.profile;
             setPrefs({
-              privacy_show_online: p.privacy_show_online ?? true,
-              privacy_show_availability: p.privacy_show_availability ?? true,
-              privacy_show_github: p.privacy_show_github ?? true,
-              privacy_allow_requests: p.privacy_allow_requests ?? true,
-              privacy_show_in_search: p.privacy_show_in_search ?? true,
-              privacy_show_college: p.privacy_show_college ?? true,
+              notif_collab_requests: p.notif_collab_requests ?? true,
+              notif_request_accepted: p.notif_request_accepted ?? true,
+              notif_new_messages: p.notif_new_messages ?? true,
+              notif_event_reminders: p.notif_event_reminders ?? true,
+              notif_new_events: p.notif_new_events ?? false,
+              notif_weekly_digest: p.notif_weekly_digest ?? false,
+              notif_email_collab: p.notif_email_collab ?? false,
+              notif_email_messages: p.notif_email_messages ?? false,
+              notif_email_events: p.notif_email_events ?? true,
+              notif_email_digest: p.notif_email_digest ?? true,
             });
           }
         } catch (error) {
@@ -66,7 +74,7 @@ export default function PrivacySettings() {
       console.error(e);
       setPrefs(p => ({ ...p, [k]: !newVal })); // Revert
     } finally {
-      setTimeout(() => setSaving(false), 500); // UX delay
+      setTimeout(() => setSaving(false), 500); // small delay for UX
     }
   };
 
@@ -95,31 +103,31 @@ export default function PrivacySettings() {
           <Ionicons name="arrow-back" size={20} color={C.text} />
         </TouchableOpacity>
         <View className="flex-1 flex-row items-center justify-between">
-          <Text className="text-xl font-extrabold" style={{ color: C.text }}>Privacy & Safety</Text>
+          <Text className="text-xl font-extrabold" style={{ color: C.text }}>Notifications</Text>
           {saving && <ActivityIndicator size="small" color="#2563EB" />}
         </View>
       </View>
 
       <ScrollView contentContainerStyle={{ padding: 20 }}>
         
-        <Text className="text-xs font-bold uppercase tracking-wider mb-3 ml-2" style={{ color: C.muted }}>Profile Visibility</Text>
+        <Text className="text-xs font-bold uppercase tracking-wider mb-2 ml-2" style={{ color: C.muted }}>Push Notifications</Text>
+        <Text className="text-[11px] mb-4 ml-2" style={{ color: C.muted }}>Delivered to your device directly</Text>
         <View className="rounded-[24px] overflow-hidden mb-6" style={{ backgroundColor: C.card, borderWidth: 1, borderColor: C.border }}>
-          <Row label="Show Online Status" sub="Others can see when you're active" k="privacy_show_online" />
-          <Row label="Show Availability Badge" sub="Green dot on your profile card" k="privacy_show_availability" />
-          <Row label="Show in Search Results" sub="Appear when others search for students" k="privacy_show_in_search" />
-          <Row label="Show College Name" sub="Display your college on your card" k="privacy_show_college" />
+          <Row label="Collaboration Requests" sub="When someone sends you a request" k="notif_collab_requests" />
+          <Row label="Request Accepted" sub="When your request is accepted" k="notif_request_accepted" />
+          <Row label="New Messages" sub="When you receive a chat message" k="notif_new_messages" />
+          <Row label="Event Reminders" sub="Reminders before event deadlines" k="notif_event_reminders" />
+          <Row label="New Events" sub="When new events match your interests" k="notif_new_events" />
+          <Row label="Weekly Digest" sub="Summary of activity every Monday" k="notif_weekly_digest" />
         </View>
 
-        <Text className="text-xs font-bold uppercase tracking-wider mb-3 ml-2" style={{ color: C.muted }}>Collaboration</Text>
+        <Text className="text-xs font-bold uppercase tracking-wider mb-2 ml-2" style={{ color: C.muted }}>Email Notifications</Text>
+        <Text className="text-[11px] mb-4 ml-2" style={{ color: C.muted }}>Sent to your registered email</Text>
         <View className="rounded-[24px] overflow-hidden mb-6" style={{ backgroundColor: C.card, borderWidth: 1, borderColor: C.border }}>
-          <Row label="Allow Collaboration Requests" sub="Others can send you requests" k="privacy_allow_requests" />
-          <Row label="Show GitHub Profile" sub="Display your GitHub link publicly" k="privacy_show_github" />
-        </View>
-
-        <Text className="text-xs font-bold uppercase tracking-wider mb-3 ml-2" style={{ color: C.muted }}>Blocked Users</Text>
-        <View className="rounded-[24px] overflow-hidden p-6 items-center justify-center mb-6" style={{ backgroundColor: C.card, borderWidth: 1, borderColor: C.border }}>
-          <Text className="text-3xl mb-2">🚫</Text>
-          <Text className="text-xs" style={{ color: C.muted }}>No blocked users</Text>
+          <Row label="Collaboration Requests" k="notif_email_collab" />
+          <Row label="Messages Summary" k="notif_email_messages" />
+          <Row label="Event Reminders" k="notif_email_events" />
+          <Row label="Weekly Digest" k="notif_email_digest" />
         </View>
 
       </ScrollView>

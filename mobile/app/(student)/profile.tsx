@@ -97,14 +97,14 @@ export default function Profile() {
         {/* Top Actions */}
         <View className="flex-row justify-between mb-4">
           <TouchableOpacity 
-            onPress={() => router.push('/(student)/settings')}
+            onPress={() => router.push('/settings')}
             className="w-10 h-10 rounded-xl items-center justify-center"
             style={{ backgroundColor: 'rgba(255,255,255,0.2)' }}
           >
             <Ionicons name="settings-outline" size={20} color="white" />
           </TouchableOpacity>
           <TouchableOpacity 
-            onPress={() => router.push('/(student)/edit-profile')}
+            onPress={() => router.push('/edit-profile')}
             className="h-10 px-4 rounded-xl flex-row items-center gap-2"
             style={{ backgroundColor: 'rgba(255,255,255,0.2)' }}
           >
@@ -201,7 +201,7 @@ export default function Profile() {
                     </View>
                     <Text className="text-xs flex-1" style={{ color: c.done ? C.text : C.muted, fontWeight: c.done ? '600' : '400' }}>{c.label}</Text>
                     {!c.done && (
-                      <TouchableOpacity onPress={() => router.push('/(student)/edit-profile')}>
+                      <TouchableOpacity onPress={() => router.push('/edit-profile')}>
                         <Text className="text-[10px] font-bold" style={{ color: C.primary }}>Add →</Text>
                       </TouchableOpacity>
                     )}
@@ -245,7 +245,7 @@ export default function Profile() {
                     </View>
                   ))}
                 </View>
-                <TouchableOpacity onPress={() => router.push('/(student)/edit-profile')} className="py-3.5 rounded-2xl border items-center mb-4" style={{ borderColor: C.primary }}>
+                <TouchableOpacity onPress={() => router.push('/edit-profile')} className="py-3.5 rounded-2xl border items-center mb-4" style={{ borderColor: C.primary }}>
                   <Text className="text-xs font-bold" style={{ color: C.primary }}>✏️ Manage Skills</Text>
                 </TouchableOpacity>
 
@@ -273,7 +273,7 @@ export default function Profile() {
                 <Text style={{ fontSize: 36, marginBottom: 10 }}>⚡</Text>
                 <Text className="text-sm font-bold mb-2" style={{ color: C.text }}>No skills added yet</Text>
                 <Text className="text-xs text-center mb-6 px-4" style={{ color: C.muted }}>Add your skills so teammates can find you for the right projects</Text>
-                <TouchableOpacity onPress={() => router.push('/(student)/edit-profile')} className="py-3.5 px-6 rounded-2xl" style={{ backgroundColor: C.primary }}>
+                <TouchableOpacity onPress={() => router.push('/edit-profile')} className="py-3.5 px-6 rounded-2xl" style={{ backgroundColor: C.primary }}>
                   <Text className="text-xs font-bold text-white">+ Add Skills</Text>
                 </TouchableOpacity>
               </View>

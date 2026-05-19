@@ -3,8 +3,8 @@ import { View, Text, TouchableOpacity, TextInput, ActivityIndicator, Alert } fro
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { supabase } from '../../../config/supabase';
-import { useUIStore } from '../../../store/uiStore';
+import { supabase } from '../../config/supabase';
+import { useUIStore } from '../../store/uiStore';
 
 export default function ChangeEmail() {
   const router = useRouter();

@@ -3,8 +3,8 @@ import { View, Text, TouchableOpacity, ScrollView, ActivityIndicator } from 'rea
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useFocusEffect } from 'expo-router';
-import { useUIStore } from '../../../store/uiStore';
-import api from '../../../api/client';
+import { useUIStore } from '../../store/uiStore';
+import api from '../../api/client';
 
 export default function AppearanceSettings() {
   const router = useRouter();

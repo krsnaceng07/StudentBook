@@ -3,8 +3,8 @@ import { View, Text, TouchableOpacity, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { useAuthStore } from '../../../store/authStore';
-import { useUIStore } from '../../../store/uiStore';
+import { useAuthStore } from '../../store/authStore';
+import { useUIStore } from '../../store/uiStore';
 
 export default function SettingsIndex() {
   const router = useRouter();
@@ -56,22 +56,22 @@ export default function SettingsIndex() {
         
         <Text className="text-xs font-bold uppercase tracking-wider mb-3 ml-2" style={{ color: C.muted }}>Account</Text>
         <View className="rounded-[24px] overflow-hidden mb-6" style={{ backgroundColor: C.card, borderWidth: 1, borderColor: C.border }}>
-          <Row icon="person" title="Edit Profile" sub="Update your details, skills & goals" color="#7C3AED" route="/(student)/edit-profile" />
-          <Row icon="lock-closed" title="Change Password" color="#D97706" route="/(student)/settings/password" />
-          <Row icon="mail" title="Change Email Address" color="#2563EB" route="/(student)/settings/email" />
+          <Row icon="person" title="Edit Profile" sub="Update your details, skills & goals" color="#7C3AED" route="/edit-profile" />
+          <Row icon="lock-closed" title="Change Password" color="#D97706" route="/settings/password" />
+          <Row icon="mail" title="Change Email Address" color="#2563EB" route="/settings/email" />
         </View>
 
         <Text className="text-xs font-bold uppercase tracking-wider mb-3 ml-2" style={{ color: C.muted }}>Preferences</Text>
         <View className="rounded-[24px] overflow-hidden mb-6" style={{ backgroundColor: C.card, borderWidth: 1, borderColor: C.border }}>
-          <Row icon="notifications" title="Notifications" sub="Push & Email alerts" color="#EAB308" route="/(student)/settings/notifications" />
-          <Row icon="shield-checkmark" title="Privacy & Safety" sub="Visibility & blocked users" color="#10B981" route="/(student)/settings/privacy" />
-          <Row icon="color-palette" title="Appearance" sub="Theme & layout" color="#EC4899" route="/(student)/settings/appearance" />
+          <Row icon="notifications" title="Notifications" sub="Push & Email alerts" color="#EAB308" route="/settings/notifications" />
+          <Row icon="shield-checkmark" title="Privacy & Safety" sub="Visibility & blocked users" color="#10B981" route="/settings/privacy" />
+          <Row icon="color-palette" title="Appearance" sub="Theme & layout" color="#EC4899" route="/settings/appearance" />
         </View>
 
         <Text className="text-xs font-bold uppercase tracking-wider mb-3 ml-2" style={{ color: C.muted }}>Support</Text>
         <View className="rounded-[24px] overflow-hidden mb-6" style={{ backgroundColor: C.card, borderWidth: 1, borderColor: C.border }}>
-          <Row icon="help-circle" title="Help & FAQ" color="#64748B" route="/(student)/settings/help" />
-          <Row icon="chatbubble-ellipses" title="Send Feedback" color="#F97316" route="/(student)/settings/feedback" />
+          <Row icon="help-circle" title="Help & FAQ" color="#64748B" route="/settings/help" />
+          <Row icon="chatbubble-ellipses" title="Send Feedback" color="#F97316" route="/settings/feedback" />
         </View>
 
         <TouchableOpacity 

@@ -3,8 +3,8 @@ import { View, Text, TouchableOpacity, ScrollView, TextInput, ActivityIndicator,
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { useUIStore } from '../../store/uiStore';
-import client from '../../api/client';
+import { useUIStore } from '../store/uiStore';
+import client from '../api/client';
 
 type TabType = 'Basic' | 'Skills' | 'Interests' | 'Settings';
 
