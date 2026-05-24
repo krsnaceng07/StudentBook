@@ -5,6 +5,8 @@ import { useRouter, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useUIStore } from '../../store/uiStore';
 import api from '../../api/client';
+import * as FileSystem from 'expo-file-system';
+import * as Sharing from 'expo-sharing';
 
 interface EventData {
   id: string;
@@ -24,9 +26,11 @@ export default function ManageEvents() {
 
   // Roster Modal States
   const [showRosterModal, setShowRosterModal] = useState(false);
+  const [selectedEventId, setSelectedEventId] = useState('');
   const [selectedEventTitle, setSelectedEventTitle] = useState('');
   const [registrants, setRegistrants] = useState<any[]>([]);
   const [rosterLoading, setRosterLoading] = useState(false);
+  const [downloadingCsv, setDownloadingCsv] = useState(false);
 
   const fetchEvents = async () => {
     try {
@@ -54,6 +58,7 @@ export default function ManageEvents() {
   };
 
   const fetchRegistrants = async (eventId: string, title: string) => {
+    setSelectedEventId(eventId);
     setSelectedEventTitle(title);
     setRegistrants([]);
     setRosterLoading(true);
@@ -67,6 +72,52 @@ export default function ManageEvents() {
       Alert.alert('Error', 'Failed to retrieve registrant roster.');
     } finally {
       setRosterLoading(false);
+    }
+  };
+
+  const handleDownloadRosterCSV = async () => {
+    if (!selectedEventId) return;
+    setDownloadingCsv(true);
+    try {
+      // 1. Fetch CSV content from backend
+      const response = await api.get(`/college/events/${selectedEventId}/registrants/download`, {
+        responseType: 'text'
+      });
+
+      const csvContent = response.data;
+      if (!csvContent) {
+        Alert.alert('Error', 'No registrant data available to download.');
+        return;
+      }
+
+      // 2. Define local temporary file path
+      const safeTitle = selectedEventTitle.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+      const localFilePath = `${FileSystem.documentDirectory}${safeTitle}_registrants.csv`;
+
+      // 3. Write CSV text content to the local file
+      await FileSystem.writeAsStringAsync(localFilePath, csvContent, {
+        encoding: FileSystem.EncodingType.UTF8
+      });
+
+      // 4. Check if sharing is available on the device
+      const isSharingAvailable = await Sharing.isAvailableAsync();
+      if (!isSharingAvailable) {
+        Alert.alert('Download Complete', `Roster saved to: ${localFilePath}`);
+        return;
+      }
+
+      // 5. Open the native Share Sheet to download/save/share the file!
+      await Sharing.shareAsync(localFilePath, {
+        mimeType: 'text/csv',
+        dialogTitle: 'Download Event Registrant Roster',
+        UTI: 'public.comma-separated-values-text' // UTI type for CSV on iOS
+      });
+
+    } catch (error) {
+      console.error('Failed to download CSV roster:', error);
+      Alert.alert('Error', 'An error occurred while generating or sharing the CSV roster.');
+    } finally {
+      setDownloadingCsv(false);
     }
   };
 
@@ -236,15 +287,34 @@ export default function ManageEvents() {
                   {selectedEventTitle}
                 </Text>
               </View>
-              
-              <TouchableOpacity
-                onPress={() => setShowRosterModal(false)}
-                className={`w-9 h-9 rounded-full items-center justify-center ${
-                  isDarkMode ? 'bg-slate-850' : 'bg-slate-50'
-                }`}
-              >
-                <Ionicons name="close" size={20} color={isDarkMode ? 'white' : '#64748B'} />
-              </TouchableOpacity>
+
+              <View className="flex-row gap-2 items-center">
+                {/* Download CSV Roster Action */}
+                {registrants.length > 0 && (
+                  <TouchableOpacity
+                    onPress={handleDownloadRosterCSV}
+                    disabled={downloadingCsv}
+                    className={`w-9 h-9 rounded-full items-center justify-center ${
+                      isDarkMode ? 'bg-blue-950/60' : 'bg-blue-50'
+                    } border ${isDarkMode ? 'border-blue-900/50' : 'border-blue-100'}`}
+                  >
+                    {downloadingCsv ? (
+                      <ActivityIndicator size="small" color="#2563EB" />
+                    ) : (
+                      <Ionicons name="download-outline" size={17} color="#2563EB" />
+                    )}
+                  </TouchableOpacity>
+                )}
+                
+                <TouchableOpacity
+                  onPress={() => setShowRosterModal(false)}
+                  className={`w-9 h-9 rounded-full items-center justify-center ${
+                    isDarkMode ? 'bg-slate-800' : 'bg-slate-50'
+                  }`}
+                >
+                  <Ionicons name="close" size={20} color={isDarkMode ? 'white' : '#64748B'} />
+                </TouchableOpacity>
+              </View>
             </View>
 
             {/* Roster Content */}
@@ -269,6 +339,14 @@ export default function ManageEvents() {
                   <View className="gap-4">
                     {registrants.map((r, index) => {
                       const student = r.student;
+                      const details = r.registration_details || {};
+                      
+                      const displayName = details.full_name || student.name;
+                      const displayEmail = details.email || 'N/A';
+                      const displayDept = details.department || student.department || '';
+                      const displayYear = details.year || student.university_year || '';
+                      const remarks = details.remarks || '';
+
                       return (
                         <TouchableOpacity
                           key={student.id || index}
@@ -277,44 +355,60 @@ export default function ManageEvents() {
                             router.push(`/profile/${student.id}`);
                           }}
                           activeOpacity={0.9}
-                          className={`p-4.5 rounded-3xl border flex-row items-center gap-4 ${
+                          className={`p-5 rounded-3xl border ${
                             isDarkMode ? 'bg-slate-900 border-slate-850' : 'bg-white border-slate-100 shadow-sm'
                           }`}
                         >
-                          {/* Circular Avatar */}
-                          <View className={`w-11 h-11 rounded-full items-center justify-center border ${
-                            isDarkMode ? 'bg-slate-800 border-slate-750' : 'bg-blue-50 border-blue-100'
+                          {/* Upper Profile Row */}
+                          <View className="flex-row items-center gap-4 mb-3">
+                            {/* Circular Avatar */}
+                            <View className={`w-11 h-11 rounded-full items-center justify-center border ${
+                              isDarkMode ? 'bg-slate-800 border-slate-750' : 'bg-blue-50 border-blue-100'
+                            }`}>
+                              <Text className={`text-xs font-bold ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`}>{student.initials}</Text>
+                            </View>
+
+                            {/* Name & Uni */}
+                            <View className="flex-1">
+                              <Text className={`text-xs font-extrabold ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>{displayName}</Text>
+                              <Text className={`text-[10px] mt-0.5 ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`} numberOfLines={1}>{student.university}</Text>
+                            </View>
+
+                            {/* View Profile chevron link */}
+                            <View className="flex-row items-center gap-1">
+                              <Text className={`text-[8px] font-bold ${isDarkMode ? 'text-slate-500' : 'text-slate-400'}`}>View Profile</Text>
+                              <Ionicons name="chevron-forward" size={12} color={isDarkMode ? '#64748B' : '#94A3B8'} />
+                            </View>
+                          </View>
+
+                          {/* Contact Email & Education Info */}
+                          <View className={`p-3 rounded-2xl mb-2 gap-1.5 ${
+                            isDarkMode ? 'bg-slate-950/40' : 'bg-slate-50/70'
                           }`}>
-                            <Text className={`text-xs font-bold ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`}>{student.initials}</Text>
-                          </View>
+                            <View className="flex-row items-center gap-1.5">
+                              <Ionicons name="mail-outline" size={11} color={isDarkMode ? '#94A3B8' : '#64748B'} />
+                              <Text className={`text-[10px] font-semibold ${isDarkMode ? 'text-slate-300' : 'text-slate-600'}`}>{displayEmail}</Text>
+                            </View>
 
-                          {/* Student Details Info */}
-                          <View className="flex-1">
-                            <Text className={`text-xs font-extrabold ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>{student.name}</Text>
-                            <Text className={`text-[10px] mt-0.5 ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`} numberOfLines={1}>{student.university}</Text>
-                            {student.year ? (
-                              <Text className={`text-[9px] mt-0.5 ${isDarkMode ? 'text-slate-500' : 'text-slate-400'}`} numberOfLines={1}>{student.year}</Text>
-                            ) : null}
-                            
-                            {/* Skills Pills */}
-                            {student.skills && student.skills.length > 0 && (
-                              <View className="flex-row flex-wrap gap-1 mt-2">
-                                {student.skills.slice(0, 3).map((skill: string) => (
-                                  <View 
-                                    key={skill} 
-                                    className={`px-1.5 py-0.5 rounded-md ${
-                                      isDarkMode ? 'bg-slate-800' : 'bg-slate-50 border border-slate-100'
-                                    }`}
-                                  >
-                                    <Text className={`text-[8px] font-semibold ${isDarkMode ? 'text-slate-300' : 'text-slate-600'}`}>{skill}</Text>
-                                  </View>
-                                ))}
+                            {(displayDept || displayYear) ? (
+                              <View className="flex-row items-center gap-1.5">
+                                <Ionicons name="school-outline" size={11} color={isDarkMode ? '#94A3B8' : '#64748B'} />
+                                <Text className={`text-[10px] font-semibold ${isDarkMode ? 'text-slate-300' : 'text-slate-600'}`}>
+                                  {displayDept}{displayYear ? ` (Year: ${displayYear})` : ''}
+                                </Text>
                               </View>
-                            )}
+                            ) : null}
                           </View>
 
-                          {/* View Chevron */}
-                          <Ionicons name="chevron-forward" size={16} color={isDarkMode ? '#64748B' : '#94A3B8'} />
+                          {/* Motivation / Remarks Text Box */}
+                          {remarks ? (
+                            <View className={`p-3.5 rounded-2xl border ${
+                              isDarkMode ? 'bg-slate-900/50 border-slate-800' : 'bg-slate-50/40 border-slate-100'
+                            }`}>
+                              <Text className={`text-[9px] font-extrabold uppercase mb-1 ${isDarkMode ? 'text-slate-500' : 'text-slate-400'}`}>Motivation / Remarks</Text>
+                              <Text className={`text-[10px] leading-normal font-semibold ${isDarkMode ? 'text-slate-300' : 'text-slate-600'}`}>{remarks}</Text>
+                            </View>
+                          ) : null}
                         </TouchableOpacity>
                       );
                     })}
