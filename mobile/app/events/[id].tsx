@@ -25,6 +25,39 @@ export default function EventDetailsPage() {
   const [newTeamName, setNewTeamName] = useState('');
   const [formingTeam, setFormingTeam] = useState(false);
 
+  // Student Registration Form States
+  const [showRegFormModal, setShowRegFormModal] = useState(false);
+  const [formName, setFormName] = useState('');
+  const [formEmail, setFormEmail] = useState('');
+  const [formDept, setFormDept] = useState('');
+  const [formYear, setFormYear] = useState('');
+  const [formRemarks, setFormRemarks] = useState('');
+  const [submittingReg, setSubmittingReg] = useState(false);
+
+  const fetchStudentProfileForForm = async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      
+      const { data: profile } = await supabase
+        .from('extended_profiles')
+        .select('full_name, department, university_year')
+        .eq('id', session.user.id)
+        .maybeSingle();
+        
+      if (profile) {
+        setFormName(profile.full_name || '');
+        setFormEmail(session.user.email || '');
+        setFormDept(profile.department || '');
+        setFormYear(profile.university_year || '');
+      } else {
+        setFormEmail(session.user.email || '');
+      }
+    } catch (err) {
+      console.warn('Failed to pre-fill student registration form:', err);
+    }
+  };
+
   const fetchEventDetails = async () => {
     if (!id) return;
     setLoading(true);
@@ -121,24 +154,75 @@ export default function EventDetailsPage() {
 
   const handleToggleRegister = async () => {
     if (!id || !event) return;
-    const nextRegState = !registered;
     
-    // Optimistic UI updates
-    setRegistered(nextRegState);
-    setRegCount(prev => nextRegState ? prev + 1 : Math.max(0, prev - 1));
+    if (registered) {
+      // Prompt student before unregistering
+      Alert.alert(
+        'Cancel Registration',
+        'Are you sure you want to cancel your registration for this event?',
+        [
+          { text: 'No', style: 'cancel' },
+          {
+            text: 'Yes, Cancel',
+            style: 'destructive',
+            onPress: async () => {
+              setRegistered(false);
+              setRegCount(prev => Math.max(0, prev - 1));
+              try {
+                await api.delete(`/events/${id}/register`);
+              } catch (err: any) {
+                console.warn('Failed to unregister on server:', err);
+                setRegistered(true);
+                setRegCount(prev => prev + 1);
+                Alert.alert('Error', 'Could not cancel registration. Please try again.');
+              }
+            }
+          }
+        ]
+      );
+    } else {
+      // Fetch details and open registration form modal
+      await fetchStudentProfileForForm();
+      setFormRemarks('');
+      setShowRegFormModal(true);
+    }
+  };
 
+  const handleConfirmRegistration = async () => {
+    if (!formName.trim()) {
+      Alert.alert('Error', 'Full Name is required.');
+      return;
+    }
+    if (!formEmail.trim()) {
+      Alert.alert('Error', 'Email is required.');
+      return;
+    }
+    
+    setSubmittingReg(true);
     try {
-      if (nextRegState) {
-        await api.post(`/events/${id}/register`);
+      const response = await api.post(`/events/${id}/register`, {
+        registration_details: {
+          full_name: formName.trim(),
+          email: formEmail.trim(),
+          department: formDept.trim(),
+          year: formYear.trim(),
+          remarks: formRemarks.trim()
+        }
+      });
+      
+      if (response.data?.success) {
+        setRegistered(true);
+        setRegCount(prev => prev + 1);
+        setShowRegFormModal(false);
+        Alert.alert('Success', 'Successfully registered for this event!');
       } else {
-        await api.delete(`/events/${id}/register`);
+        Alert.alert('Error', 'Failed to register. Please try again.');
       }
     } catch (err: any) {
-      console.warn('Failed to toggle event registration on server:', err);
-      // Revert state on failure
-      setRegistered(!nextRegState);
-      setRegCount(prev => !nextRegState ? prev + 1 : Math.max(0, prev - 1));
+      console.warn('Failed to register on server:', err);
       Alert.alert('Error', err.response?.data?.error || 'Could not complete registration. Please try again.');
+    } finally {
+      setSubmittingReg(false);
     }
   };
 
@@ -484,6 +568,151 @@ export default function EventDetailsPage() {
           );
         })()}
       </View>
+
+      {/* Registration Form Modal */}
+      <Modal
+        visible={showRegFormModal}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setShowRegFormModal(false)}
+      >
+        <View style={{
+          flex: 1,
+          justifyContent: 'flex-end',
+          backgroundColor: 'rgba(15, 23, 42, 0.65)'
+        }}>
+          <View style={{
+            height: '80%',
+            borderTopLeftRadius: 36,
+            borderTopRightRadius: 36,
+            backgroundColor: isDarkMode ? '#1E293B' : '#FFFFFF',
+            paddingTop: 24,
+            paddingHorizontal: 24
+          }}>
+            {/* Header */}
+            <View className="flex-row justify-between items-center pb-4 border-b border-slate-100 dark:border-slate-800">
+              <View className="flex-1 mr-4">
+                <Text className={`text-base font-extrabold ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
+                  Event Registration
+                </Text>
+                <Text className={`text-[10px] font-semibold mt-0.5 ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`} numberOfLines={1}>
+                  Provide details to college organizer for {event.title}
+                </Text>
+              </View>
+              
+              <TouchableOpacity
+                onPress={() => setShowRegFormModal(false)}
+                className={`w-9 h-9 rounded-full items-center justify-center ${
+                  isDarkMode ? 'bg-slate-800' : 'bg-slate-50'
+                }`}
+              >
+                <Ionicons name="close" size={20} color={isDarkMode ? 'white' : '#64748B'} />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView 
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={{ paddingVertical: 20, paddingBottom: 60 }}
+            >
+              {/* Full Name */}
+              <View className="mb-4">
+                <Text className={`text-[10px] font-extrabold uppercase mb-2 ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>Full Name *</Text>
+                <TextInput
+                  placeholder="e.g. Krsna Dev"
+                  placeholderTextColor={isDarkMode ? '#64748B' : '#94A3B8'}
+                  value={formName}
+                  onChangeText={setFormName}
+                  className={`w-full px-4 py-3 rounded-2xl border ${
+                    isDarkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-[#F8FAFC] border-slate-100 text-slate-900'
+                  } font-semibold text-xs`}
+                />
+              </View>
+
+              {/* Email */}
+              <View className="mb-4">
+                <Text className={`text-[10px] font-extrabold uppercase mb-2 ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>Email Address *</Text>
+                <TextInput
+                  placeholder="e.g. student@tu.edu.np"
+                  placeholderTextColor={isDarkMode ? '#64748B' : '#94A3B8'}
+                  value={formEmail}
+                  onChangeText={setFormEmail}
+                  keyboardType="email-address"
+                  className={`w-full px-4 py-3 rounded-2xl border ${
+                    isDarkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-[#F8FAFC] border-slate-100 text-slate-900'
+                  } font-semibold text-xs`}
+                />
+              </View>
+
+              {/* Grid: Department & Year */}
+              <View className="flex-row justify-between mb-4">
+                <View className="w-[48%]">
+                  <Text className={`text-[10px] font-extrabold uppercase mb-2 ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>Department</Text>
+                  <TextInput
+                    placeholder="e.g. CSIT / BCT"
+                    placeholderTextColor={isDarkMode ? '#64748B' : '#94A3B8'}
+                    value={formDept}
+                    onChangeText={setFormDept}
+                    className={`w-full px-4 py-3 rounded-2xl border ${
+                      isDarkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-[#F8FAFC] border-slate-100 text-slate-900'
+                    } font-semibold text-xs`}
+                  />
+                </View>
+
+                <View className="w-[48%]">
+                  <Text className={`text-[10px] font-extrabold uppercase mb-2 ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>Year</Text>
+                  <TextInput
+                    placeholder="e.g. 3rd Year"
+                    placeholderTextColor={isDarkMode ? '#64748B' : '#94A3B8'}
+                    value={formYear}
+                    onChangeText={setFormYear}
+                    className={`w-full px-4 py-3 rounded-2xl border ${
+                      isDarkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-[#F8FAFC] border-slate-100 text-slate-900'
+                    } font-semibold text-xs`}
+                  />
+                </View>
+              </View>
+
+              {/* Remarks/Motivation */}
+              <View className="mb-6">
+                <Text className={`text-[10px] font-extrabold uppercase mb-2 ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>Motivation / Remarks</Text>
+                <TextInput
+                  placeholder="Tell the organizer why you want to participate, any relevant skills, or special remarks..."
+                  placeholderTextColor={isDarkMode ? '#64748B' : '#94A3B8'}
+                  value={formRemarks}
+                  onChangeText={setFormRemarks}
+                  multiline={true}
+                  numberOfLines={4}
+                  style={{ textAlignVertical: 'top', height: 100 }}
+                  className={`w-full px-4 py-3 rounded-2xl border ${
+                    isDarkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-[#F8FAFC] border-slate-100 text-slate-900'
+                  } font-semibold text-xs`}
+                />
+              </View>
+
+              {/* Action Buttons */}
+              <View className="flex-row gap-3">
+                <TouchableOpacity
+                  onPress={() => setShowRegFormModal(false)}
+                  className={`flex-1 py-3.5 rounded-2xl items-center justify-center ${
+                    isDarkMode ? 'bg-slate-800' : 'bg-slate-100'
+                  }`}
+                >
+                  <Text className={`text-xs font-bold ${isDarkMode ? 'text-white' : 'text-slate-700'}`}>Cancel</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  onPress={handleConfirmRegistration}
+                  disabled={submittingReg}
+                  className="flex-1 py-3.5 rounded-2xl bg-blue-600 active:bg-blue-700 items-center justify-center flex-row gap-1.5"
+                >
+                  {submittingReg && <ActivityIndicator size="small" color="white" />}
+                  <Text className="text-white text-xs font-bold">Confirm Register</Text>
+                </TouchableOpacity>
+              </View>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
 
       {/* Create Team Premium Modal */}
       <Modal
