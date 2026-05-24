@@ -199,11 +199,11 @@
 - [x] Optimistic Connect Toggles: Connect the inline card action directly to the connections request endpoint (toggling Connect/Pending state optimistically) and link a Message button if already connected.
 
 ## Phase 38: Student Event Registration Forms & College Roster Download Engine
-**Status**: Planned
-- [ ] Database Schema: Add `registration_details` JSONB column to `event_registrations` table.
-- [ ] Backend APIs: Upgrade registration POST endpoint to support JSON payload, and build a high-volume CSV export endpoint `GET /college/events/:id/registrants/download`.
-- [ ] Frontend Student: Build a sleek, premium bottom sheet or modal form for internal event registration, capturing basic details (full_name, email, department, year, motivation/remarks).
-- [ ] Frontend College: Upgrade Roster view to display detailed student information, allow peer profile click-throughs, and download a complete applicant list CSV at once.
+**Status**: ✅ Complete
+- [x] Database Schema: Add `registration_details` JSONB column to `event_registrations` table.
+- [x] Backend APIs: Upgrade registration POST endpoint to support JSON payload, and build a high-volume CSV export endpoint `GET /college/events/:id/registrants/download`.
+- [x] Frontend Student: Build a sleek, premium bottom sheet or modal form for internal event registration, capturing basic details (full_name, email, department, year, motivation/remarks).
+- [x] Frontend College: Upgrade Roster view to display detailed student information, allow peer profile click-throughs, and download a complete applicant list CSV at once.
 
 
 
