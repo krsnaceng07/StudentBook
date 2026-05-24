@@ -76,28 +76,39 @@ export const useAuthStore = create((set) => ({
   login: async (email, password) => {
     set({ isLoading: true, error: null });
     try {
-      const response = await client.post('/auth/login', { email, password });
-      const { session, user } = response.data.data;
-      
-      // Manually set Supabase session if needed, but the backend uses admin client
-      // For mobile, it's best to let Supabase SDK handle the session for RLS.
-      // So we also call signInWithPassword to get a client-side session.
-      const { error: sbError } = await supabase.auth.setSession({
-        access_token: session.access_token,
-        refresh_token: session.refresh_token
+      // 1. Direct login via Supabase Client SDK (Infinite cloud scalability, bypasses localtunnel completely)
+      const { data: { session, user }, error: sbError } = await supabase.auth.signInWithPassword({
+        email,
+        password
       });
       if (sbError) throw sbError;
 
+      // 2. Fetch the user role from the profiles table directly
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', user.id)
+        .single();
+
+      if (profileError || !profile) {
+        throw new Error('User profile not found. Please contact support.');
+      }
+
+      const userWithRole = {
+        ...user,
+        role: profile.role
+      };
+
       set({ 
         isLoading: false, 
-        user, 
+        user: userWithRole, 
         session, 
         token: session.access_token, 
         isAuthenticated: true 
       });
       return { success: true };
     } catch (error) {
-      const msg = error.response?.data?.message || error.message || 'Login failed';
+      const msg = error.message || 'Login failed';
       set({ error: msg, isLoading: false });
       return { success: false, error: msg };
     }

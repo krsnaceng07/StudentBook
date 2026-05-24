@@ -17,10 +17,38 @@ const getHost = () => {
 
 const DEV_IP = getHost();
 
-// Hardcoded production URL for APK builds
+// Dynamic base URL resolving for development vs production
 const getBaseURL = () => {
-  const url = process.env.EXPO_PUBLIC_API_URL;
-  if (url) return url;
+  const envUrl = process.env.EXPO_PUBLIC_API_URL;
+  
+  if (__DEV__) {
+    const devHost = getHost();
+    const isExpoTunnel = devHost.includes('exp.direct') || devHost.includes('ngrok.io');
+    
+    if (isExpoTunnel) {
+      console.log(`[API Client] 🚇 Expo is running via tunnel: ${devHost}`);
+      console.log(` - Note: The Expo tunnel only proxy-routes Metro port 8081.`);
+      console.log(` - The local Express port 5000 is NOT exposed through this tunnel.`);
+      console.log(` - API requests will fallback to the configured API URL: ${envUrl}`);
+      console.log(` - IF YOU GET A 503 ERROR, please start your local backend tunnel in another terminal:`);
+      console.log(`   npx localtunnel --port 5000 --subdomain tu-studentsociety-api`);
+      
+      return envUrl || 'https://studentbook-3.onrender.com/api/v1';
+    } else {
+      const localIpUrl = `http://${devHost}:5000/api/v1`;
+      console.log(`[API Client] 💻 Direct Local Wi-Fi Mode active.`);
+      console.log(` - Configured API URL: ${envUrl}`);
+      console.log(` - Auto-detected Direct Local Machine IP: ${localIpUrl}`);
+      
+      // Fallback to local IP if tunnel URL is missing or points to the unstable localtunnel (loca.lt)
+      if (!envUrl || envUrl.includes('loca.lt')) {
+        console.log(`[API Client] Using highly stable local IP connection directly: ${localIpUrl}`);
+        return localIpUrl;
+      }
+    }
+  }
+  
+  if (envUrl) return envUrl;
   
   return 'https://studentbook-3.onrender.com/api/v1';
 };

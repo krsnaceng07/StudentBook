@@ -339,10 +339,16 @@ export const registerForEvent = async (req: Request, res: Response) => {
       return res.status(400).json({ success: false, error: 'This event requires external registration' });
     }
 
+    const { registration_details } = req.body;
+
     // Insert registration record
     const { data: newReg, error: regErr } = await supabase
       .from('event_registrations')
-      .insert({ event_id: eventId, user_id: userId })
+      .insert({ 
+        event_id: eventId, 
+        user_id: userId,
+        registration_details: registration_details || {}
+      })
       .select()
       .single();
 
@@ -464,10 +470,10 @@ export const getEventRegistrants = async (req: Request, res: Response) => {
       });
     }
 
-    // Fetch all registrations
+    // Fetch all registrations including registration_details
     const { data: regs, error: regsErr } = await supabase
       .from('event_registrations')
-      .select('user_id, created_at')
+      .select('user_id, created_at, registration_details')
       .eq('event_id', eventId)
       .order('created_at', { ascending: false });
 
@@ -487,11 +493,12 @@ export const getEventRegistrants = async (req: Request, res: Response) => {
       registrantsProfiles = profiles || [];
     }
 
-    // Combine profiles with registration timestamp
+    // Combine profiles with registration timestamp & details
     const detailedRegistrants = (regs || []).map(r => {
       const p = registrantsProfiles.find(prof => prof.id === r.user_id);
       return {
         registered_at: r.created_at,
+        registration_details: r.registration_details || {},
         student: p ? {
           id: p.id,
           initials: p.initials || p.full_name?.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase() || '??',
@@ -522,6 +529,85 @@ export const getEventRegistrants = async (req: Request, res: Response) => {
     });
   } catch (error: any) {
     console.error('Error fetching event registrants:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+export const getEventRegistrantsDownload = async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).user?.id;
+    const { id: eventId } = req.params;
+
+    if (!userId) return res.status(401).json({ success: false, error: 'Unauthorized' });
+    if (!eventId) return res.status(400).json({ success: false, error: 'Event ID is required' });
+
+    // Validate Event exists and the requesting user is the organizer
+    const { data: event, error: eventErr } = await supabase
+      .from('events')
+      .select('author_id, title')
+      .eq('id', eventId)
+      .single();
+
+    if (eventErr || !event) {
+      return res.status(404).json({ success: false, error: 'Event not found' });
+    }
+
+    if (event.author_id !== userId) {
+      return res.status(403).json({
+        success: false,
+        error: 'Forbidden: You are not the organizer of this event'
+      });
+    }
+
+    // Fetch registrations
+    const { data: regs, error: regsErr } = await supabase
+      .from('event_registrations')
+      .select('user_id, created_at, registration_details')
+      .eq('event_id', eventId)
+      .order('created_at', { ascending: true });
+
+    if (regsErr) throw regsErr;
+
+    // Fetch student profile details
+    const studentIds = (regs || []).map(r => r.user_id);
+    let registrantsProfiles: any[] = [];
+
+    if (studentIds.length > 0) {
+      const { data: profiles, error: profsErr } = await supabase
+        .from('extended_profiles')
+        .select('id, full_name, university, department, university_year')
+        .in('id', studentIds);
+
+      if (profsErr) throw profsErr;
+      registrantsProfiles = profiles || [];
+    }
+
+    // Generate CSV Content
+    let csvContent = '"Student Name","Email","Department","Year","Motivation/Remarks","Registered At"\n';
+
+    (regs || []).forEach(r => {
+      const p = registrantsProfiles.find(prof => prof.id === r.user_id);
+      const details = r.registration_details || {};
+      
+      const name = details.full_name || p?.full_name || 'Anonymous Student';
+      const email = details.email || 'N/A';
+      const dept = details.department || p?.department || 'N/A';
+      const year = details.year || p?.university_year || 'N/A';
+      const remarks = details.remarks || 'No remarks provided';
+      const registeredAt = new Date(r.created_at).toLocaleString();
+
+      // Escape quotes in CSV fields
+      const escapeCSV = (val: string) => `"${val.replace(/"/g, '""')}"`;
+
+      csvContent += `${escapeCSV(name)},${escapeCSV(email)},${escapeCSV(dept)},${escapeCSV(year)},${escapeCSV(remarks)},${escapeCSV(registeredAt)}\n`;
+    });
+
+    const safeTitle = event.title.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', `attachment; filename=${safeTitle}_registrants.csv`);
+    return res.status(200).send(csvContent);
+  } catch (error: any) {
+    console.error('Error exporting event registrants CSV:', error);
     res.status(500).json({ success: false, error: error.message });
   }
 };

@@ -1,0 +1,11 @@
+{
+  "timestamp": "2026-05-18T20:40:46.801Z",
+  "projectRoot": "E:\\studentsociety",
+  "structure": {
+    "hasPackageJson": true,
+    "hasTsConfig": false,
+    "hasClaudeConfig": true,
+    "hasClaudeFlow": true
+  },
+  "scannedAt": 1779136846801
+}

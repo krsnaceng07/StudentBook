@@ -1,0 +1,25 @@
+{
+  "swarms": {
+    "swarm-1779123199151-zepxet": {
+      "swarmId": "swarm-1779123199151-zepxet",
+      "topology": "hierarchical-mesh",
+      "maxAgents": 15,
+      "status": "terminated",
+      "agents": [],
+      "tasks": [],
+      "config": {
+        "topology": "hierarchical-mesh",
+        "maxAgents": 15,
+        "strategy": "specialized",
+        "communicationProtocol": "message-bus",
+        "autoScaling": true,
+        "consensusMechanism": "majority"
+      },
+      "createdAt": "2026-05-18T16:53:19.151Z",
+      "updatedAt": "2026-05-18T16:53:27.628Z",
+      "pid": 21700,
+      "terminationReason": "host process 21700 exited"
+    }
+  },
+  "version": "3.0.0"
+}

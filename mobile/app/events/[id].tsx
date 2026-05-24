@@ -438,7 +438,7 @@ export default function EventDetailsPage() {
               >
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                   <Ionicons name="checkmark-circle" size={16} color="white" />
-                  <Text style={{ color: 'white', fontWeight: 'extrabold', fontSize: 13 }}>Registered</Text>
+                  <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 13 }}>Registered</Text>
                 </View>
               </TouchableOpacity>
 
