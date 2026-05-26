@@ -87,7 +87,7 @@ export default function Discover() {
     setTeammates(prev => prev.map(p => p.id === peerId ? { ...p, connectionStatus: 'pending_sent' } : p));
     
     try {
-      const response = await client.post('/connections/request', { receiverId: peerId });
+      const response = await client.post('/student/connections/request', { receiverId: peerId });
       if (!response.data?.success) {
         throw new Error(response.data?.error || 'Failed to send request');
       }
@@ -103,7 +103,7 @@ export default function Discover() {
     setTeammates(prev => prev.map(p => p.id === peerId ? { ...p, connectionStatus: 'accepted' } : p));
     
     try {
-      const response = await client.put('/connections/respond', { requestId: connectionId, status: 'accepted' });
+      const response = await client.put('/student/connections/respond', { requestId: connectionId, status: 'accepted' });
       if (!response.data?.success) {
         throw new Error(response.data?.error || 'Failed to respond');
       }

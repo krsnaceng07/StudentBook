@@ -216,11 +216,37 @@ export default function Profile() {
                 <Text className="text-xs font-bold mb-3" style={{ color: C.text }}>Links</Text>
                 <View className="gap-2">
                   {profile.social_links.github && (
-                    <TouchableOpacity onPress={() => Linking.openURL(`https://${profile.social_links.github}`)} className="flex-row items-center gap-3">
+                    <TouchableOpacity onPress={() => Linking.openURL(profile.social_links.github.startsWith('http') ? profile.social_links.github : `https://${profile.social_links.github}`)} className="flex-row items-center gap-3">
                       <View className="w-8 h-8 rounded-xl items-center justify-center" style={{ backgroundColor: '#24292e' }}><Ionicons name="logo-github" size={16} color="white" /></View>
                       <View><Text className="text-[10px] font-bold" style={{ color: C.muted }}>GitHub</Text><Text className="text-xs font-bold" style={{ color: C.primary }}>{profile.social_links.github}</Text></View>
                     </TouchableOpacity>
                   )}
+                  {profile.social_links.portfolio && (
+                    <TouchableOpacity onPress={() => Linking.openURL(profile.social_links.portfolio.startsWith('http') ? profile.social_links.portfolio : `https://${profile.social_links.portfolio}`)} className="flex-row items-center gap-3">
+                      <View className="w-8 h-8 rounded-xl items-center justify-center" style={{ backgroundColor: `${C.primary}22` }}><Ionicons name="globe-outline" size={16} color={C.primary} /></View>
+                      <View><Text className="text-[10px] font-bold" style={{ color: C.muted }}>Portfolio</Text><Text className="text-xs font-bold" style={{ color: C.primary }}>{profile.social_links.portfolio}</Text></View>
+                    </TouchableOpacity>
+                  )}
+                  {profile.social_links.linkedin && (
+                    <TouchableOpacity onPress={() => Linking.openURL(profile.social_links.linkedin.startsWith('http') ? profile.social_links.linkedin : `https://${profile.social_links.linkedin}`)} className="flex-row items-center gap-3">
+                      <View className="w-8 h-8 rounded-xl items-center justify-center" style={{ backgroundColor: '#0077B522' }}><Ionicons name="logo-linkedin" size={16} color="#0077B5" /></View>
+                      <View><Text className="text-[10px] font-bold" style={{ color: C.muted }}>LinkedIn</Text><Text className="text-xs font-bold" style={{ color: "#0077B5" }}>{profile.social_links.linkedin}</Text></View>
+                    </TouchableOpacity>
+                  )}
+                </View>
+              </View>
+            )}
+
+            {/* Interests */}
+            {profile?.interests?.length > 0 && (
+              <View className="p-4 rounded-[24px] mb-4 border" style={{ backgroundColor: C.card, borderColor: C.border }}>
+                <Text className="text-xs font-bold mb-3" style={{ color: C.text }}>Interests</Text>
+                <View className="flex-row flex-wrap gap-2">
+                  {profile.interests.map((i: string) => (
+                    <View key={i} className="px-3 py-1.5 rounded-full" style={{ backgroundColor: `${C.primary}18` }}>
+                      <Text className="text-[11px] font-bold" style={{ color: C.primary }}>{i}</Text>
+                    </View>
+                  ))}
                 </View>
               </View>
             )}

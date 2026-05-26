@@ -12,6 +12,7 @@ if (!supabaseUrl || !supabaseAnonKey) {
 export const supabase = createClient(supabaseUrl || '', supabaseAnonKey || '', {
   auth: {
     storage: AsyncStorage,
+    storageKey: 'studentsociety-auth-token',
     autoRefreshToken: true,
     persistSession: true,
     detectSessionInUrl: false,

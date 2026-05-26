@@ -3,7 +3,8 @@ import {
   sendConnectionRequest, 
   getIncomingRequests, 
   getOutgoingRequests, 
-  respondToRequest 
+  respondToRequest,
+  cancelConnectionRequest
 } from './connections.controller.js';
 import { authMiddleware } from '../../middleware/auth.middleware.js';
 import { roleMiddleware } from '../../middleware/role.middleware.js';
@@ -15,5 +16,6 @@ router.post('/request', authMiddleware, roleMiddleware(['student']), sendConnect
 router.get('/incoming', authMiddleware, roleMiddleware(['student']), getIncomingRequests);
 router.get('/outgoing', authMiddleware, roleMiddleware(['student']), getOutgoingRequests);
 router.put('/respond', authMiddleware, roleMiddleware(['student']), respondToRequest);
+router.delete('/request/:id', authMiddleware, roleMiddleware(['student']), cancelConnectionRequest);
 
 export default router;

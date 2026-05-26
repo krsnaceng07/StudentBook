@@ -58,6 +58,8 @@ export const useAuthStore = create((set) => ({
       if (isRefreshTokenError) {
         console.log('[AuthStore] Catch: Refresh token is invalid/expired. Clearing session.');
         try {
+          const AsyncStorage = require('@react-native-async-storage/async-storage').default;
+          await AsyncStorage.removeItem('studentsociety-auth-token');
           await supabase.auth.signOut();
         } catch (_) {}
         set({ 

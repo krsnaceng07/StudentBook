@@ -2,10 +2,16 @@ import '../global.css';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { useAuthStore } from '../store/authStore';
-import { View, ActivityIndicator, Text } from 'react-native';
+import { View, ActivityIndicator, Text, LogBox } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { useUIStore } from '../store/uiStore';
 import { StatusBar } from 'expo-status-bar';
+import { ThemeProvider, DarkTheme, DefaultTheme } from '@react-navigation/native';
+
+LogBox.ignoreLogs([
+  'AuthApiError: Invalid Refresh Token',
+  'Refresh Token Not Found',
+]);
 
 function NavigationGuard({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isStoreInitializing, user } = useAuthStore();
@@ -63,10 +69,12 @@ export default function RootLayout() {
 
   return (
     <SafeAreaProvider>
-      <StatusBar style={isDarkMode ? 'light' : 'dark'} />
-      <NavigationGuard>
-        <Stack screenOptions={{ headerShown: false }} />
-      </NavigationGuard>
+      <ThemeProvider value={isDarkMode ? DarkTheme : DefaultTheme}>
+        <StatusBar style={isDarkMode ? 'light' : 'dark'} />
+        <NavigationGuard>
+          <Stack screenOptions={{ headerShown: false }} />
+        </NavigationGuard>
+      </ThemeProvider>
     </SafeAreaProvider>
   );
 }

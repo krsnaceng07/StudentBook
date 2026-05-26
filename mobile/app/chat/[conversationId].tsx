@@ -6,6 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useUIStore } from '../../store/uiStore';
 import { useAuthStore } from '../../store/authStore';
 import client from '../../api/client';
+import { supabase } from '../../config/supabase';
 
 export default function ChatScreen() {
   const { conversationId, name, initials } = useLocalSearchParams();
@@ -34,10 +35,30 @@ export default function ChatScreen() {
 
   useEffect(() => {
     fetchChatHistory();
-    // Poll chat history every 4 seconds for live updates
-    const interval = setInterval(fetchChatHistory, 4000);
-    return () => clearInterval(interval);
-  }, [conversationId]);
+    
+    if (!conversationId) return;
+
+    // Subscribe to new messages for this conversation
+    const channel = supabase
+      .channel(`messages_${conversationId}`)
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'messages', filter: `conversation_id=eq.${conversationId}` },
+        (payload: any) => {
+          const newMsg = payload.new;
+          // If the message is from us, it's already added optimistically in handleSendMessage
+          if (newMsg && newMsg.sender_id !== user?.id) {
+             setMessages(prev => [...prev, newMsg]);
+             setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [conversationId, user?.id]);
 
   const handleSendMessage = async () => {
     if (!message.trim() || sending) return;

@@ -6,7 +6,35 @@ import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from 'expo-router';
 import client from '../../api/client';
 
-export default function Requests() {
+class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { hasError: boolean, error: Error | null }> {
+  constructor(props: any) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error: any) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: any, errorInfo: any) {
+    console.error("ErrorBoundary caught an error", error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <SafeAreaView style={{ flex: 1, padding: 20, justifyContent: 'center', alignItems: 'center', backgroundColor: '#0F172A' }}>
+          <Text style={{ fontSize: 18, fontWeight: 'bold', color: '#EF4444' }}>Render Error Caught:</Text>
+          <Text style={{ fontSize: 14, marginTop: 10, textAlign: 'center', color: '#FFF' }}>{this.state.error?.message}</Text>
+          <Text style={{ fontSize: 10, marginTop: 10, color: '#94A3B8', textAlign: 'center' }}>{this.state.error?.stack}</Text>
+        </SafeAreaView>
+      );
+    }
+    return this.props.children;
+  }
+}
+
+function RequestsContent() {
   const { isDarkMode } = useUIStore();
   const [activeTab, setActiveTab] = useState<'Incoming' | 'Outgoing'>('Incoming');
   const [loading, setLoading] = useState(false);
@@ -267,5 +295,13 @@ export default function Requests() {
         </ScrollView>
       )}
     </SafeAreaView>
+  );
+}
+
+export default function Requests() {
+  return (
+    <ErrorBoundary>
+      <RequestsContent />
+    </ErrorBoundary>
   );
 }

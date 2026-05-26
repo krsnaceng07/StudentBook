@@ -286,6 +286,48 @@ export const respondToRequest = async (req: Request, res: Response) => {
         action_type: 'connection_accepted',
         description: `Accepted collaboration request from ${conn.sender_id}`
       });
+
+      // --- AUTO-CREATE CONVERSATION ---
+      // Check if conversation already exists between the two users
+      const { data: existingConvs } = await supabase
+        .from('conversation_participants')
+        .select('conversation_id')
+        .eq('user_id', userId);
+        
+      let existingConvId = null;
+      if (existingConvs && existingConvs.length > 0) {
+        const convIds = existingConvs.map((c: any) => c.conversation_id);
+        const { data: sharedConvs } = await supabase
+          .from('conversation_participants')
+          .select('conversation_id')
+          .in('conversation_id', convIds)
+          .eq('user_id', conn.sender_id)
+          .limit(1);
+          
+        if (sharedConvs && sharedConvs.length > 0) {
+          existingConvId = sharedConvs[0].conversation_id;
+        }
+      }
+
+      if (!existingConvId) {
+        // Create new conversation
+        const { data: newConv, error: convErr } = await supabase
+          .from('conversations')
+          .insert({})
+          .select()
+          .single();
+          
+        if (!convErr && newConv) {
+          // Add both participants
+          await supabase.from('conversation_participants').insert([
+            { conversation_id: newConv.id, user_id: userId },
+            { conversation_id: newConv.id, user_id: conn.sender_id }
+          ]);
+        } else {
+          console.error('Failed to create conversation:', convErr);
+        }
+      }
+      // --------------------------------
     }
 
     res.status(200).json({
@@ -298,3 +340,42 @@ export const respondToRequest = async (req: Request, res: Response) => {
     res.status(500).json({ success: false, error: error.message });
   }
 };
+
+/**
+ * 5. Cancel outgoing connection request
+ * Route: DELETE /api/v1/connections/request/:id
+ */
+export const cancelConnectionRequest = async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).user?.id;
+    const { id } = req.params;
+
+    if (!userId) return res.status(401).json({ success: false, error: 'Unauthorized' });
+    if (!id) return res.status(400).json({ success: false, error: 'Request ID is required' });
+
+    // Verify the request exists and belongs to the sender
+    const { data: conn, error: fetchErr } = await supabase
+      .from('connections')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (fetchErr || !conn) return res.status(404).json({ success: false, error: 'Connection request not found' });
+    if (conn.sender_id !== userId) return res.status(403).json({ success: false, error: 'Forbidden' });
+    if (conn.status !== 'pending') return res.status(400).json({ success: false, error: 'Only pending requests can be cancelled' });
+
+    // Delete the request
+    const { error: deleteErr } = await supabase
+      .from('connections')
+      .delete()
+      .eq('id', id);
+
+    if (deleteErr) throw deleteErr;
+
+    res.status(200).json({ success: true, message: 'Connection request cancelled successfully' });
+  } catch (error: any) {
+    console.error('Error cancelling connection request:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+

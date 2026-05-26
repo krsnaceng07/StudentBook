@@ -38,6 +38,7 @@ export default function EditProfile() {
   const [bio, setBio] = useState('');
   const [githubUrl, setGithubUrl] = useState('');
   const [portfolioUrl, setPortfolioUrl] = useState('');
+  const [linkedinUrl, setLinkedinUrl] = useState('');
 
   // Skills & Interests Lists
   const [skills, setSkills] = useState<string[]>([]);
@@ -61,6 +62,7 @@ export default function EditProfile() {
           setBio(p.bio || '');
           setGithubUrl(p.social_links?.github || '');
           setPortfolioUrl(p.social_links?.portfolio || '');
+          setLinkedinUrl(p.social_links?.linkedin || '');
           setSkills(p.skills || []);
           setInterests(p.interests || []);
           setAvailability(p.availability !== false); // default to true
@@ -97,6 +99,7 @@ export default function EditProfile() {
         social_links: {
           github: githubUrl.trim(),
           portfolio: portfolioUrl.trim(),
+          linkedin: linkedinUrl.trim(),
         }
       });
 
@@ -334,6 +337,23 @@ export default function EditProfile() {
                 value={portfolioUrl}
                 onChangeText={setPortfolioUrl}
                 placeholder="yourportfolio.com"
+                placeholderTextColor={isDarkMode ? '#64748B' : '#94A3B8'}
+                autoCapitalize="none"
+                className={`rounded-2xl border px-4 py-3.5 text-xs font-medium ${
+                  isDarkMode 
+                    ? 'bg-slate-900 border-slate-800 text-white' 
+                    : 'bg-white border-slate-200 text-slate-900 shadow-sm'
+                }`}
+              />
+            </View>
+
+            {/* LinkedIn URL */}
+            <View>
+              <Text className={`text-xs font-bold mb-2 ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>LinkedIn URL</Text>
+              <TextInput
+                value={linkedinUrl}
+                onChangeText={setLinkedinUrl}
+                placeholder="linkedin.com/in/yourprofile"
                 placeholderTextColor={isDarkMode ? '#64748B' : '#94A3B8'}
                 autoCapitalize="none"
                 className={`rounded-2xl border px-4 py-3.5 text-xs font-medium ${

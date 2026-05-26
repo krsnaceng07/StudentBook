@@ -70,10 +70,68 @@ export const getProfileById = async (req: Request, res: Response) => {
       throw error;
     }
 
+    // Fetch live stats for connections and events
+    const { count: connectionsCount } = await supabase
+      .from('connections')
+      .select('*', { count: 'exact', head: true })
+      .or(`sender_id.eq.${id},receiver_id.eq.${id}`)
+      .eq('status', 'accepted');
+
+    const { count: eventsJoinedCount } = await supabase
+      .from('event_registrations')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', id);
+
+    const stats = {
+      connections: connectionsCount || 0,
+      events_joined: eventsJoinedCount || 0,
+    };
+
+    // Fetch connection status with current user
+    const currentUserId = (req as any).user?.id;
+    let connection_info = null;
+
+    if (currentUserId && currentUserId !== id) {
+      const { data: conn } = await supabase
+        .from('connections')
+        .select('id, status, sender_id, receiver_id')
+        .or(`and(sender_id.eq.${currentUserId},receiver_id.eq.${id}),and(sender_id.eq.${id},receiver_id.eq.${currentUserId})`)
+        .single();
+      
+      if (conn) {
+        connection_info = {
+          id: conn.id,
+          status: conn.status,
+          is_sender: conn.sender_id === currentUserId
+        };
+        
+        if (conn.status === 'accepted') {
+           const { data: convs } = await supabase
+             .from('conversation_participants')
+             .select('conversation_id')
+             .eq('user_id', currentUserId);
+           if (convs && convs.length > 0) {
+             const convIds = convs.map((c: any) => c.conversation_id);
+             const { data: shared } = await supabase
+               .from('conversation_participants')
+               .select('conversation_id')
+               .in('conversation_id', convIds)
+               .eq('user_id', id)
+               .limit(1);
+             if (shared && shared.length > 0) {
+               connection_info.conversation_id = shared[0].conversation_id;
+             }
+           }
+        }
+      }
+    }
+
     res.status(200).json({ 
       success: true, 
       data: {
-        profile
+        profile,
+        stats,
+        connection_info
       }
     });
   } catch (error: any) {
